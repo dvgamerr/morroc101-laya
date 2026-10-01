@@ -170,7 +170,7 @@ export function createReflex(page, brain) {
         if (item.dist <= 1.5) return act(page, 'pickup', { GID: item.GID });
         if (movedRecently('pickup_item')) return;
         markMove('pickup_item');
-        return act(page, 'move', { x: item.x, y: item.y });
+        return act(page, 'walk_to', { x: item.x, y: item.y });
       }
       case 'retreat': {
         if (movedRecently('retreat')) return;
@@ -181,7 +181,8 @@ export function createReflex(page, brain) {
         const cy = foes.reduce((s, m) => s + m.y, 0) / (foes.length || 1);
         const dx = Math.sign(me.x - cx) || 1;
         const dy = Math.sign(me.y - cy) || 1;
-        return act(page, 'move', { x: me.x + dx * 8, y: me.y + dy * 8 });
+        // walk_to goes round walls, or to the reachable cell nearest the escape point.
+        return act(page, 'walk_to', { x: me.x + dx * 10, y: me.y + dy * 10 });
       }
       case 'rest':
         return me.sitting ? undefined : act(page, 'sit');

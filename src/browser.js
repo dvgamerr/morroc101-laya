@@ -139,4 +139,6 @@ export async function waitForInGame(page, onWait) {
 
 export const snapshot = (page) => page.evaluate(() => window.__agent?.snapshot() ?? { ready: false });
 export const drainEvents = (page) => page.evaluate(() => window.__agent?.drain() ?? []);
+export const exploreTarget = (page, min, max, avoid) =>
+  page.evaluate(([a, b, c]) => window.__agent.exploreTarget(a, b, c), [min, max, avoid ?? []]);
 export const act = (page, name, arg) => page.evaluate(([n, a]) => window.__agent.act(n, a), [name, arg ?? {}]);

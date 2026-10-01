@@ -4,7 +4,11 @@ process.env.LAYA_API_KEY ||= 'test';
 process.env.OMLX_API_KEY ||= 'test';
 
 const calls = [];
-mock.module('../src/browser.js', () => ({ act: async (_p, name, arg) => calls.push([name, arg]) }));
+mock.module('../src/browser.js', () => ({
+  act: async (_p, name, arg) => calls.push([name, arg]),
+  exploreTarget: async () => null,
+  query: async () => [],
+}));
 mock.module('../src/logger.js', () => ({ log: () => {} }));
 const { createTravel } = await import('../src/travel.js');
 
@@ -75,6 +79,19 @@ test('types @go, and turns @go off when the server ignores it', async () => {
   await t.tick(snap({}, n));
   expect(t.canGo).toBe(false);
   expect(calls.at(-1)).toEqual(['navi_start', { map: 'prt_fild08', useGo: false }]);
+});
+
+test('walks round with BFS when the client has no path or progress stalls', async () => {
+  const tr = createTravel({});
+  await tr.start('moc_fild07');
+  calls.length = 0;
+  const leg = { kind: 'portal', x: 160, y: 40 };
+  await tr.tick(snap({}, { dest: 'moc_fild07', leg, ahead: null }));
+  expect(calls).toEqual([['walk_to', { x: 160, y: 40 }]]);
+  calls.length = 0;
+  tick(9000); // standing still past DETOUR_AFTER_MS, client path present
+  await tr.tick(snap({}, { dest: 'moc_fild07', leg, ahead: { x: 150, y: 90 } }));
+  expect(calls).toEqual([['walk_to', { x: 160, y: 40 }]]);
 });
 
 test('fails when there is no route or the character stops moving', async () => {

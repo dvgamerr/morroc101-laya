@@ -7,6 +7,8 @@ const MOVE_GAP_MS = 2500;
 const IDLE_MOVE_GAP_MS = 700;
 const STUCK_MS = 25000;
 const TRIP_TIMEOUT_MS = 15 * 60 * 1000;
+const PLANNING_GRACE_MS = 60000;
+const DETOUR_AFTER_MS = 8000;
 
 /**
  * Get to another map. The client's NaviRoute plans the whole trip (portals and
@@ -82,7 +84,11 @@ export function createTravel(page) {
       return 'failed';
     }
     const leg = n.leg;
-    if (!leg) return 'traveling'; // still planning
+    if (!leg) {
+      // Still planning (or NaviData still loading): standing still isn't being stuck, for a while.
+      if (now - t.startedAt < PLANNING_GRACE_MS) t.lastProgressAt = now;
+      return 'traveling';
+    }
 
     if (leg.kind === 'go') {
       if (now - t.lastGoAt < GO_RETRY_MS) return 'traveling';
@@ -102,14 +108,16 @@ export function createTravel(page) {
     }
 
     // portal / arrive: walk. Near the portal, step exactly onto it.
-    const dLeg = Math.max(Math.abs(me.x - leg.x), Math.abs(me.y - leg.y));
-    const target = dLeg <= 3 || !n.ahead ? { x: leg.x, y: leg.y } : n.ahead;
     const gap = me.walking ? MOVE_GAP_MS : IDLE_MOVE_GAP_MS;
-    if (now - t.lastMoveAt >= gap) {
-      t.lastMoveAt = now;
-      if (me.sitting) await act(page, 'stand');
-      await act(page, 'move', { x: target.x, y: target.y });
-    }
+    if (now - t.lastMoveAt < gap) return 'traveling';
+    t.lastMoveAt = now;
+    if (me.sitting) await act(page, 'stand');
+    const dLeg = Math.max(Math.abs(me.x - leg.x), Math.abs(me.y - leg.y));
+    const blocked = now - t.lastProgressAt > DETOUR_AFTER_MS;
+    if (dLeg <= 3) await act(page, 'move', { x: leg.x, y: leg.y });
+    else if (n.ahead && !blocked) await act(page, 'move', { x: n.ahead.x, y: n.ahead.y });
+    // No client path yet, or following it isn't getting us anywhere: our own BFS round the obstacle.
+    else await act(page, 'walk_to', { x: leg.x, y: leg.y });
     return 'traveling';
   }
 

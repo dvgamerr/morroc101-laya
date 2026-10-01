@@ -184,6 +184,111 @@ export function installPageAgent() {
 
   A.drain = () => A.events.splice(0, A.events.length);
 
+  // ---- Walking on the map grid -------------------------------------------------
+  // The client's PathFinding.search stops at ~145 nodes, like the server's own
+  // walk limit; fine for one step, useless for getting round a long wall. This is
+  // a plain BFS over the same GAT cells, so it finds the way round anything.
+
+  function grid() {
+    const g = window.RO.PathFinding.getGat();
+    if (!g || !g.cells || !g.width) return null;
+    const WALK = g.type.WALKABLE;
+    return { w: g.width, h: g.height, ok: (x, y) => x >= 0 && y >= 0 && x < g.width && y < g.height && (g.cells[x + y * g.width] & WALK) !== 0 };
+  }
+
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+
+  /** BFS from (sx,sy); stops at `goal(x,y)` or after `maxSteps`. Returns {found, prev, dist, g}. */
+  function bfs(sx, sy, goal, maxSteps) {
+    const g = grid();
+    if (!g || !g.ok(sx, sy)) return null;
+    const size = g.w * g.h;
+    const dist = new Int16Array(size).fill(-1);
+    const prev = new Int32Array(size).fill(-1);
+    const queue = new Int32Array(size);
+    let head = 0;
+    let tail = 0;
+    const start = sx + sy * g.w;
+    dist[start] = 0;
+    queue[tail++] = start;
+    while (head < tail) {
+      const i = queue[head++];
+      const x = i % g.w;
+      const y = (i / g.w) | 0;
+      if (goal && goal(x, y)) return { found: i, prev, dist, g };
+      if (dist[i] >= maxSteps) continue;
+      for (const [dx, dy] of DIRS) {
+        const nx = x + dx;
+        const ny = y + dy;
+        // No corner cutting: a diagonal needs both sides open, as in the client.
+        if (!g.ok(nx, ny) || (dx && dy && (!g.ok(x + dx, y) || !g.ok(x, y + dy)))) continue;
+        const j = nx + ny * g.w;
+        if (dist[j] !== -1) continue;
+        dist[j] = dist[i] + 1;
+        prev[j] = i;
+        queue[tail++] = j;
+      }
+    }
+    return { found: -1, prev, dist, g };
+  }
+
+  /** Path cells from start to `end` index, start excluded. */
+  function trace(r, end) {
+    const out = [];
+    for (let i = end; i !== -1 && r.dist[i] > 0; i = r.prev[i]) out.push([i % r.g.w, (i / r.g.w) | 0]);
+    return out.reverse();
+  }
+
+  /**
+   * The next waypoint (at most `step` cells along the real path) toward (tx,ty),
+   * or toward the nearest walkable cell to it. null when there is no way at all.
+   */
+  A.waypoint = (tx, ty, step = 12, maxSteps = 600) => {
+    const me = window.RO.me();
+    const sx = Math.round(me.x);
+    const sy = Math.round(me.y);
+    const r = bfs(sx, sy, (x, y) => Math.abs(x - tx) <= 1 && Math.abs(y - ty) <= 1, maxSteps);
+    if (!r) return null;
+    let end = r.found;
+    if (end === -1) {
+      // Target itself unreachable (wall, water): go to the reachable cell closest to it.
+      let best = Infinity;
+      for (let i = 0; i < r.dist.length; i++) {
+        if (r.dist[i] < 0) continue;
+        const d = Math.max(Math.abs((i % r.g.w) - tx), Math.abs(((i / r.g.w) | 0) - ty));
+        if (d < best) {
+          best = d;
+          end = i;
+        }
+      }
+      if (end === -1 || r.dist[end] === 0) return null;
+    }
+    const path = trace(r, end);
+    if (!path.length) return { x: sx, y: sy, length: 0, exact: true }; // already there
+    const [x, y] = path[Math.min(step, path.length) - 1];
+    return { x, y, length: path.length, exact: r.found !== -1 };
+  };
+
+  /** A random cell we can actually walk to, between minSteps and maxSteps away. */
+  A.exploreTarget = (minSteps = 10, maxSteps = 35, avoid = []) => {
+    const me = window.RO.me();
+    const r = bfs(Math.round(me.x), Math.round(me.y), null, maxSteps);
+    if (!r) return null;
+    const far = [];
+    for (let i = 0; i < r.dist.length; i++) {
+      if (r.dist[i] < minSteps) continue;
+      const x = i % r.g.w;
+      const y = (i / r.g.w) | 0;
+      // Prefer places we haven't just been (coarse 20-cell buckets).
+      if (avoid.some(([ax, ay]) => Math.abs(ax - x) < 20 && Math.abs(ay - y) < 20)) continue;
+      far.push([x, y]);
+    }
+    if (!far.length) for (let i = 0; i < r.dist.length; i++) if (r.dist[i] >= minSteps) far.push([i % r.g.w, (i / r.g.w) | 0]);
+    if (!far.length) return null;
+    const [x, y] = far[(Math.random() * far.length) | 0];
+    return { x, y };
+  };
+
   const send = (Struct, fields) => {
     const pkt = new Struct();
     Object.assign(pkt, fields);
@@ -198,6 +303,13 @@ export function installPageAgent() {
         return RO.attack(arg.GID);
       case 'move':
         return RO.moveTo(arg.x, arg.y);
+      case 'walk_to': {
+        // Walk toward any cell, round walls: next waypoint on the BFS path, <=12 cells
+        // so rAthena's 17-cell walk limit never drops the request.
+        const wp = A.waypoint(arg.x, arg.y, arg.step || 12);
+        if (wp) RO.moveTo(wp.x, wp.y);
+        return wp;
+      }
       case 'stop_auto':
         return RO.AutoCombat.stop();
       case 'pickup':

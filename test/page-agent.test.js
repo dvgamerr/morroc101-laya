@@ -143,3 +143,43 @@ test('map names lose the client .gat suffix so they match the navigation data', 
   RO.me = () => ({ name: 'Bot', GID: 100, map: 'yuno_fild03.gat', x: 50, y: 60, hp: 10, maxHp: 10, playing: true });
   expect(window.__agent.snapshot().me.map).toBe('yuno_fild03');
 });
+
+// 10x7 map with a wall at x=5 from y=0..5; the only gap is at y=6.
+function walledGrid() {
+  const w = 10, h = 7, cells = new Uint8Array(w * h).fill(1);
+  for (let y = 0; y <= 5; y++) cells[5 + y * w] = 0;
+  return { width: w, height: h, cells, type: { WALKABLE: 1 } };
+}
+
+test('waypoint walks round a wall instead of into it', () => {
+  RO.PathFinding = { getGat: walledGrid };
+  RO.me = () => ({ x: 2, y: 1, map: 'x', playing: true });
+  const wp = window.__agent.waypoint(8, 1, 50);
+  expect(wp.exact).toBe(true);
+  expect(wp.x).toBeGreaterThanOrEqual(7);
+  expect(wp.length).toBeGreaterThan(8); // down to y=6, through the gap, back up
+  const first = window.__agent.waypoint(8, 1, 3);
+  expect(first.y).toBeGreaterThan(1); // first steps head down toward the gap, not into the wall
+});
+
+test('waypoint to an unreachable cell goes to the nearest reachable one', () => {
+  const g = walledGrid();
+  g.cells[5 + 6 * 10] = 0; // close the gap
+  RO.PathFinding = { getGat: () => g };
+  RO.me = () => ({ x: 2, y: 1, map: 'x', playing: true });
+  const wp = window.__agent.waypoint(8, 1, 50);
+  expect(wp.exact).toBe(false);
+  expect(wp.x).toBe(4);
+});
+
+test('exploreTarget only returns reachable cells, never inside the wall', () => {
+  const g = walledGrid();
+  g.cells[5 + 6 * 10] = 0; // right half unreachable
+  RO.PathFinding = { getGat: () => g };
+  RO.me = () => ({ x: 1, y: 1, map: 'x', playing: true });
+  for (let i = 0; i < 20; i++) {
+    const p = window.__agent.exploreTarget(3, 30);
+    expect(p).not.toBe(null);
+    expect(p.x).toBeLessThan(5);
+  }
+});
