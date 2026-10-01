@@ -138,3 +138,8 @@ test('hp 0 before the first status packet is not death', () => {
   RO.me = () => ({ name: 'Bot', GID: 100, map: 'prt_fild08', x: 50, y: 60, hp: 0, maxHp: 0, playing: true });
   expect(window.__agent.snapshot().me.dead).toBe(false);
 });
+
+test('map names lose the client .gat suffix so they match the navigation data', () => {
+  RO.me = () => ({ name: 'Bot', GID: 100, map: 'yuno_fild03.gat', x: 50, y: 60, hp: 10, maxHp: 10, playing: true });
+  expect(window.__agent.snapshot().me.map).toBe('yuno_fild03');
+});

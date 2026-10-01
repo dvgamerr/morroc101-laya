@@ -139,6 +139,8 @@ export function installPageAgent() {
       inGame: true,
       me: {
         ...me,
+        // MapRenderer.currentMap is "prontera.gat"; the navigation data and the server say "prontera".
+        map: String(me.map || '').replace(/\.(gat|rsw)$/i, ''),
         baseLevel: A.stats.baseLevel ?? session.clevel,
         jobLevel: A.stats.jobLevel ?? session.joblevel,
         jobId: A.stats.job ?? session._job ?? session.job,
