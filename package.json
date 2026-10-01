@@ -1,0 +1,15 @@
+{
+  "name": "morroc101-laya",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun src/main.js",
+    "check": "bun src/check.js",
+    "check:browser": "bun src/check-browser.js",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "playwright": "^1.55.0"
+  }
+}
