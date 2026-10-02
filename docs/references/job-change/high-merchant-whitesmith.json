@@ -1,0 +1,18 @@
+{
+  "from": "High Merchant",
+  "to": "Whitesmith",
+  "aliases": [
+    "Whitesmith",
+    "Mastersmith"
+  ],
+  "steps": [
+    "High Merchant Job 40 ขั้นต่ำตามคู่มือ Renewal; แนะนำ Job 50 ให้ skill point ครบ",
+    "Whitesmith และ Mastersmith เป็นชื่ออาชีพเดียวกัน",
+    "แนวทางเควส: Book of Ymir ที่ Yuno → Valhalla → Mastersmith NPC; ต้องเป็นสาย Blacksmith ก่อนจุติ"
+  ],
+  "sources": [
+    "https://ragnaroksearch.com/renewal/quests/whitesmith-job-change",
+    "https://irowiki.org/wiki/Mastersmith"
+  ],
+  "server": "โครงการใช้ Job Master จาก world directory; ยังไม่ยืนยันเงื่อนไขเฉพาะเซิร์ฟทั้งหมดจาก NPC. รายละเอียดเควสทางการเป็นข้อมูลอ้างอิง ไม่ใช่คำสั่งให้บอททำเควสหรือทิ้งของอัตโนมัติ."
+}

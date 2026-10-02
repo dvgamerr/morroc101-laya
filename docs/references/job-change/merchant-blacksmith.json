@@ -1,0 +1,15 @@
+{
+  "from": "Merchant",
+  "to": "Blacksmith",
+  "aliases": [
+    "Blacksmith"
+  ],
+  "steps": [
+    "Merchant Job 40 ขั้นต่ำ; Job 50 ได้ skill point ครบ",
+    "แนวทางเควส: Altiregen ที่กิลด์ Einbroch → Geschupenschte ใน Einbech → ตอบคำถาม รวบรวมและส่งของ"
+  ],
+  "sources": [
+    "https://irowiki.org/wiki/Blacksmith_Job_Change_Guide"
+  ],
+  "server": "โครงการใช้ Job Master จาก world directory; ยังไม่ยืนยันเงื่อนไขเฉพาะเซิร์ฟทั้งหมดจาก NPC. รายละเอียดเควสทางการเป็นข้อมูลอ้างอิง ไม่ใช่คำสั่งให้บอททำเควสหรือทิ้งของอัตโนมัติ."
+}

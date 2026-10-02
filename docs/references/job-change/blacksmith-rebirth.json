@@ -1,0 +1,21 @@
+{
+  "from": "Blacksmith",
+  "to": "High Novice",
+  "aliases": [
+    "High Novice",
+    "Rebirth",
+    "Reborn",
+    "Transcend"
+  ],
+  "steps": [
+    "Blacksmith Base 99 Job 50 → จุติเป็น High Novice แล้วเริ่มเก็บเลเวลใหม่",
+    "ก่อนทำตามเควสทางการ ต้องตรวจเงื่อนไข NPC ของเซิร์ฟจริง",
+    "แนวทาง Revo-Classic: ใช้ stat/skill point หมด ถอดอุปกรณ์ น้ำหนักและของในตัว/รถเข็นเป็นศูนย์ ไม่มีรถเข็น/สัตว์ติดตาม และเงิน 1,285,000 zeny ตามคู่มือนี้เท่านั้น",
+    "Metheus Sylphe → Book of Ymir → Heart of Ymir → Valkyrie",
+    "ห้ามเอาค่าธรรมเนียมหรือเงื่อนไข classic ไปใช้กับ Job Master โดยถือว่ายืนยันแล้ว"
+  ],
+  "sources": [
+    "https://99porings.com/revo-classic/transcendent/high-novice"
+  ],
+  "server": "โครงการใช้ Job Master จาก world directory; ยังไม่ยืนยันเงื่อนไขเฉพาะเซิร์ฟทั้งหมดจาก NPC. รายละเอียดเควสทางการเป็นข้อมูลอ้างอิง ไม่ใช่คำสั่งให้บอททำเควสหรือทิ้งของอัตโนมัติ."
+}

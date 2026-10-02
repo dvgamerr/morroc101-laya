@@ -1,0 +1,15 @@
+{
+  "from": "Novice",
+  "to": "Merchant",
+  "aliases": [
+    "Merchant"
+  ],
+  "steps": [
+    "Novice Job 10 และ Basic Skill 9",
+    "แนวทาง iRO: คุย Mahnsoo ที่ Merchant Guild เมือง Alberta"
+  ],
+  "sources": [
+    "https://irowiki.org/wiki/Merchant"
+  ],
+  "server": "โครงการใช้ Job Master จาก world directory; ยังไม่ยืนยันเงื่อนไขเฉพาะเซิร์ฟทั้งหมดจาก NPC. รายละเอียดเควสทางการเป็นข้อมูลอ้างอิง ไม่ใช่คำสั่งให้บอททำเควสหรือทิ้งของอัตโนมัติ."
+}

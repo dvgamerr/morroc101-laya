@@ -1,0 +1,65 @@
+[
+  {
+    "id": "novice-merchant",
+    "from": "Novice",
+    "to": "Merchant",
+    "base": 1,
+    "job": 10,
+    "recommendedJob": 10,
+    "kind": "อาชีพ 1"
+  },
+  {
+    "id": "merchant-blacksmith",
+    "from": "Merchant",
+    "to": "Blacksmith",
+    "base": 1,
+    "job": 40,
+    "recommendedJob": 50,
+    "kind": "อาชีพ 2"
+  },
+  {
+    "id": "blacksmith-rebirth",
+    "from": "Blacksmith",
+    "to": "High Novice",
+    "base": 99,
+    "job": 50,
+    "recommendedJob": 50,
+    "kind": "จุติ (ไม่ใช่อาชีพ 3)"
+  },
+  {
+    "id": "high-novice-merchant",
+    "from": "High Novice",
+    "to": "High Merchant",
+    "base": 1,
+    "job": 10,
+    "recommendedJob": 10,
+    "kind": "อาชีพ 1 ไฮคลาส"
+  },
+  {
+    "id": "high-merchant-whitesmith",
+    "from": "High Merchant",
+    "to": "Whitesmith",
+    "base": 1,
+    "job": 40,
+    "recommendedJob": 50,
+    "kind": "อาชีพ 2 ไฮคลาส"
+  },
+  {
+    "id": "whitesmith-mechanic",
+    "from": "Whitesmith",
+    "to": "Mechanic",
+    "base": 99,
+    "job": 50,
+    "recommendedJob": 70,
+    "kind": "อาชีพ 3"
+  },
+  {
+    "id": "mechanic-meister",
+    "from": "Mechanic",
+    "to": "Meister",
+    "base": 200,
+    "job": 70,
+    "recommendedJob": 70,
+    "kind": "อาชีพ 4"
+  }
+]

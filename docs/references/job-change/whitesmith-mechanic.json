@@ -1,0 +1,15 @@
+{
+  "from": "Whitesmith",
+  "to": "Mechanic",
+  "aliases": [
+    "Mechanic"
+  ],
+  "steps": [
+    "Whitesmith/Mastersmith Base 99 Job 50 ขั้นต่ำ; แนะนำ Job 70 เพราะแต้มที่ข้ามไปเอาคืนไม่ได้",
+    "แนวทางเควส: Chainheart ที่ Yuno → นักวิจัยทางเข้า Juperos → คุยวิญญาณและสำรวจจุดในพื้นที่ทดสอบ → กลับ Chainheart"
+  ],
+  "sources": [
+    "https://irowiki.org/wiki/Mechanic_Job_Change_Guide"
+  ],
+  "server": "โครงการใช้ Job Master จาก world directory; ยังไม่ยืนยันเงื่อนไขเฉพาะเซิร์ฟทั้งหมดจาก NPC. รายละเอียดเควสทางการเป็นข้อมูลอ้างอิง ไม่ใช่คำสั่งให้บอททำเควสหรือทิ้งของอัตโนมัติ."
+}

@@ -1,0 +1,15 @@
+{
+  "from": "High Novice",
+  "to": "High Merchant",
+  "aliases": [
+    "High Merchant"
+  ],
+  "steps": [
+    "High Novice Job 10 และ Basic Skill 9 → High Merchant",
+    "แนวทางเควส: กลับ Merchant Guild เมือง Alberta"
+  ],
+  "sources": [
+    "https://ragnaroksearch.com/renewal/quests/whitesmith-job-change"
+  ],
+  "server": "โครงการใช้ Job Master จาก world directory; ยังไม่ยืนยันเงื่อนไขเฉพาะเซิร์ฟทั้งหมดจาก NPC. รายละเอียดเควสทางการเป็นข้อมูลอ้างอิง ไม่ใช่คำสั่งให้บอททำเควสหรือทิ้งของอัตโนมัติ."
+}

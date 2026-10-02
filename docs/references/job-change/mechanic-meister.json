@@ -1,0 +1,17 @@
+{
+  "from": "Mechanic",
+  "to": "Meister",
+  "aliases": [
+    "Meister"
+  ],
+  "steps": [
+    "ใช้เกณฑ์ RO ไทย Base 200 Job 70 ใช้ skill point หมด",
+    "Roday ที่ Yuno → Maura ที่ Verus → สร้างปาร์ตี้เป็นหัวหน้า → เข้า E-Type Gear instance → ตรวจร่องรอยและพบ Maura → ออกจาก instance ถอด Madogear แล้วคุย Maura",
+    "iRO มีขั้นต่ำ Job 60 ต่างจาก RO ไทย; อย่าสลับเกณฑ์เองโดยไม่มีหลักฐานจากเซิร์ฟจริง"
+  ],
+  "sources": [
+    "https://ro.gnjoy.in.th/meister-job-change-guide/",
+    "https://irowiki.org/wiki/Meister_Job_Change_Guide"
+  ],
+  "server": "โครงการใช้ Job Master จาก world directory; ยังไม่ยืนยันเงื่อนไขเฉพาะเซิร์ฟทั้งหมดจาก NPC. รายละเอียดเควสทางการเป็นข้อมูลอ้างอิง ไม่ใช่คำสั่งให้บอททำเควสหรือทิ้งของอัตโนมัติ."
+}
