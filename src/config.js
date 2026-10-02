@@ -35,6 +35,8 @@ export const config = {
     .filter(Boolean),
   // Stat/skill build for the whole path (build.js BUILDS key) and how to describe it to the LLM.
   build: env('BUILD', 'axe_meister'),
+  // Owner-confirmed Priest following and healing; disable when hunting solo.
+  priestSupport: env('PRIEST_SUPPORT', 'true') === 'true',
   buildDescription: env('BUILD_DESCRIPTION', 'Two-handed Axe Meister: STR main, DEX to hit, VIT to survive, some AGI; axe skills'),
   // Optional: goal changes are posted here.
   discordWebhook: env('DISCORD_WEBHOOK_URL', ''),

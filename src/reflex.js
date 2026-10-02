@@ -6,7 +6,7 @@ import { SPLASH_MIN } from './skills.js';
 
 // Renewal/pre-renewal consumables. Unknown healing items fall back to item type 0 (HEALING).
 const HP_ITEMS = [569, 501, 507, 502, 508, 503, 545, 504, 546, 547, 509, 512, 513, 515, 516];
-const SP_ITEMS = [505, 510, 11502, 11503];
+const SP_ITEMS = [505, 510, 518, 526, 11502, 11503];
 // Owner's rule: Novice Fly Wing first, then Fly Wings (601) — bought at the Tool Dealer on every
 // trip (errand.js) to warp around the hunting map for monsters. No Butterfly Wing to go to town — @go does that. Novice Butterfly Wing
 // stays as a last-resort escape.

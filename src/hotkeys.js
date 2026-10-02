@@ -3,7 +3,7 @@ import { log } from './logger.js';
 import { healRange } from './potions.js';
 
 // The shortcut bar, as the owner wants it: 3 rows of 9.
-//   F1-F9  (slots 0-8)   buffs
+//   F1-F8 buffs; F9 (slot 8) Item Appraisal / Magnifier
 //   1-9    (slots 9-17)  attack skills
 //   Q-O    (slots 18-26) items: HP potions, SP potion, Novice Fly/Butterfly Wing
 export const ROWS = { buffs: 0, attacks: 9, items: 18 };
@@ -13,7 +13,7 @@ export const KEY_NAMES = [
   ...['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O'],
 ];
 
-const SP_ITEMS = [505, 510, 11502, 11503];
+const SP_ITEMS = [505, 510, 518, 526, 11502, 11503];
 const WINGS = [12323, 601, 12324]; // Novice Fly Wing, Fly Wing (only what's in the bag), Novice Butterfly Wing
 const SYNC_EVERY_MS = 10000;
 
@@ -47,9 +47,9 @@ export function createHotkeys(page) {
       [ROWS.items, items.map((it) => ({ isSkill: false, ID: it.ITID, count: it.count }))],
     ];
     for (const [start, entries] of rows) {
-      const slotsOfRow = Array.from({ length: 9 }, (_, i) => start + i);
+      const slotsOfRow = Array.from({ length: start === ROWS.buffs ? 8 : 9 }, (_, i) => start + i);
       const pending = [];
-      for (const e of entries.slice(0, 9)) {
+      for (const e of entries.slice(0, slotsOfRow.length)) {
         const keep = slotsOfRow.find((sl) => h.slots.get(sl) === `${e.isSkill ? 's' : 'i'}:${e.ID}`);
         if (keep !== undefined) want.set(keep, e);
         else pending.push(e);
@@ -59,6 +59,8 @@ export function createHotkeys(page) {
         if (free !== undefined) want.set(free, e);
       }
     }
+    if (lvl(40)) want.set(8, { isSkill: true, ID: 40, count: lvl(40) });
+    else if (inv.some((i) => i.ITID === 611 && i.count > 0)) want.set(8, { isSkill: false, ID: 611, count: 1 });
     return want;
   }
 

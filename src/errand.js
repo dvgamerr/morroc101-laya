@@ -4,9 +4,10 @@ import { findNpcEntity } from './npc.js';
 import { spareGear } from './gear.js';
 import { log } from './logger.js';
 import { learn } from './lessons.js';
+import { createPotionLoadout, isHealing } from './potion-loadout.js';
 import { shopsSelling, travelCosts } from './world.js';
 import { zenyReserve } from './goals.js';
-import { POTIONS, SP_POTIONS, choosePotion, stockHp, stockSp, healOf, healRange, WEAK_HEAL_SHARE } from './potions.js';
+import { POTIONS, SP_POTIONS, choosePotion, stockHp, stockSp, healOf, healRange, spRange, WEAK_HEAL_SHARE } from './potions.js';
 
 const MIN_BUY = 10; // not worth the trip for fewer
 const MIN_SP_BUY = 3; // Blue Potions are dear; a few are already worth it
@@ -156,8 +157,14 @@ export function spareSupplies(inv, me, rates = null) {
 /**
  * @param {() => number|null} getDps worst damage per second seen while fighting (potions.js tracker)
  */
-export function createErrand(page, world, travel, getDps = () => null) {
+export function createErrand(page, world, travel, getDps = () => null, review = null) {
   const e = { active: false, stage: 'idle', shop: null, stageAt: 0, badShops: new Map(), cooldownUntil: 0, plan: null, sold: 0, bought: [], prices: loadPrices(), usage: [], prevStock: null, obsSince: 0, savedRates: loadRates(), goal: null, goalSince: 0 };
+  const loadout = createPotionLoadout();
+  const saleItems = (snap) => {
+    const reviewed = (review?.saleItems(snap) || []).filter((i) => !isHealing(i));
+    const extras = e.cleanup ? loadout.surplus(snap, e.selection) : [];
+    return [...reviewed, ...extras];
+  };
   e.levelRates = e.savedRates?.level || null;
 
   /** Asked from outside: the bottles we carry can't keep up with this map — buy this one. */
@@ -174,7 +181,7 @@ export function createErrand(page, world, travel, getDps = () => null) {
       const r = e.request;
       e.request = null;
       e.choice = { potion: r.potion, reason: r.why, stock: stockHp(inv, me) };
-      return { buy: r.potion, sell: sellable(inv, snap.worn, snap.me, e.levelRates).length > 0 };
+      return { buy: r.potion, sell: saleItems(snap).length > 0 };
     }
     // Which potion is decided by how hard we're being hit, not by level (potions.js).
     // Only potions some shop on this server actually sells.
@@ -212,7 +219,10 @@ export function createErrand(page, world, travel, getDps = () => null) {
     const spLow = spShort && Date.now() - e.spLowSince >= LOW_CONFIRM_MS;
     const spOut = stockSp(inv) < (me.maxSp || 0);
     const wantSp = !!blue && spLow && spBudget(me, inv) - hpSpend >= blue.price * (spOut ? 1 : MIN_SP_BUY);
-    const heavy = me.maxWeight && (me.weight / me.maxWeight) * 100 >= SELL_AT_WEIGHT_PCT && sellable(inv, snap.worn, snap.me, e.levelRates).length > 0;
+    const heavy = me.maxWeight && (me.weight / me.maxWeight) * 100 >= SELL_AT_WEIGHT_PCT && saleItems(snap).length > 0;
+    const mixedPotions = inv.filter((i) => i.count > 0 && healRange(i.ITID)).map((i) => i.ITID);
+    const mixedSp = inv.filter((i) => i.count > 0 && stockSp([i]) > 0).map((i) => i.ITID);
+    const consolidate = (new Set(mixedPotions).size > 1 || new Set(mixedSp).size > 1) && Date.now() - (e.lastTripAt || 0) >= TOPUP_GAP_MS;
     // Wings: out of them and pocket money left for a handful after the potions.
     const spSpend = wantSp ? blue.price * MIN_SP_BUY : 0;
     // Same 3-second confirmation as potions: an inventory blink reads as "no wings" too.
@@ -222,10 +232,10 @@ export function createErrand(page, world, travel, getDps = () => null) {
     else if (!e.wingLowSince) e.wingLowSince = Date.now();
     const wantWing = wingLow && Date.now() - e.wingLowSince >= LOW_CONFIRM_MS;
     const topUpOnly = !wantPotions && !heavy;
-    if (topUpOnly && Date.now() - (e.lastTripAt || 0) < TOPUP_GAP_MS && stockSp(inv) > 0) return null;
-    if (!wantPotions && !wantSp && !wantWing && !heavy) return null;
+    if (topUpOnly && !consolidate && Date.now() - (e.lastTripAt || 0) < TOPUP_GAP_MS && stockSp(inv) > 0) return null;
+    if (!wantPotions && !wantSp && !wantWing && !heavy && !consolidate) return null;
     const buying = wantPotions || wantSp || wantWing;
-    return { buy: wantPotions ? potion : null, buySp: wantSp ? blue : null, buyWing: wantWing, sell: heavy || (buying && sellable(inv, snap.worn, snap.me, e.levelRates).length > 0) };
+    return { buy: wantPotions ? potion : null, buySp: wantSp ? blue : null, buyWing: wantWing, reviewPotions: true, sell: heavy || ((buying || consolidate) && saleItems(snap).length > 0) };
   }
 
   /**
@@ -238,7 +248,8 @@ export function createErrand(page, world, travel, getDps = () => null) {
     const id = potion ? potion.ITID : 501; // selling only: any Tool Dealer buys loot
     const me = snap.me;
     const cost = travelCosts(world, me.map, me.x, me.y, { canGo: travel.canGo });
-    const ranked = shopsSelling(world, id)
+    const shops = potion ? shopsSelling(world, id) : world.shops.filter((s) => POTIONS.some((p) => s.items.includes(p.ITID)));
+    const ranked = shops
       .filter((s) => (e.badShops.get(`${s.map}:${s.name}`) || 0) < now)
       .map((s) => ({ ...s, cost: cost.to(s.map, s.x, s.y) }))
       .filter((s) => s.cost < Infinity)
@@ -304,7 +315,7 @@ export function createErrand(page, world, travel, getDps = () => null) {
       log('errand_no_shop', { potion: n.buy?.name });
       return null;
     }
-    Object.assign(e, { active: true, stage: 'travel', shop, plan: n, stageAt: Date.now(), sold: 0, bought: [] });
+    Object.assign(e, { active: true, stage: 'travel', shop, plan: n, stageAt: Date.now(), sold: 0, bought: [], selection: null, cleanup: false, refilled: false, pendingBuy: null });
     const goal = n.buy || n.buySp || n.buyWing ? 'buy' : 'sell';
     const where = `${shop.name} (${shop.map}, ~${Math.round(shop.cost)} ช่อง)`;
     const stock = `ยาในตัวฟื้นได้รวม ${Math.round(e.choice?.stock || 0)} HP (< ${LOW_REFILLS} หลอด = ${(snap.me.maxHp || 0) * LOW_REFILLS})`;
@@ -362,7 +373,7 @@ export function createErrand(page, world, travel, getDps = () => null) {
         }
         // Judge "anything to sell" again at the counter: the plan was made from one snapshot, and a
         // bag read mid-refresh (right after a storage window) once sent us past the sale with 40 spares.
-        e.plan.sell = e.plan.sell || sellable(snap.inventory, snap.worn, snap.me, e.levelRates).length > 0;
+        e.plan.sell = e.plan.sell || saleItems(snap).length > 0;
         to(e.plan.sell ? 'talk_sell' : 'talk_buy');
         return null;
       }
@@ -379,6 +390,7 @@ export function createErrand(page, world, travel, getDps = () => null) {
       case 'select_buy': {
         // A market shop skips the buy/sell choice and opens its list straight away (and buys nothing).
         if (snap.shop?.stage === 'buy') {
+          if (e.cleanup) { await act(page, 'close_shop'); return finish(false, 'market cannot sell unwanted supplies'); }
           if (e.stage === 'select_sell' && !e.plan.buy && !e.plan.buySp && !e.plan.buyWing) return finish(true, 'market shop: cannot sell here');
           to('buying');
           return null;
@@ -391,13 +403,13 @@ export function createErrand(page, world, travel, getDps = () => null) {
       case 'selling': {
         if (snap.shop?.stage !== 'sell') return null;
         const sellableIdx = new Set(snap.shop.list.map((i) => i.index));
-        const items = sellable(snap.inventory, snap.worn, snap.me, e.levelRates).filter((i) => sellableIdx.has(i.index)).map((i) => ({ index: i.index, count: i.count }));
+        const items = saleItems(snap).filter((i) => sellableIdx.has(i.index)).map((i) => ({ index: i.index, count: i.count }));
         if (!items.length) {
           await act(page, 'close_shop');
           return afterSell(snap);
         }
         await act(page, 'sell', { items });
-        e.sold = items.reduce((n, i) => n + i.count, 0);
+        e.pendingSold = items.reduce((n, i) => n + i.count, 0);
         to('sell_wait');
         return null;
       }
@@ -405,27 +417,32 @@ export function createErrand(page, world, travel, getDps = () => null) {
         if (snap.shop?.stage !== 'buy') return null;
         for (const o of snap.shop.list) if (o.price > 0) e.prices[o.ITID] = o.price;
         savePrices(e.prices);
-        // At the counter anyway: top SP potions up too if the shop has them, planned or not.
-        const spRow = e.plan.buySp || SP_POTIONS.find((sp) => snap.shop.list.some((o) => o.ITID === sp.ITID)) || null;
-        // HP potions likewise: top up to the target on any trip (purchase re-picks the kind at the
-        // shop's prices; nothing is bought when the bag is already full enough).
-        const hpRow = e.plan.buy || POTIONS.find((hp) => snap.shop.list.some((o) => o.ITID === hp.ITID)) || null;
-        // Owner's rule: one trip buys everything, in amounts that last equally long (by how fast each
-        // is used), so trips come in rounds instead of one item at a time. No history yet: the old way.
         const r = rates();
-        // With rates known the balanced plan decides alone (an empty plan = nothing needed); the old
-        // spend-up-to-the-reserve path is only for a fresh start with no usage history at all.
-        const balanced = r ? balancedPurchase(snap, snap.shop.list, r, getDps()) : null;
-        const items = balanced || purchase(snap, snap.shop.list, hpRow, getDps(), spRow, true);
-        if (balanced) log('errand_balanced', { rates: `hp ${Math.round(r.hp)}/min sp ${Math.round(r.sp)}/min wings ${r.wing.toFixed(1)}/min`, minutes: balanced.minutes });
+        if (!e.selection) e.selection = await loadout.choose(snap, snap.shop.list, getDps(), r);
+        if (!e.selection) {
+          await act(page, 'close_shop');
+          return finish(false, 'LAYA did not select a valid potion loadout');
+        }
+        const potions = loadout.purchase(snap, snap.shop.list, r, e.selection);
+        const items = [...potions, ...purchaseWings(snap, snap.shop.list, potions, 0.45)];
         if (!items.length) {
           await act(page, 'close_shop');
+          if (!e.refilled && loadout.surplus(snap, e.selection).length) { e.cleanup = true; to('talk_sell'); return null; }
+          if (loadout.ready(snap, e.selection)) return finish(true, 'selected supplies stocked');
           return finish(true, 'nothing affordable');
         }
+        e.pendingBuy = items.map((i) => ({ ...i, before: snap.inventory.filter((b) => b.ITID === i.ITID).reduce((n, b) => n + b.count, 0) }));
         await act(page, 'buy', { items: items.map(({ ITID, count }) => ({ ITID, count })) });
-        e.bought = items.map((i) => `${i.name} x${i.count}`);
         to('buy_wait');
         return null;
+      }
+      case 'verify_buy': {
+        if (Date.now() - e.stageAt < 1500) return null;
+        const verified = e.pendingBuy.every((i) => snap.inventory.filter((b) => b.ITID === i.ITID).reduce((n, b) => n + b.count, 0) >= i.before + i.count);
+        if (!verified) return null;
+        e.bought.push(...e.pendingBuy.map((i) => `${i.name} x${i.count}`));
+        if (!e.refilled && loadout.surplus(snap, e.selection).length) { e.cleanup = true; to('talk_sell'); return null; }
+        return finish(true, 'bought and verified');
       }
       default:
         return null; // *_wait: resolved by onEvent
@@ -433,7 +450,8 @@ export function createErrand(page, world, travel, getDps = () => null) {
   }
 
   function afterSell(snap) {
-    if (e.plan.buy || e.plan.buySp || e.plan.buyWing) {
+    if (e.cleanup) { e.cleanup = false; e.refilled = true; to('talk_buy'); return null; }
+    if (e.plan.buy || e.plan.buySp || e.plan.buyWing || e.plan.reviewPotions) {
       to('talk_buy'); // a sale ends the NPC session; talk again to buy
       return null;
     }
@@ -445,10 +463,15 @@ export function createErrand(page, world, travel, getDps = () => null) {
     if (!e.active || ev.type !== 'shop_result') return null;
     await act(page, 'close_shop');
     if (ev.kind === 'sell' && e.stage === 'sell_wait') {
-      if (!ev.ok) log('errand_sell_failed', { result: ev.result });
+      if (!ev.ok) return finish(false, `sell result ${ev.result}`);
+      e.sold += e.pendingSold || 0;
       return afterSell(snap);
     }
-    if (ev.kind === 'buy' && e.stage === 'buy_wait') return finish(ev.ok, ev.ok ? 'bought' : `buy result ${ev.result}`);
+    if (ev.kind === 'buy' && e.stage === 'buy_wait') {
+      if (!ev.ok) return finish(false, `buy result ${ev.result}`);
+      to('verify_buy');
+      return null;
+    }
     return null;
   }
 
@@ -460,7 +483,7 @@ export function createErrand(page, world, travel, getDps = () => null) {
     moneyTarget: (snap) => {
       rates(); // Update the separately observed levelling rates before estimating.
       const levelRates = e.levelRates && Date.now() - e.levelRates.at < RATES_FRESH_MS ? e.levelRates : null;
-      return moneyTarget(snap, levelRates, e.prices);
+      return moneyTarget(snap, levelRates, e.prices, SUPPLY_TRIPS, loadout.selection);
     },
     maybeStart,
     tick,
@@ -480,18 +503,25 @@ export function createErrand(page, world, travel, getDps = () => null) {
  * rates (or, unmeasured, the same minimums a shopping trip buys up to), at the prices the shops
  * really charge, with the HP potion fitting our level and max HP.
  */
-export function moneyTarget(snap, rates, prices = {}, trips = SUPPLY_TRIPS) {
+export function moneyTarget(snap, rates, prices = {}, trips = SUPPLY_TRIPS, selection = null) {
   const me = snap.me;
   const inv = snap.inventory || [];
   const r = rates || { hp: 0, sp: 0, wing: 0 };
   const price = (p) => prices[p.ITID] || p.price;
-  const hpPot = choosePotion({ me, dps: rates?.dps, prices: Object.fromEntries(POTIONS.map((p) => [p.ITID, price(p)])), minBuy: 1 }).potion;
-  const sp = SP_POTIONS[0];
+  const selected = (id) => id && { ITID: id, name: inv.find((i) => i.ITID === id)?.name || [...POTIONS, ...SP_POTIONS].find((p) => p.ITID === id)?.name || String(id), heal: healRange(id), sp: spRange(id), price: prices[id] || [...POTIONS, ...SP_POTIONS].find((p) => p.ITID === id)?.price || 0 };
+  const hpPot = selection ? selected(selection.hp) : choosePotion({ me, dps: rates?.dps, prices: Object.fromEntries(POTIONS.map((p) => [p.ITID, price(p)])), minBuy: 1 }).potion;
+  const sp = selection ? selected(selection.sp) : SP_POTIONS[0];
+  const hpStock = selection ? inv.filter((i) => i.ITID === selection.hp) : inv;
+  const spStock = selection ? inv.filter((i) => i.ITID === selection.sp) : inv;
   const lines = [
-    hpPot && { name: hpPot.name, unit: healOf(hpPot, me), price: price(hpPot), perTrip: Math.max(r.hp * TRIP_MINUTES, (me.maxHp || 0) * (rates ? LOW_REFILLS * 2 : TARGET_REFILLS)), stock: stockHp(inv, me) },
-    { name: sp.name, unit: (sp.sp[0] + sp.sp[1]) / 2, price: price(sp), perTrip: Math.max(r.sp * TRIP_MINUTES, (me.maxSp || 0) * (rates ? 0.5 : LOW_REFILLS)), stock: stockSp(inv) },
+    hpPot && { ITID: hpPot.ITID, name: hpPot.name, unit: healOf(hpPot, me), price: price(hpPot), perTrip: Math.max(r.hp * TRIP_MINUTES, (me.maxHp || 0) * (rates ? LOW_REFILLS * 2 : TARGET_REFILLS)), stock: stockHp(hpStock, me) },
+    sp && { ITID: sp.ITID, name: sp.name, unit: (sp.sp[0] + sp.sp[1]) / 2, price: price(sp), perTrip: Math.max(r.sp * TRIP_MINUTES, (me.maxSp || 0) * (rates ? 0.5 : LOW_REFILLS)), stock: stockSp(spStock) },
     { name: FLY_WING.name, unit: 1, price: price(FLY_WING), perTrip: Math.max(r.wing * TRIP_MINUTES, rates ? WING_LOW * 2 : WING_TARGET), stock: wingsIn(inv) },
   ].filter(Boolean);
+  if (hpPot && sp && hpPot.ITID === sp.ITID) {
+    const hp = lines[0], spLine = lines[1];
+    lines.splice(0, 2, { ...hp, unit: 1, stock: hp.stock / hp.unit, perTrip: Math.max(hp.perTrip / hp.unit, spLine.perTrip / spLine.unit) });
+  }
   const count = (amount, l) => Math.max(0, Math.ceil(amount / l.unit));
   const tripCost = lines.reduce((z, l) => z + count(l.perTrip, l) * l.price, 0);
   const nowCost = lines.reduce((z, l) => z + count(l.perTrip - l.stock, l) * l.price, 0);
@@ -576,19 +606,19 @@ export function balancedPurchase(snap, list, rates, dps = null) {
 }
 
 /** Fly Wings with what's left after the potions (keeping pocket money), up to WING_TARGET. */
-function purchaseWings(snap, list, already) {
+function purchaseWings(snap, list, already, weightLimit = 0.7) {
   const me = snap.me;
   const offer = list.find((i) => i.ITID === FLY_WING.ITID);
   if (!offer || !offer.price) return [];
   const spent = already.reduce((z, i) => z + i.count * (list.find((o) => o.ITID === i.ITID)?.price || 0), 0);
-  const weightUsed = already.reduce((w, i) => w + i.count * ([...POTIONS, ...SP_POTIONS].find((p) => p.ITID === i.ITID)?.weight || 100), 0);
+  const weightUsed = already.reduce((w, i) => w + i.count * (i.weight || [...POTIONS, ...SP_POTIONS].find((p) => p.ITID === i.ITID)?.weight || 100), 0);
   const budget = Math.min((me.zeny || 0) - POCKET_MONEY, (me.zeny || 0) * SPEND_SHARE) - spent;
-  const room = (me.maxWeight ? me.maxWeight * 0.7 - (me.weight || 0) : Infinity) - weightUsed;
+  const room = (me.maxWeight ? me.maxWeight * weightLimit - (me.weight || 0) : Infinity) - weightUsed;
   const have = wingsIn(snap.inventory);
   // Potions first: no wings while the bag (with what's being bought) still holds under LOW_REFILLS bars of HP.
-  const healBought = already.reduce((n, i) => { const pt = POTIONS.find((x) => x.ITID === i.ITID); return n + (pt ? i.count * healOf(pt, me) : 0); }, 0);
+  const healBought = stockHp(already, me);
   if (stockHp(snap.inventory || [], me) + healBought < (me.maxHp || 0) * LOW_REFILLS) return [];
-  const count = Math.floor(Math.min(WING_TARGET - have, budget / offer.price, room / FLY_WING.weight, offer.stock > 0 ? offer.stock : Infinity));
+  const count = Math.floor(Math.min(WING_TARGET - have, budget / offer.price, room / FLY_WING.weight, offer.stock ?? Infinity));
   if (count <= 0 || (count < MIN_WING_BUY && have >= WING_LOW)) return [];
   return [{ ITID: FLY_WING.ITID, count, name: FLY_WING.name }];
 }

@@ -1,4 +1,5 @@
 import { config } from './config.js';
+import { warpOptions } from './warper-reference.js';
 
 /**
  * World knowledge from the client's own navigation bundles (the same files the
@@ -189,9 +190,10 @@ export function hopsFrom(world, from, { canGo }) {
 }
 
 /** Level band worth hunting: Renewal gives full EXP within a few levels either side. */
-export function levelBand(level, goal = 'level') {
+export function levelBand(level, goal = 'level', priestSupport = false) {
   // Money: well below us — no deaths, few potions, quick kills, lots of drops to sell.
   if (goal === 'money') return { min: Math.max(1, level - 25), max: Math.max(1, level - 8), danger: level + 3 };
+  if (priestSupport) return { min: Math.max(1, level - 2), max: level + 10, danger: level + 15 };
   // Level: as much EXP as we can take, even if it means drinking all along.
   return { min: Math.max(1, level - 6), max: level + 4, danger: level + 10 };
 }
@@ -206,15 +208,18 @@ const MIN_POPULATION = { level: 10, money: 20 };
  * Score (goal 'level') = sum over in-band monsters of count * baseExp / hp (EXP per point of
  * damage, times how many there are). Score (goal 'money') = sum of count * drops / sqrt(hp): many
  * monsters that die fast and drop things. Either is divided by travel cost in cells (travelCosts).
+ * Priest support expands the level band and uses baseExp / sqrt(hp) to favor higher EXP per kill.
  * Maps holding a crowd of monsters far above the band are dropped as too dangerous.
  */
-export function pickHuntingGrounds(world, { level, goal = 'level', fromMap, fromX = 0, fromY = 0, canGo = false, limit = 5, exclude = [], avoid = [] }) {
-  const band = levelBand(level, goal);
+export function pickHuntingGrounds(world, { level, goal = 'level', priestSupport = false, fromMap, fromX = 0, fromY = 0, canGo = false, limit = 5, exclude = [], avoid = [] }) {
+  const band = levelBand(level, goal, priestSupport);
   const hops = hopsFrom(world, fromMap, { canGo });
   const travel = travelCosts(world, fromMap, fromX, fromY, { canGo });
   const out = [];
   for (const [map] of world.spawnsByMap) {
-    if (NOT_A_FIELD.test(map) || exclude.includes(map) || !hops.has(map)) continue;
+    if (NOT_A_FIELD.test(map) || exclude.includes(map)) continue;
+    const warp = warpOptions(world, travel, map)[0];
+    if (!hops.has(map) && !warp) continue;
     const spawns = spawnsOn(world, map);
     // Monsters we learned to stay away from (they stun/silence us): a map full of them is no
     // hunting ground even if we don't attack them — they come to us.
@@ -227,15 +232,17 @@ export function pickHuntingGrounds(world, { level, goal = 'level', fromMap, from
     const value =
       goal === 'money'
         ? targets.reduce((v, s) => v + (s.count * Math.max(1, (s.drops || []).length)) / Math.sqrt(s.hp), 0)
-        : targets.reduce((v, s) => v + (s.count * s.baseExp) / s.hp, 0);
-    const h = hops.get(map);
+        // With healing support, give more weight to EXP per kill while still penalizing HP.
+        : targets.reduce((v, s) => v + (s.count * s.baseExp) / (priestSupport ? Math.sqrt(s.hp) : s.hp), 0);
+    const h = warp ? (hops.get(warp.npc.map) ?? 0) + 1 : hops.get(map);
     // Distance in cells walked (portals + @go), not just map count: two "1 hop" maps can be
     // a minute apart. ~150 cells is about what a map change used to stand for.
-    const cost = Math.round(Math.min(travel.toMap(map), 2000));
+    const cost = Math.round(Math.min(warp ? warp.cost : travel.toMap(map), 2000));
     out.push({
       map,
       hops: h,
       cost,
+      warp: warp ? { npc: warp.npc.name, town: warp.npc.map, path: warp.path } : null,
       score: Math.round((value / (1 + cost / 150)) * 100) / 100,
       population,
       targets: merge(targets).map(({ name, level, count }) => ({ name, level, count })),

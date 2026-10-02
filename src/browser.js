@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import { config } from './config.js';
 import { installPageAgent } from './page-agent.js';
 import { withNames } from './skilldb.js';
+import { clickGameUi, UI_ACTIONS } from './ui-click.js';
 
 const CDP_URL = `http://127.0.0.1:${config.game.cdpPort}`;
 
@@ -105,4 +106,6 @@ export const drainEvents = (page) => page.evaluate(() => window.__agent?.drain()
 export const query = (page, command, waitMs) => page.evaluate(([c, w]) => window.__agent.query(c, w), [command, waitMs]);
 export const exploreTarget = (page, min, max, avoid) =>
   page.evaluate(([a, b, c]) => window.__agent.exploreTarget(a, b, c), [min, max, avoid ?? []]);
-export const act = (page, name, arg) => page.evaluate(([n, a]) => window.__agent.act(n, a), [name, arg ?? {}]);
+export const act = (page, name, arg) => UI_ACTIONS.has(name)
+  ? clickGameUi(page, name, arg ?? {})
+  : page.evaluate(([n, a]) => window.__agent.act(n, a), [name, arg ?? {}]);

@@ -116,6 +116,17 @@ export function createDialog(page) {
   }
 
   /** @returns null while talking, or {ok, reason, npc, transcript} when it's over. */
+  async function clickDialog(name, arg) {
+    try {
+      const ok = await act(page, name, arg);
+      if (ok === false) d.lastKey = '';
+      return ok !== false;
+    } catch (err) {
+      d.lastKey = '';
+      throw err;
+    }
+  }
+
   async function tick(snap) {
     if (!d.active) return null;
     const now = Date.now();
@@ -136,7 +147,7 @@ export function createDialog(page) {
     }
     if (now - d.startedAt > DIALOG_TIMEOUT_MS) {
       if (dlg.state === 'menu') await act(page, 'npc_menu', { naid: d.naid, num: CANCEL });
-      await act(page, 'npc_close', { naid: d.naid });
+      if (!await clickDialog('npc_close', { naid: d.naid })) return null;
       return finish(false, 'dialog timeout');
     }
 
@@ -144,7 +155,7 @@ export function createDialog(page) {
     const key = `${dlg.state}:${dlg.lines.length}:${(dlg.menu || []).join('|')}`;
     if (key === d.lastKey) {
       if (dlg.state === 'text' && dlg.idleMs > IDLE_END_MS) {
-        await act(page, 'npc_close', { naid: d.naid });
+        if (!await clickDialog('npc_close', { naid: d.naid })) return null;
         return finish(true, 'script went quiet');
       }
       return null;
@@ -153,15 +164,15 @@ export function createDialog(page) {
 
     switch (dlg.state) {
       case 'next':
-        await act(page, 'npc_next', { naid: d.naid });
+        if (!await clickDialog('npc_next', { naid: d.naid })) return null;
         return null;
       case 'menu': {
         const { num, why } = await choose(dlg.menu, dlg.lines);
         d.transcript.push({ menu: dlg.menu, chose: num === CANCEL ? 'cancel' : dlg.menu[num - 1], why });
         log('npc_menu', { npc: d.npc.name, options: dlg.menu.join(' | '), chose: num === CANCEL ? 'cancel' : dlg.menu[num - 1], why });
-        await act(page, 'npc_menu', { naid: d.naid, num });
+        if (!await clickDialog('npc_menu', { naid: d.naid, num })) return null;
         if (num === CANCEL) {
-          await act(page, 'npc_close', { naid: d.naid });
+          if (!await clickDialog('npc_close', { naid: d.naid })) return null;
           return finish(false, `cancelled (${why})`);
         }
         return null;
@@ -169,14 +180,14 @@ export function createDialog(page) {
       case 'input': {
         const value = d.chooser.input ? d.chooser.input(dlg.lines, dlg.input) : dlg.input === 'number' ? 0 : '';
         d.transcript.push({ input: dlg.input, value });
-        await act(page, 'npc_input', { naid: d.naid, value });
+        if (!await clickDialog('npc_input', { naid: d.naid, value })) return null;
         return null;
       }
       case 'close':
-        await act(page, 'npc_close', { naid: d.naid });
+        if (!await clickDialog('npc_close', { naid: d.naid })) return null;
         return finish(true, 'closed');
       case 'ended':
-        await act(page, 'npc_close', { naid: d.naid });
+        if (!await clickDialog('npc_close', { naid: d.naid })) return null;
         return finish(true, 'script ended');
       default:
         return null;

@@ -1,0 +1,1375 @@
+{
+  "source": "https://github.com/rathena/rathena/blob/master/npc/custom/warper.txt",
+  "paths": {
+    "amicitia1": [
+      "Dungeons",
+      "Abandoned Lab Amicitia",
+      "1st Floor - Comprehensive Lab"
+    ],
+    "amicitia2": [
+      "Dungeons",
+      "Abandoned Lab Amicitia",
+      "2nd Floor - Intensive Culture Room"
+    ],
+    "abyss_01": [
+      "Dungeons",
+      "Abyss Lakes",
+      "Abyss Lakes 1"
+    ],
+    "abyss_02": [
+      "Dungeons",
+      "Abyss Lakes",
+      "Abyss Lakes 2"
+    ],
+    "abyss_03": [
+      "Dungeons",
+      "Abyss Lakes",
+      "Abyss Lakes 3"
+    ],
+    "abyss_04": [
+      "Dungeons",
+      "Abyss Lakes",
+      "Abyss Lakes 4"
+    ],
+    "ama_dun01": [
+      "Dungeons",
+      "Amatsu Dungeon",
+      "Amatsu Dungeon 1"
+    ],
+    "ama_dun02": [
+      "Dungeons",
+      "Amatsu Dungeon",
+      "Amatsu Dungeon 2"
+    ],
+    "ama_dun03": [
+      "Dungeons",
+      "Amatsu Dungeon",
+      "Amatsu Dungeon 3"
+    ],
+    "anthell01": [
+      "Dungeons",
+      "Anthell",
+      "Anthell 1"
+    ],
+    "anthell02": [
+      "Dungeons",
+      "Anthell",
+      "Anthell 2"
+    ],
+    "ayo_dun01": [
+      "Dungeons",
+      "Ayothaya Dungeon",
+      "Ancient Shrine Maze"
+    ],
+    "ayo_dun02": [
+      "Dungeons",
+      "Ayothaya Dungeon",
+      "Inside Ancient Shrine"
+    ],
+    "beach_dun": [
+      "Dungeons",
+      "Beach Dungeon",
+      "Beach Dungeon 1"
+    ],
+    "beach_dun2": [
+      "Dungeons",
+      "Beach Dungeon",
+      "Beach Dungeon 2"
+    ],
+    "beach_dun3": [
+      "Dungeons",
+      "Beach Dungeon",
+      "Beach Dungeon 3"
+    ],
+    "ecl_tdun01": [
+      "Dungeons",
+      "Bifrost Tower",
+      "Bifrost Tower 1"
+    ],
+    "ecl_tdun02": [
+      "Dungeons",
+      "Bifrost Tower",
+      "Bifrost Tower 2"
+    ],
+    "ecl_tdun03": [
+      "Dungeons",
+      "Bifrost Tower",
+      "Bifrost Tower 3"
+    ],
+    "ecl_tdun04": [
+      "Dungeons",
+      "Bifrost Tower",
+      "Bifrost Tower 4"
+    ],
+    "lhz_dun01": [
+      "Dungeons",
+      "Bio Labs",
+      "Bio Lab 1"
+    ],
+    "lhz_dun02": [
+      "Dungeons",
+      "Bio Labs",
+      "Bio Lab 2"
+    ],
+    "lhz_dun03": [
+      "Dungeons",
+      "Bio Labs",
+      "Bio Lab 3"
+    ],
+    "lhz_dun04": [
+      "Dungeons",
+      "Bio Labs",
+      "Bio Lab 4"
+    ],
+    "lhz_dun_n": [
+      "Dungeons",
+      "Bio Labs",
+      "Tomb of the Fallen"
+    ],
+    "bra_dun01": [
+      "Dungeons",
+      "Brasilis Dungeon",
+      "Brasilis Dungeon 1"
+    ],
+    "bra_dun02": [
+      "Dungeons",
+      "Brasilis Dungeon",
+      "Brasilis Dungeon 2"
+    ],
+    "iz_dun00": [
+      "Dungeons",
+      "Byalan Dungeon",
+      "Byalan Dungeon 1"
+    ],
+    "iz_dun01": [
+      "Dungeons",
+      "Byalan Dungeon",
+      "Byalan Dungeon 2"
+    ],
+    "iz_dun02": [
+      "Dungeons",
+      "Byalan Dungeon",
+      "Byalan Dungeon 3"
+    ],
+    "iz_dun03": [
+      "Dungeons",
+      "Byalan Dungeon",
+      "Byalan Dungeon 4"
+    ],
+    "iz_dun04": [
+      "Dungeons",
+      "Byalan Dungeon",
+      "Byalan Dungeon 5"
+    ],
+    "iz_dun05": [
+      "Dungeons",
+      "Byalan Dungeon",
+      "Byalan Dungeon 6"
+    ],
+    "c_tower1": [
+      "Dungeons",
+      "Clock Tower",
+      "Clock Tower 1"
+    ],
+    "c_tower2": [
+      "Dungeons",
+      "Clock Tower",
+      "Clock Tower 2"
+    ],
+    "c_tower3": [
+      "Dungeons",
+      "Clock Tower",
+      "Clock Tower 3"
+    ],
+    "c_tower4": [
+      "Dungeons",
+      "Clock Tower",
+      "Clock Tower 4"
+    ],
+    "alde_dun01": [
+      "Dungeons",
+      "Clock Tower",
+      "Basement 1"
+    ],
+    "alde_dun02": [
+      "Dungeons",
+      "Clock Tower",
+      "Basement 2"
+    ],
+    "alde_dun03": [
+      "Dungeons",
+      "Clock Tower",
+      "Basement 3"
+    ],
+    "alde_dun04": [
+      "Dungeons",
+      "Clock Tower",
+      "Basement 4"
+    ],
+    "c_tower2_": [
+      "Dungeons",
+      "Clock Tower",
+      "Nightmare Clock Tower, 2nd Floor"
+    ],
+    "c_tower3_": [
+      "Dungeons",
+      "Clock Tower",
+      "Nightmare Clock Tower, 3rd Floor"
+    ],
+    "clock_01": [
+      "Dungeons",
+      "Clock Tower",
+      "Unknown Basement"
+    ],
+    "mjo_dun01": [
+      "Dungeons",
+      "Coal Mines",
+      "Coal Mines 1"
+    ],
+    "mjo_dun02": [
+      "Dungeons",
+      "Coal Mines",
+      "Coal Mines 2"
+    ],
+    "mjo_dun03": [
+      "Dungeons",
+      "Coal Mines",
+      "Coal Mines 3"
+    ],
+    "prt_sewb1": [
+      "Dungeons",
+      "Culvert",
+      "Culvert 1"
+    ],
+    "prt_sewb2": [
+      "Dungeons",
+      "Culvert",
+      "Culvert 2"
+    ],
+    "prt_sewb3": [
+      "Dungeons",
+      "Culvert",
+      "Culvert 3"
+    ],
+    "prt_sewb4": [
+      "Dungeons",
+      "Culvert",
+      "Culvert 4"
+    ],
+    "abbey01": [
+      "Dungeons",
+      "Cursed Abbey",
+      "Cursed Abbey 1"
+    ],
+    "abbey02": [
+      "Dungeons",
+      "Cursed Abbey",
+      "Cursed Abbey 2"
+    ],
+    "abbey03": [
+      "Dungeons",
+      "Cursed Abbey",
+      "Cursed Abbey 3"
+    ],
+    "dew_dun01": [
+      "Dungeons",
+      "Dewata Dungeon",
+      "Dewata Dungeon 1"
+    ],
+    "dew_dun02": [
+      "Dungeons",
+      "Dewata Dungeon",
+      "Dewata Dungeon 2"
+    ],
+    "ein_dun01": [
+      "Dungeons",
+      "Einbroch Dungeon",
+      "Einbroch Dungeon 1"
+    ],
+    "ein_dun02": [
+      "Dungeons",
+      "Einbroch Dungeon",
+      "Einbroch Dungeon 2"
+    ],
+    "ein_dun03": [
+      "Dungeons",
+      "Einbroch Dungeon",
+      "Einbroch Dungeon 3"
+    ],
+    "moro_vol": [
+      "Dungeons",
+      "Flame Basin"
+    ],
+    "gefenia01": [
+      "Dungeons",
+      "Gefenia",
+      "Gefenia 1"
+    ],
+    "gefenia02": [
+      "Dungeons",
+      "Gefenia",
+      "Gefenia 2"
+    ],
+    "gefenia03": [
+      "Dungeons",
+      "Gefenia",
+      "Gefenia 3"
+    ],
+    "gefenia04": [
+      "Dungeons",
+      "Gefenia",
+      "Gefenia 4"
+    ],
+    "gef_dun00": [
+      "Dungeons",
+      "Geffen Dungeon",
+      "Geffen Dungeon 1"
+    ],
+    "gef_dun01": [
+      "Dungeons",
+      "Geffen Dungeon",
+      "Geffen Dungeon 2"
+    ],
+    "gef_dun02": [
+      "Dungeons",
+      "Geffen Dungeon",
+      "Geffen Dungeon 3"
+    ],
+    "gef_dun03": [
+      "Dungeons",
+      "Geffen Dungeon",
+      "Geffen Dungeon 4"
+    ],
+    "glast_01": [
+      "Dungeons",
+      "Glast Heim",
+      "Entrance"
+    ],
+    "gl_cas01": [
+      "Dungeons",
+      "Glast Heim",
+      "Castle 1"
+    ],
+    "gl_cas02": [
+      "Dungeons",
+      "Glast Heim",
+      "Castle 2"
+    ],
+    "gl_knt01": [
+      "Dungeons",
+      "Glast Heim",
+      "Chivalry 1"
+    ],
+    "gl_knt02": [
+      "Dungeons",
+      "Glast Heim",
+      "Chivalry 2"
+    ],
+    "gl_chyard": [
+      "Dungeons",
+      "Glast Heim",
+      "Churchyard"
+    ],
+    "gl_sew01": [
+      "Dungeons",
+      "Glast Heim",
+      "Culvert 1"
+    ],
+    "gl_sew02": [
+      "Dungeons",
+      "Glast Heim",
+      "Culvert 2"
+    ],
+    "gl_sew03": [
+      "Dungeons",
+      "Glast Heim",
+      "Culvert 3"
+    ],
+    "gl_sew04": [
+      "Dungeons",
+      "Glast Heim",
+      "Culvert 4"
+    ],
+    "gl_church": [
+      "Dungeons",
+      "Glast Heim",
+      "St. Abbey"
+    ],
+    "gl_step": [
+      "Dungeons",
+      "Glast Heim",
+      "Staircase Dungeon"
+    ],
+    "gl_dun01": [
+      "Dungeons",
+      "Glast Heim",
+      "Underground Cave 1"
+    ],
+    "gl_dun02": [
+      "Dungeons",
+      "Glast Heim",
+      "Underground Cave 2"
+    ],
+    "gl_prison": [
+      "Dungeons",
+      "Glast Heim",
+      "Underground Prison 1"
+    ],
+    "gl_prison1": [
+      "Dungeons",
+      "Glast Heim",
+      "Underground Prison 2"
+    ],
+    "gl_cas02_": [
+      "Dungeons",
+      "Glast Heim",
+      "Castle 2 - Nightmare Mode"
+    ],
+    "gl_chyard_": [
+      "Dungeons",
+      "Glast Heim",
+      "Churchyard - Nightmare Mode"
+    ],
+    "gl_cas01_": [
+      "Dungeons",
+      "Glast Heim",
+      "Abyss Glastheim Castle F1"
+    ],
+    "prt_maze01": [
+      "Dungeons",
+      "Hidden Dungeon",
+      "Hidden Dungeon 1"
+    ],
+    "prt_maze02": [
+      "Dungeons",
+      "Hidden Dungeon",
+      "Hidden Dungeon 2"
+    ],
+    "prt_maze03": [
+      "Dungeons",
+      "Hidden Dungeon",
+      "Hidden Dungeon 3"
+    ],
+    "ice_dun01": [
+      "Dungeons",
+      "Ice Dungeon",
+      "Ice Dungeon 1"
+    ],
+    "ice_dun02": [
+      "Dungeons",
+      "Ice Dungeon",
+      "Ice Dungeon 2"
+    ],
+    "ice_dun03": [
+      "Dungeons",
+      "Ice Dungeon",
+      "Ice Dungeon 3"
+    ],
+    "ice_dun04": [
+      "Dungeons",
+      "Ice Dungeon",
+      "Ice Dungeon 4"
+    ],
+    "tur_d03_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Abyss",
+      "Desolate Village"
+    ],
+    "tur_d04_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Abyss",
+      "Bleak Turtle Palace"
+    ],
+    "ice_d03_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Frozen"
+    ],
+    "prt_mz03_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Labyrinth"
+    ],
+    "com_d02_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Luanda"
+    ],
+    "pay_d03_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Moonlight"
+    ],
+    "ein_d02_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Teddy Bear"
+    ],
+    "ant_d02_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Twins"
+    ],
+    "iz_d04_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Underwater",
+      "Deep Sea Cave 1"
+    ],
+    "iz_d05_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Underwater",
+      "Deep Sea Cave 2"
+    ],
+    "gef_d01_i": [
+      "Dungeons",
+      "Illusion Dungeon",
+      "Illusion of Vampire"
+    ],
+    "jor_ab01": [
+      "Dungeons",
+      "Issgard Dungeon",
+      "Abandoned Pit Floor 1"
+    ],
+    "jor_ab02": [
+      "Dungeons",
+      "Issgard Dungeon",
+      "Abandoned Pit Floor 2"
+    ],
+    "jor_dun01": [
+      "Dungeons",
+      "Issgard Dungeon",
+      "Snake God's Warmth 1st Floor"
+    ],
+    "jor_dun02": [
+      "Dungeons",
+      "Issgard Dungeon",
+      "Snake God's Warmth 2nd Floor"
+    ],
+    "jupe_cave": [
+      "Dungeons",
+      "Juperos",
+      "Entrance"
+    ],
+    "juperos_01": [
+      "Dungeons",
+      "Juperos",
+      "Juperos 1"
+    ],
+    "juperos_02": [
+      "Dungeons",
+      "Juperos",
+      "Juperos 2"
+    ],
+    "jupe_core": [
+      "Dungeons",
+      "Juperos",
+      "Core"
+    ],
+    "ver_eju": [
+      "Dungeons",
+      "Juperos",
+      "Eastern Ruins of Juperos"
+    ],
+    "kh_dun01": [
+      "Dungeons",
+      "Kiel Dungeon",
+      "Kiel Dungeon 1"
+    ],
+    "kh_dun02": [
+      "Dungeons",
+      "Kiel Dungeon",
+      "Kiel Dungeon 2"
+    ],
+    "gon_dun01": [
+      "Dungeons",
+      "Kunlun Dungeon",
+      "Kunlun Dungeon 1"
+    ],
+    "gon_dun02": [
+      "Dungeons",
+      "Kunlun Dungeon",
+      "Kunlun Dungeon 2"
+    ],
+    "gon_dun03": [
+      "Dungeons",
+      "Kunlun Dungeon",
+      "Kunlun Dungeon 3"
+    ],
+    "lasa_dun01": [
+      "Dungeons",
+      "Lasagna Dungeon",
+      "Lasagna Dungeon 1"
+    ],
+    "lasa_dun02": [
+      "Dungeons",
+      "Lasagna Dungeon",
+      "Lasagna Dungeon 2"
+    ],
+    "lasa_dun03": [
+      "Dungeons",
+      "Lasagna Dungeon",
+      "Lasagna Dungeon 3"
+    ],
+    "lou_dun01": [
+      "Dungeons",
+      "Luoyang Dungeon",
+      "The Royal Tomb"
+    ],
+    "lou_dun02": [
+      "Dungeons",
+      "Luoyang Dungeon",
+      "Inside the Royal Tomb"
+    ],
+    "lou_dun03": [
+      "Dungeons",
+      "Luoyang Dungeon",
+      "Suei Long Gon"
+    ],
+    "mag_dun01": [
+      "Dungeons",
+      "Magma Dungeon",
+      "Magma Dungeon 1"
+    ],
+    "mag_dun02": [
+      "Dungeons",
+      "Magma Dungeon",
+      "Magma Dungeon 2"
+    ],
+    "mag_dun03": [
+      "Dungeons",
+      "Magma Dungeon",
+      "Magma Dungeon 3"
+    ],
+    "mal_dun01": [
+      "Dungeons",
+      "Malangdo Dungeon",
+      "Malangdo Dungeon 1"
+    ],
+    "mosk_dun01": [
+      "Dungeons",
+      "Moscovia Dungeon",
+      "Moscovia Dungeon 1"
+    ],
+    "mosk_dun02": [
+      "Dungeons",
+      "Moscovia Dungeon",
+      "Moscovia Dungeon 2"
+    ],
+    "mosk_dun03": [
+      "Dungeons",
+      "Moscovia Dungeon",
+      "Moscovia Dungeon 3"
+    ],
+    "nyd_dun01": [
+      "Dungeons",
+      "Nidhogg's Dungeon",
+      "Nidhogg's Dungeon 1"
+    ],
+    "nyd_dun02": [
+      "Dungeons",
+      "Nidhogg's Dungeon",
+      "Nidhogg's Dungeon 2"
+    ],
+    "nif_dun01": [
+      "Dungeons",
+      "Niflheim Dungeon",
+      "Niflheim Dungeon - 1st Floor"
+    ],
+    "nif_dun02": [
+      "Dungeons",
+      "Niflheim Dungeon",
+      "Niflheim Dungeon - 2nd Floor"
+    ],
+    "odin_tem01": [
+      "Dungeons",
+      "Odin Temple",
+      "Odin Temple 1"
+    ],
+    "odin_tem02": [
+      "Dungeons",
+      "Odin Temple",
+      "Odin Temple 2"
+    ],
+    "odin_tem03": [
+      "Dungeons",
+      "Odin Temple",
+      "Odin Temple 3"
+    ],
+    "odin_past": [
+      "Dungeons",
+      "Odin Temple",
+      "Odin Past"
+    ],
+    "orcsdun01": [
+      "Dungeons",
+      "Orc Dungeon",
+      "Orc Dungeon 1"
+    ],
+    "orcsdun02": [
+      "Dungeons",
+      "Orc Dungeon",
+      "Orc Dungeon 2"
+    ],
+    "oz_dun01": [
+      "Dungeons",
+      "Oz Labyrinth Dungeon",
+      "Oz Labyrinth Floor 1"
+    ],
+    "oz_dun02": [
+      "Dungeons",
+      "Oz Labyrinth Dungeon",
+      "Oz Labyrinth Floor 2"
+    ],
+    "pay_dun00": [
+      "Dungeons",
+      "Payon Dungeon",
+      "Payon Dungeon 1"
+    ],
+    "pay_dun01": [
+      "Dungeons",
+      "Payon Dungeon",
+      "Payon Dungeon 2"
+    ],
+    "pay_dun02": [
+      "Dungeons",
+      "Payon Dungeon",
+      "Payon Dungeon 3"
+    ],
+    "pay_dun03": [
+      "Dungeons",
+      "Payon Dungeon",
+      "Payon Dungeon 4"
+    ],
+    "pay_dun04": [
+      "Dungeons",
+      "Payon Dungeon",
+      "Payon Dungeon 5"
+    ],
+    "prt_prison": [
+      "Dungeons",
+      "Prontera Underground",
+      "Prontera Underground Prison"
+    ],
+    "prt_q": [
+      "Dungeons",
+      "Prontera Underground",
+      "Prontera Invasion"
+    ],
+    "moc_pryd01": [
+      "Dungeons",
+      "Pyramids",
+      "Pyramids 1"
+    ],
+    "moc_pryd02": [
+      "Dungeons",
+      "Pyramids",
+      "Pyramids 2"
+    ],
+    "moc_pryd03": [
+      "Dungeons",
+      "Pyramids",
+      "Pyramids 3"
+    ],
+    "moc_pryd04": [
+      "Dungeons",
+      "Pyramids",
+      "Pyramids 4"
+    ],
+    "moc_pryd05": [
+      "Dungeons",
+      "Pyramids",
+      "Basement 1"
+    ],
+    "moc_pryd06": [
+      "Dungeons",
+      "Pyramids",
+      "Basement 2"
+    ],
+    "moc_prydn1": [
+      "Dungeons",
+      "Pyramids",
+      "Basement 1 - Nightmare Mode"
+    ],
+    "moc_prydn2": [
+      "Dungeons",
+      "Pyramids",
+      "Basement 2 - Nightmare Mode"
+    ],
+    "ra_san01": [
+      "Dungeons",
+      "Rachel Sanctuary",
+      "Rachel Sanctuary 1"
+    ],
+    "ra_san02": [
+      "Dungeons",
+      "Rachel Sanctuary",
+      "Rachel Sanctuary 2"
+    ],
+    "ra_san03": [
+      "Dungeons",
+      "Rachel Sanctuary",
+      "Rachel Sanctuary 3"
+    ],
+    "ra_san04": [
+      "Dungeons",
+      "Rachel Sanctuary",
+      "Rachel Sanctuary 4"
+    ],
+    "ra_san05": [
+      "Dungeons",
+      "Rachel Sanctuary",
+      "Rachel Sanctuary 5"
+    ],
+    "rockmi1": [
+      "Dungeons",
+      "Rock Ridge Dungeon",
+      "Rock Ridge Mine"
+    ],
+    "harboro2": [
+      "Dungeons",
+      "Rock Ridge Dungeon",
+      "Underground Waterway Culvert"
+    ],
+    "sp_rudus": [
+      "Dungeons",
+      "Rudus Dungeon",
+      "Rudus Dungeon 1"
+    ],
+    "sp_rudus2": [
+      "Dungeons",
+      "Rudus Dungeon",
+      "Rudus Dungeon 2"
+    ],
+    "sp_rudus3": [
+      "Dungeons",
+      "Rudus Dungeon",
+      "Rudus Dungeon 3"
+    ],
+    "sp_rudus4": [
+      "Dungeons",
+      "Rudus Dungeon",
+      "Rudus Dungeon 4"
+    ],
+    "dic_dun01": [
+      "Dungeons",
+      "Scaraba Hole",
+      "Scaraba Hole 1"
+    ],
+    "dic_dun02": [
+      "Dungeons",
+      "Scaraba Hole",
+      "Scaraba Hole 2"
+    ],
+    "dic_dun03": [
+      "Dungeons",
+      "Scaraba Hole",
+      "Scaraba Hole 3"
+    ],
+    "in_sphinx1": [
+      "Dungeons",
+      "Sphinx",
+      "Sphinx 1"
+    ],
+    "in_sphinx2": [
+      "Dungeons",
+      "Sphinx",
+      "Sphinx 2"
+    ],
+    "in_sphinx3": [
+      "Dungeons",
+      "Sphinx",
+      "Sphinx 3"
+    ],
+    "in_sphinx4": [
+      "Dungeons",
+      "Sphinx",
+      "Sphinx 4"
+    ],
+    "in_sphinx5": [
+      "Dungeons",
+      "Sphinx",
+      "Sphinx 5"
+    ],
+    "treasure01": [
+      "Dungeons",
+      "Sunken Ship",
+      "Sunken Ship 1"
+    ],
+    "treasure02": [
+      "Dungeons",
+      "Sunken Ship",
+      "Sunken Ship 2"
+    ],
+    "tha_t01": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 1"
+    ],
+    "tha_t02": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 2"
+    ],
+    "tha_t03": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 3"
+    ],
+    "tha_t04": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 4"
+    ],
+    "tha_t05": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 5"
+    ],
+    "tha_t06": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 6"
+    ],
+    "tha_t07": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 7"
+    ],
+    "tha_t08": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 8"
+    ],
+    "tha_t09": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 9"
+    ],
+    "tha_t10": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 10"
+    ],
+    "tha_t11": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 11"
+    ],
+    "tha_t12": [
+      "Dungeons",
+      "Thanatos Tower",
+      "Thanatos Tower 12"
+    ],
+    "thor_v01": [
+      "Dungeons",
+      "Thor Volcano",
+      "Thor Volcano 1"
+    ],
+    "thor_v02": [
+      "Dungeons",
+      "Thor Volcano",
+      "Thor Volcano 2"
+    ],
+    "thor_v03": [
+      "Dungeons",
+      "Thor Volcano",
+      "Thor Volcano 3"
+    ],
+    "xmas_dun01": [
+      "Dungeons",
+      "Toy Factory",
+      "Toy Factory 1"
+    ],
+    "xmas_dun02": [
+      "Dungeons",
+      "Toy Factory",
+      "Toy Factory 2"
+    ],
+    "tur_dun01": [
+      "Dungeons",
+      "Turtle Dungeon",
+      "Entrance"
+    ],
+    "tur_dun02": [
+      "Dungeons",
+      "Turtle Dungeon",
+      "Turtle Dungeon 1"
+    ],
+    "tur_dun03": [
+      "Dungeons",
+      "Turtle Dungeon",
+      "Turtle Dungeon 2"
+    ],
+    "tur_dun04": [
+      "Dungeons",
+      "Turtle Dungeon",
+      "Turtle Dungeon 3"
+    ],
+    "um_dun01": [
+      "Dungeons",
+      "Umbala Dungeon",
+      "Carpenter's Shop in the Tree"
+    ],
+    "um_dun02": [
+      "Dungeons",
+      "Umbala Dungeon",
+      "Passage to a Foreign World"
+    ],
+    "yggdrasil01": [
+      "Dungeons",
+      "Umbala Dungeon",
+      "Hvergermil's Fountain"
+    ],
+    "ba_pw02": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Sewage Treatment Plant"
+    ],
+    "ba_pw01": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "1st Power Plant"
+    ],
+    "ba_pw03": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "2nd Power Plant"
+    ],
+    "ba_bath": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Large Bath Meditathio"
+    ],
+    "ba_lost": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Lost Farm Valley"
+    ],
+    "ba_lib": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Library Memory Corridor"
+    ],
+    "ba_2whs01": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Upper Floor of Tartaros Storage"
+    ],
+    "ba_2whs02": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Lower Floor of Tartaros Storage"
+    ],
+    "bl_death": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Death Rune"
+    ],
+    "bl_lava": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Fire Rune"
+    ],
+    "bl_grass": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Grass Rune"
+    ],
+    "bl_ice": [
+      "Dungeons",
+      "Varmundt's Dungeon",
+      "Ice Rune"
+    ],
+    "verus01": [
+      "Dungeons",
+      "Verus Area",
+      "Lab-OPTATIO"
+    ],
+    "verus02": [
+      "Dungeons",
+      "Verus Area",
+      "R&D-WISH"
+    ],
+    "verus03": [
+      "Dungeons",
+      "Verus Area",
+      "Verus Center Square"
+    ]
+  },
+  "spots": [
+    {
+      "map": "alb2trea",
+      "x": 57,
+      "y": 70,
+      "name": "Warper"
+    },
+    {
+      "map": "alberta",
+      "x": 28,
+      "y": 240,
+      "name": "Warper"
+    },
+    {
+      "map": "aldebaran",
+      "x": 145,
+      "y": 118,
+      "name": "Warper"
+    },
+    {
+      "map": "amatsu",
+      "x": 203,
+      "y": 87,
+      "name": "Warper"
+    },
+    {
+      "map": "ayothaya",
+      "x": 209,
+      "y": 169,
+      "name": "Warper"
+    },
+    {
+      "map": "comodo",
+      "x": 194,
+      "y": 158,
+      "name": "Warper"
+    },
+    {
+      "map": "einbech",
+      "x": 59,
+      "y": 38,
+      "name": "Warper"
+    },
+    {
+      "map": "einbroch",
+      "x": 69,
+      "y": 202,
+      "name": "Warper"
+    },
+    {
+      "map": "gef_fild10",
+      "x": 71,
+      "y": 339,
+      "name": "Warper"
+    },
+    {
+      "map": "geffen",
+      "x": 124,
+      "y": 72,
+      "name": "Warper"
+    },
+    {
+      "map": "glast_01",
+      "x": 372,
+      "y": 308,
+      "name": "Warper"
+    },
+    {
+      "map": "gonryun",
+      "x": 162,
+      "y": 122,
+      "name": "Warper"
+    },
+    {
+      "map": "hugel",
+      "x": 101,
+      "y": 151,
+      "name": "Warper"
+    },
+    {
+      "map": "izlu2dun",
+      "x": 110,
+      "y": 92,
+      "name": "Warper"
+    },
+    {
+      "map": "izlude",
+      "x": 134,
+      "y": 150,
+      "name": "Warper"
+    },
+    {
+      "map": "jawaii",
+      "x": 253,
+      "y": 138,
+      "name": "Warper"
+    },
+    {
+      "map": "lighthalzen",
+      "x": 162,
+      "y": 102,
+      "name": "Warper"
+    },
+    {
+      "map": "louyang",
+      "x": 208,
+      "y": 103,
+      "name": "Warper"
+    },
+    {
+      "map": "manuk",
+      "x": 274,
+      "y": 146,
+      "name": "Warper"
+    },
+    {
+      "map": "mid_camp",
+      "x": 216,
+      "y": 288,
+      "name": "Warper"
+    },
+    {
+      "map": "mjolnir_02",
+      "x": 85,
+      "y": 364,
+      "name": "Warper"
+    },
+    {
+      "map": "moc_ruins",
+      "x": 64,
+      "y": 164,
+      "name": "Warper"
+    },
+    {
+      "map": "morocc",
+      "x": 159,
+      "y": 97,
+      "name": "Warper"
+    },
+    {
+      "map": "moscovia",
+      "x": 229,
+      "y": 191,
+      "name": "Warper"
+    },
+    {
+      "map": "nameless_n",
+      "x": 259,
+      "y": 213,
+      "name": "Warper"
+    },
+    {
+      "map": "niflheim",
+      "x": 205,
+      "y": 179,
+      "name": "Warper"
+    },
+    {
+      "map": "pay_arche",
+      "x": 42,
+      "y": 134,
+      "name": "Warper"
+    },
+    {
+      "map": "payon",
+      "x": 182,
+      "y": 108,
+      "name": "Warper"
+    },
+    {
+      "map": "prontera",
+      "x": 159,
+      "y": 192,
+      "name": "Warper"
+    },
+    {
+      "map": "prt_fild05",
+      "x": 279,
+      "y": 223,
+      "name": "Warper"
+    },
+    {
+      "map": "rachel",
+      "x": 135,
+      "y": 116,
+      "name": "Warper"
+    },
+    {
+      "map": "splendide",
+      "x": 205,
+      "y": 153,
+      "name": "Warper"
+    },
+    {
+      "map": "thor_camp",
+      "x": 249,
+      "y": 76,
+      "name": "Warper"
+    },
+    {
+      "map": "umbala",
+      "x": 106,
+      "y": 150,
+      "name": "Warper"
+    },
+    {
+      "map": "veins",
+      "x": 214,
+      "y": 123,
+      "name": "Warper"
+    },
+    {
+      "map": "xmas",
+      "x": 150,
+      "y": 136,
+      "name": "Warper"
+    },
+    {
+      "map": "yuno",
+      "x": 162,
+      "y": 47,
+      "name": "Warper"
+    },
+    {
+      "map": "brasilis",
+      "x": 201,
+      "y": 222,
+      "name": "Warper"
+    },
+    {
+      "map": "dewata",
+      "x": 204,
+      "y": 186,
+      "name": "Warper"
+    },
+    {
+      "map": "dicastes01",
+      "x": 194,
+      "y": 194,
+      "name": "Warper"
+    },
+    {
+      "map": "ecl_in01",
+      "x": 51,
+      "y": 60,
+      "name": "Warper"
+    },
+    {
+      "map": "lasagna",
+      "x": 196,
+      "y": 187,
+      "name": "Warper"
+    },
+    {
+      "map": "malangdo",
+      "x": 134,
+      "y": 117,
+      "name": "Warper"
+    },
+    {
+      "map": "malaya",
+      "x": 231,
+      "y": 204,
+      "name": "Warper"
+    },
+    {
+      "map": "mora",
+      "x": 57,
+      "y": 152,
+      "name": "Warper"
+    }
+  ]
+}

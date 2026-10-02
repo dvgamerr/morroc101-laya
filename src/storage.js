@@ -16,7 +16,7 @@ const GONE_CONFIRM_MS = 1500;
 
 /** Menu chooser for a Kafra: "Use Storage" (or "yes" to its confirmation); never anything forbidden. */
 export const storageChooser = {
-  goal: 'open Kafra storage to deposit cards',
+  goal: 'open Kafra storage to deposit individually reviewed items',
   rules(options) {
     const ok = options.map((o, i) => ({ o, i })).filter(({ o }) => o && !FORBIDDEN.test(o));
     const store = ok.find(({ o }) => /(storage|คลัง|โกดัง|ฝาก)/i.test(o) && !/(guild|กิลด์)/i.test(o)) || ok.find(({ o }) => /^(yes|ok|okay|sure|ใช่|ตกลง)\b/i.test(o));
@@ -28,12 +28,11 @@ export const storageChooser = {
 export const cardsIn = (inv) => (inv || []).filter((i) => i.type === CARD && i.count > 0 && !i.equipped);
 
 /**
- * Owner's rule: cards are kept, never sold — into Kafra storage. In a town with a Kafra and
- * cards in the bag (typically right after a shopping trip): walk over, open storage, put
- * every card in, close it.
+ * Deposit only items explicitly chosen by the LAYA reviewer, never by item type.
  */
-export function createStorage(page, world, dialog) {
+export function createStorage(page, world, dialog, review = null) {
   const s = { active: false, stage: 'idle', npc: null, startedAt: 0, stageAt: 0, cooldownUntil: 0, lastPutAt: 0, stored: 0 };
+  const selected = (snap) => (review?.storageItems(snap) || []).filter((i) => !s.active || s.selected?.get(i.index) === i.ITID);
 
   function kafraHere(map) {
     return (world?.npcs || []).filter((n) => n.map === map && KAFRA.test(n.name));
@@ -42,13 +41,14 @@ export function createStorage(page, world, dialog) {
   function maybeStart(snap) {
     if (s.active || Date.now() < s.cooldownUntil || !world) return false;
     const me = snap.me;
-    if (!cardsIn(snap.inventory).length || !isTown(world, me.map)) return false;
+    if (!selected(snap).length || !isTown(world, me.map)) return false;
     const d = (n) => Math.max(Math.abs(n.x - me.x), Math.abs(n.y - me.y));
     const npc = kafraHere(me.map).sort((a, b) => d(a) - d(b))[0];
     if (!npc) return false;
-    const startCards = cardsIn(snap.inventory).reduce((n, c) => n + c.count, 0);
-    Object.assign(s, { active: true, stage: 'walk', npc, startedAt: Date.now(), stageAt: Date.now(), stored: 0, startCards, tries: new Map(), lastPutAt: 0, goneSince: 0 });
-    log('storage_start', { map: me.map, npc: `${npc.name} ${npc.x},${npc.y}`, cards: cardsIn(snap.inventory).map((c) => `${c.name} x${c.count}`).join(', ') });
+    const items = selected(snap);
+    const startCards = items.reduce((n, c) => n + c.count, 0);
+    Object.assign(s, { active: true, stage: 'walk', npc, startedAt: Date.now(), stageAt: Date.now(), stored: 0, startCards, selected: new Map(items.map((i) => [i.index, i.ITID])), tries: new Map(), lastPutAt: 0, goneSince: 0 });
+    log('storage_start', { map: me.map, npc: `${npc.name} ${npc.x},${npc.y}`, items: items.map((c) => `${c.name} x${c.count}`).join(', ') });
     return true;
   }
 
@@ -60,7 +60,7 @@ export function createStorage(page, world, dialog) {
   async function finish(ok, note, snap) {
     if (snap?.storage) await act(page, 'storage_close');
     log(ok ? 'storage_done' : 'storage_failed', { note, stored: s.stored });
-    if (!ok && s.npc) learn(`ฝากการ์ดที่ ${s.npc.name} (${s.npc.map}) ไม่สำเร็จ: ${note}`);
+    if (!ok && s.npc) learn(`ฝากไอเทมที่ ${s.npc.name} (${s.npc.map}) ไม่สำเร็จ: ${note}`);
     s.cooldownUntil = Date.now() + RETRY_AFTER_MS;
     Object.assign(s, { active: false, stage: 'idle' });
     return { ok, note, stored: s.stored };
@@ -102,13 +102,14 @@ export function createStorage(page, world, dialog) {
         else if (Date.now() - s.stageAt > OPEN_TIMEOUT_MS) return finish(false, 'storage did not open (fee? menu?)', snap);
         return null;
       case 'put': {
-        const cards = cardsIn(snap.inventory);
-        s.stored = Math.max(0, s.startCards - cards.reduce((n, c) => n + c.count, 0));
+        const cards = selected(snap);
+        const remaining = snap.inventory.filter((i) => s.selected.get(i.index) === i.ITID);
+        s.stored = Math.max(0, s.startCards - remaining.reduce((n, c) => n + c.count, 0));
         // "No cards left" must hold for a moment on a real bag: the inventory refreshes in pieces
         // around storage windows, and one such read once reported 6 cards stored that never moved.
-        if (!cards.length && (snap.inventory || []).length) {
+        if (!remaining.length && (snap.inventory || []).length) {
           s.goneSince ||= Date.now();
-          if (Date.now() - s.goneSince >= GONE_CONFIRM_MS) return finish(true, 'all cards stored', snap);
+          if (Date.now() - s.goneSince >= GONE_CONFIRM_MS) return finish(true, 'reviewed items stored', snap);
           return null;
         }
         s.goneSince = 0;

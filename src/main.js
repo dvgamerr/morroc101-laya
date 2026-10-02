@@ -4,6 +4,7 @@ import { openGame, waitForInGame, snapshot, drainEvents, act } from './browser.j
 import { createReflex } from './reflex.js';
 import { createChat } from './chat.js';
 import { createTravel } from './travel.js';
+import { observeWarpers } from './warper-reference.js';
 import { loadWorld, pickHuntingGrounds, isTown, spawnsOn, bossNames } from './world.js';
 import { createScout } from './scout.js';
 import { plan, planFromCandidate, DEFAULT_PLAN } from './planner.js';
@@ -18,10 +19,10 @@ import { createJobChange } from './jobchange.js';
 import { createDialog } from './npc.js';
 import { createHealer } from './heal.js';
 import { createStorage } from './storage.js';
-import { gearToWear } from './gear.js';
+import { createItemReview } from './item-review.js';
 import { createHotkeys } from './hotkeys.js';
 import { learn } from './lessons.js';
-import { createTrader, createBeggar } from './social.js';
+import { createTrader } from './social.js';
 import { notify, setIdentity } from './notify.js';
 import * as llm from './llm.js';
 
@@ -34,7 +35,6 @@ const FIGHT_TICK_MS = 120;
 const DISABLE_WINDOW_MS = 10 * 60 * 1000;
 const DISABLES_TO_AVOID = 2;
 const LOW_FLIP_CONFIRM_MS = 5000;
-const REFUSAL = /(ไม่ให้|ไม่มีเงิน|ไม่มีตัง|ขอทาน|ไปไกล|รำคาญ|\bno\b|\bnope\b)/i;
 const LEVEL_DROP_PER_DEATH = 5;
 const DRINK_WINDOW_MS = 120000;
 const DRINK_SHARE_TO_LEAVE = 0.4; // 40% of the time drinking = not really fighting
@@ -110,17 +110,17 @@ const scout = createScout(page, {
 });
 const reflex = createReflex(page, brain, scout, skills, hotkeys, world);
 const trader = createTrader(page);
-const beggar = createBeggar(page);
 // One @go state for every traveller (hunting, shopping, job change).
 const goState = { canGo: true, bad: new Set() };
-const travelForErrands = createTravel(page, goState);
+const travelForErrands = createTravel(page, goState, world);
 const damage = createDamageTracker();
-const errand = createErrand(page, world, travelForErrands, () => damage.p90());
+const itemReview = createItemReview(page);
+const errand = createErrand(page, world, travelForErrands, () => damage.p90(), itemReview);
 const jobChange = createJobChange(page, world, travelForErrands, createDialog(page));
 const healer = createHealer(page, world, createDialog(page));
-const storage = createStorage(page, world, createDialog(page));
+const storage = createStorage(page, world, createDialog(page), itemReview);
 const chat = createChat(page, brain);
-const travel = createTravel(page, goState);
+const travel = createTravel(page, goState, world);
 const getSnap = () => snapshot(page);
 
 /** Swap in a new plan; tell Discord when the goal or the hunting map actually changes. */
@@ -193,10 +193,11 @@ function excluded() {
 const NO_POTION_LEVEL_DROP = 15;
 // Not judged in the first seconds on a map: the inventory reloads in pieces after a map change.
 const lowOnPotions = (snap) =>
-  (snap.mapAgeMs ?? Infinity) >= 15000 ? stockHp(snap.inventory, snap.me) < (snap.me.maxHp || 0) : !!brain.lowOnPotions;
+  !config.priestSupport && ((snap.mapAgeMs ?? Infinity) >= 15000 ? stockHp(snap.inventory, snap.me) < (snap.me.maxHp || 0) : !!brain.lowOnPotions);
 
 function candidates(snap) {
   if (!world) return [];
+  observeWarpers(world, snap);
   // Owner's rule: money and level want different grounds. Money: monsters well below us (no
   // deaths, few potions) in big crowds for drops — the band in world.levelBand does the "below".
   // Level: the most EXP we can take, adjusted by what we've learned (levelOffset).
@@ -209,6 +210,7 @@ function candidates(snap) {
   return pickHuntingGrounds(world, {
     level,
     goal,
+    priestSupport: config.priestSupport,
     fromMap: snap.me.map,
     fromX: snap.me.x,
     fromY: snap.me.y,
@@ -272,6 +274,8 @@ function currentMoneyTarget(snap) {
  * Also money when out of potions with no money to buy even a few.
  */
 function committedGoal(snap) {
+  // The owner has a Priest following: prioritize EXP over building the solo potion reserve.
+  if (config.priestSupport) return 'level';
   const zeny = snap.me.zeny || 0;
   const t = currentMoneyTarget(snap);
   if (brain.moneyMode && zeny >= t.target) {
@@ -308,7 +312,7 @@ function chooseHunt(snap, why) {
     return;
   }
   brain.huntLevel = snap.me.baseLevel || 1;
-  setPlan({ ...planFromCandidate(list[0]), goal: brain.plan.goal, todo: brain.plan.todo }, snap);
+  setPlan({ ...planFromCandidate(list[0]), goal: committedGoal(snap), todo: brain.plan.todo }, snap);
   log('hunt_pick', {
     why,
     map: brain.plan.hunt_map,
@@ -489,7 +493,7 @@ let lastWearCheck = 0;
 async function wearBetterGear(snap) {
   if (Date.now() - lastWearCheck < 3000) return;
   lastWearCheck = Date.now();
-  const pick = gearToWear(snap.inventory, snap.worn, snap.me.baseLevel);
+  const pick = itemReview.pickEquip(snap);
   if (!pick || Date.now() - (triedWear.get(pick.index) || 0) < 60000) return;
   triedWear.set(pick.index, Date.now());
   await act(page, 'equip', { index: pick.index, loc: pick.loc });
@@ -497,36 +501,29 @@ async function wearBetterGear(snap) {
   notify(`🛡️ ใส่ ${pick.name}`, pick.why === 'empty slot' ? 'ช่องนี้ว่างอยู่' : pick.why, {}, 0x607d8b);
 }
 
+let checkedHuntMap = null;
 async function farmTick(snap) {
   errand.observe(snap, brain.plan.goal); // usage rates of potions and wings, for balanced shopping
+  itemReview.observe(snap);
   const hp = snap.me.maxHp ? snap.me.hp / snap.me.maxHp : 1;
   const huntMap = brain.plan.hunt_map;
-  const away = !!huntMap && snap.me.map !== huntMap;
+  const away = !!huntMap && (snap.me.map !== huntMap || travel.dest !== null || checkedHuntMap !== huntMap);
 
   // In town and hurt (e.g. just respawned): the Healer NPC is free, potions aren't.
-  if (!snap.me.dead && !snap.attackers.length && (healer.active || healer.maybeStart(snap))) {
+  if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && (healer.active || healer.maybeStart(snap))) {
     await healer.tick(snap);
     return;
   }
 
-  // Gear: an empty slot (a stripped weapon) or a better piece in the bag goes on, between fights.
-  if (!snap.me.dead && !snap.attackers.length && !errand.active && !storage.active) await wearBetterGear(snap);
+  if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && !errand.active && !storage.active && !jobChange.active && await itemReview.identify(snap)) return;
+  // Wear only a current LAYA-reviewed upgrade, between fights.
+  if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && !errand.active && !storage.active) await wearBetterGear(snap);
 
-  // Owner's rule: cards are never sold — in a town with a Kafra, put them into storage.
-  if (!snap.me.dead && !snap.attackers.length && !errand.active && !jobChange.active && (storage.active || storage.maybeStart(snap))) {
+  // Deposit only individually reviewed items selected by LAYA.
+  if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && !errand.active && !jobChange.active && (storage.active || storage.maybeStart(snap))) {
     const done = await storage.tick(snap);
-    if (done?.stored) notify(`🃏 ฝากการ์ดเข้า Kafra storage แล้ว ${done.stored} ใบ`, done.note, {}, 0x9c27b0);
+    if (done?.stored) notify(`📦 ฝากไอเทมเข้า Kafra storage แล้ว ${done.stored} ชิ้น`, done.note, {}, 0x9c27b0);
     return;
-  }
-
-  // Owner's request: in Morroc, ask a nearby player for a little zeny (polite, rate-limited),
-  // then hang around briefly for an answer or a trade.
-  if (!snap.attackers.length && !errand.active && !jobChange.active) {
-    const linger = await beggar.maybeAsk(snap);
-    if (linger) {
-      brain.mode = { kind: 'wait', until: Date.now() + linger };
-      return;
-    }
   }
 
   // Survival first, wherever we are. On the way somewhere, only fight back — except monsters we
@@ -558,7 +555,7 @@ async function farmTick(snap) {
 
   // Shopping trip: decided here from the bag (potions low and affordable, or too heavy), then
   // it runs until done and hunting picks up again (travel back to the hunt map is automatic).
-  if (!errand.active) {
+  if (!travel.inDialog && !errand.active) {
     const started = errand.maybeStart(snap);
     if (started) {
       if (travel.dest) await travel.stop();
@@ -572,7 +569,7 @@ async function farmTick(snap) {
   }
 
   // Job change: qualified for the next job on CLASS_PATH -> go to the Job Master.
-  if (!jobChange.active) {
+  if (!travel.inDialog && !jobChange.active) {
     const started = jobChange.maybeStart(snap);
     if (started) {
       if (travel.dest) await travel.stop();
@@ -608,7 +605,9 @@ async function farmTick(snap) {
 
   if (away) {
     if (travel.dest !== huntMap) await travel.start(huntMap);
-    if ((await travel.tick(snap)) === 'failed') {
+    const travelResult = await travel.tick(snap);
+    if (travelResult === 'arrived') checkedHuntMap = huntMap;
+    if (travelResult === 'failed') {
       exclude(huntMap, 'เดินทางไปไม่ได้');
       chooseHunt(snap, `ไป ${huntMap} ไม่ได้`);
     }
@@ -766,7 +765,6 @@ for (;;) {
         const done = await errand.onEvent(ev, snap);
         if (done) endErrand(done, snap);
       }
-      if (ev.type === 'chat' && REFUSAL.test(ev.text)) beggar.refused(ev.from); // never ask them again
       if (ev.type === 'chat') chat.push(ev, getSnap);
       else if (ev.type === 'level_up') {
         log('level_up', { kind: ev.kind, level: ev.level });

@@ -1,6 +1,7 @@
 import { act, query } from './browser.js';
 import { log } from './logger.js';
 import { learn } from './lessons.js';
+import { createWarpraTravel } from './warpra-travel.js';
 
 const GO_RETRY_MS = 10000;
 const GO_MAX_TRIES = 2;
@@ -14,8 +15,8 @@ const DETOUR_AFTER_MS = 8000;
 const PAUSE_GAP_MS = 3000;
 
 /**
- * Get to another map. The client's NaviRoute plans the whole trip (portals and
- * @go only — the agent can't drive Kafra/NPC dialogs yet); this walks it one
+ * Check Warpra's live board first, unlock the destination when required, then
+ * use NaviRoute only for NPC approach or a walking fallback. This walks one
  * leg at a time: a few cells up the planned path per move, step onto portals,
  * type @go when the leg says so.
  *
@@ -24,7 +25,9 @@ const PAUSE_GAP_MS = 3000;
  * when several towns refuse it. `go` is shared by every travel instance (hunting,
  * shopping, job change) so they agree on it.
  */
-export function createTravel(page, go = { canGo: true, bad: new Set() }) {
+export function createTravel(page, go = { canGo: true, bad: new Set() }, world = null) {
+  const feeder = world ? createTravel(page, go) : null;
+  const warpra = world ? createWarpraTravel(page, world, feeder, go) : null;
   const t = {
     dest: null,
     tripNoGo: false, // this trip walks (a town refused @go)
@@ -41,17 +44,22 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }) {
 
   async function start(map) {
     t.dest = map;
+    t.warpChecked = false;
     t.goTries = 0;
     t.tripNoGo = false;
     t.closedNaid = null;
     t.startedAt = t.lastProgressAt = Date.now();
-    await act(page, 'navi_start', { map, useGo: useGo() });
+    if (warpra) { warpra.start(map); await act(page, 'navi_clear'); }
+    else await act(page, 'navi_start', { map, useGo: useGo() });
     log('travel_start', { to: map, useGo: useGo() });
   }
 
   async function stop() {
     if (!t.dest) return;
+    if (warpra) await warpra.stop();
     t.dest = null;
+    t.warp = null;
+    if (feeder?.dest) await feeder.stop();
     await act(page, 'navi_clear');
   }
 
@@ -60,6 +68,20 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }) {
     const me = snap.me;
     const now = Date.now();
     if (!t.dest) return 'failed';
+    if (warpra && !t.warpChecked) {
+      t.legKind = 'warper';
+      const result = await warpra.tick(snap);
+      t.lastProgressAt = now;
+      if (result === 'traveling') return result;
+      if (result === 'failed') { await stop(); return 'failed'; }
+      t.warpChecked = true;
+      if (result === 'fallback') {
+        await warpra.stop();
+        t.startedAt = now;
+        await act(page, 'navi_start', { map: t.dest, useGo: useGo() });
+        log('travel_warper_fallback', { to: t.dest });
+      }
+    }
     if (me.map === t.dest) {
       log('travel_arrived', { map: t.dest, seconds: Math.round((now - t.startedAt) / 1000) });
       await stop();
@@ -163,6 +185,7 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }) {
     get dest() {
       return t.dest;
     },
+    get inDialog() { return !!warpra?.inDialog; },
     get canGo() {
       return go.canGo;
     },

@@ -15,13 +15,15 @@ export const POTIONS = [
 
 // Not for sale but worth drinking: Novice Potion, herbs, the condensed ones.
 const OTHER_HEALS = {
+  518: [70, 100], 526: [325, 405],
   569: [45, 65], 507: [18, 30], 508: [38, 58], 509: [75, 115], 545: [45, 65], 546: [175, 235], 547: [325, 405],
   512: [16, 18], 513: [17, 21], 515: [18, 20], 516: [15, 17],
 };
 
 /** SP potions the Tool Dealer sells (SP restored range; price = usual NPC price). */
 export const SP_POTIONS = [{ ITID: 505, name: 'Blue Potion', sp: [40, 60], price: 5000, weight: 150 }];
-const SP_RANGE = { 505: [40, 60], 510: [15, 30], 11502: [40, 60], 11503: [100, 150] };
+const SP_RANGE = { 505: [40, 60], 510: [15, 30], 518: [20, 40], 526: [40, 60], 11502: [40, 60], 11503: [100, 150] };
+export const spRange = (id) => SP_RANGE[id] || null;
 
 /** Total SP the SP items in the bag can give back. */
 export function stockSp(inv) {

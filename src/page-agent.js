@@ -265,6 +265,13 @@ export function installPageAgent() {
         if (A.dialog && (!p.NAID || A.dialog.naid === p.NAID)) A.dialog.state = 'ended';
         break;
 
+      case 'PACKET_ZC_ITEMIDENTIFY_LIST':
+        A.identify = { indices: [...(p.ITIDList || [])], at: Date.now() };
+        break;
+      case 'PACKET_ZC_ACK_ITEMIDENTIFY':
+        A.identify = null;
+        push({ type: 'identified', index: p.index, ok: p.result === 0 });
+        break;
       // ---- NPC shops: buy/sell choice, the lists with prices, the results
       case 'PACKET_ZC_SELECT_DEALTYPE':
         A.shop = { naid: p.NAID, stage: 'select', at: Date.now() };
@@ -378,7 +385,8 @@ export function installPageAgent() {
    */
   function gearInfo(it) {
     const d = window.RO.DB.getItemInfo(it.ITID) || {};
-    const text = String(it.IsIdentified === 0 ? d.unidentifiedDescriptionName || d.identifiedDescriptionName || '' : d.identifiedDescriptionName || '').replace(/\^[0-9a-fA-F]{6}/g, '');
+    const identified = it.IsIdentified === true || it.IsIdentified === 1;
+    const text = String(identified ? d.identifiedDescriptionName || '' : d.unidentifiedDescriptionName || '').replace(/\^[0-9a-fA-F]{6}/g, '');
     const field = (re) => (text.match(re) || [])[1]?.trim() || '';
     return {
       loc: it.location || 0,
@@ -388,7 +396,12 @@ export function installPageAgent() {
       jobs: field(/(?:อาชีพที่ใช้ได้|Jobs?)\s*:\s*([^\n]+)/i), // '' = everyone
       reqLv: Number(field(/(?:Lv\. ที่ต้องการ|Required Level|Base Level)\s*:\s*(\d+)/i)) || 0,
       refine: it.RefiningLevel || 0,
-      identified: it.IsIdentified !== 0, // unidentified gear can't be worn until appraised
+      description: text,
+      cards: it.slot ? { ...it.slot } : {},
+      options: (it.Options || []).filter(Boolean).map((o) => ({ ...o })),
+      damaged: !!it.IsDamaged,
+      slots: d.slotCount ?? null,
+      identified, // unidentified gear can't be worn until appraised
     };
   }
 
@@ -436,6 +449,8 @@ export function installPageAgent() {
       // can be compounded into — it once made every loose card look "worn" (never stored).
       equipped: !!it.WearState && it.type !== 6,
       keep: keepReason(it),
+      ...((RO.DB.getItemInfo(it.ITID) || {}).identifiedDescriptionName ? { description: String(RO.DB.getItemInfo(it.ITID).identifiedDescriptionName).replace(/\^[0-9a-fA-F]{6}/g, '') } : {}),
+      ...((RO.DB.getItemInfo(it.ITID) || {}).weight > 0 ? { weight: RO.DB.getItemInfo(it.ITID).weight } : {}),
       ...(it.type === 4 || it.type === 5 ? { gear: gearInfo(it) } : {}),
     }));
   }
@@ -524,6 +539,7 @@ export function installPageAgent() {
       shop: A.shop || null,
       trade: A.trade ? { ...A.trade, items: [...A.trade.items] } : null,
       storage: A.storage ? { ...A.storage } : null,
+      identify: A.identify ? { ...A.identify, indices: [...A.identify.indices] } : null,
       // How long we've been on this map: the inventory reloads in pieces after a map change.
       mapAgeMs: now - (A.mapSince || now),
       dialog: A.dialog ? { ...A.dialog, lines: [...A.dialog.lines], idleMs: Date.now() - A.dialog.at } : null,
@@ -731,6 +747,10 @@ export function installPageAgent() {
         A.shop = null;
         return true;
       // ---- wear a piece of gear from the bag in the slot(s) it goes to
+      case 'identify':
+        if (!A.identify?.indices.includes(arg.index)) return false;
+        A.identify = null;
+        return send(PACKET.CZ.REQ_ITEMIDENTIFY, { index: arg.index });
       case 'equip':
         return send(PACKET.CZ.REQ_WEAR_EQUIP, { index: arg.index, wearLocation: arg.loc });
       // ---- Kafra storage (open it by talking to a Kafra; these only work while it's open).

@@ -31,7 +31,8 @@ function summarize(snap, why, recent, ctx) {
   const candidates = ctx.candidates.map((c, i) => {
     const mobs = c.targets.map((t) => `${t.name} lv${t.level} x${t.count}`).join(', ');
     const avoid = c.avoid.length ? ` | อันตราย: ${c.avoid.join(', ')}` : '';
-    return `${i + 1}. ${c.map} (h${c.hops}) มอน: ${mobs}${avoid}`;
+    const route = c.warp ? ` | ${c.warp.npc}@${c.warp.town}: ${c.warp.path.join(' > ')}` : '';
+    return `${i + 1}. ${c.map} (h${c.hops}) มอน: ${mobs}${avoid}${route}`;
   });
   return [
     `เหตุที่เรียก planner: ${why}`,
