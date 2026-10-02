@@ -45,9 +45,9 @@ function yesProbability(answer) {
 }
 
 /** Shortcut: pick one option. `options` is { name: description }. */
-export async function choose(state, instructions, options) {
+export async function choose(state, instructions, options, opts = {}) {
   const { decision } = await ask(state, {
     decision: { type: 'choice', instructions, criteria: options },
-  });
+  }, opts);
   return decision;
 }
