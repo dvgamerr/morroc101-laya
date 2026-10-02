@@ -2,7 +2,8 @@ import * as llm from './llm.js';
 import { log } from './logger.js';
 import { PLANNER_SYSTEM } from './prompts.js';
 import { GOAL_KEYS, jobInfo, nextJob, jobChangeReady } from './goals.js';
-import { jobReference, jobReferenceContext } from './job-reference.js';
+import { jobReference } from './job-reference.js';
+import { stockHp, stockSp } from './potions.js';
 import { recentLessons } from './lessons.js';
 
 export { GOAL_KEYS };
@@ -22,37 +23,28 @@ export const DEFAULT_PLAN = {
 
 function summarize(snap, why, recent, ctx) {
   const me = snap.me;
-  const monsters = Object.entries(
-    snap.monsters.reduce((acc, m) => ((acc[m.name] = (acc[m.name] || 0) + 1), acc), {}),
-  ).map(([n, c]) => `${n} x${c}`);
-  const consumables = snap.inventory
-    .filter((i) => i.type === 0 || i.type === 2 || i.type === 11)
-    .map((i) => `${i.name} x${i.count}`);
-  const candidates = ctx.candidates.map((c, i) => {
-    const mobs = c.targets.map((t) => `${t.name} lv${t.level} x${t.count}`).join(', ');
-    const avoid = c.avoid.length ? ` | อันตราย: ${c.avoid.join(', ')}` : '';
-    const route = c.warp ? ` | ${c.warp.npc}@${c.warp.town}: ${c.warp.path.join(' > ')}` : '';
-    return `${i + 1}. ${c.map} (h${c.hops}) มอน: ${mobs}${avoid}${route}`;
-  });
+  const candidates = [...ctx.candidates].sort((a,b) => a.map.localeCompare(b.map));
   return [
-    `เหตุที่เรียก planner: ${why}`,
-    `ตัวละคร: ${me.name} อาชีพ ${jobInfo(me.jobId).name} Base ${me.baseLevel} (${me.baseExp ?? '?'}/${me.baseExpNext ?? '?'}) Job ${me.jobLevel}`,
-    jobReferenceContext(me, jobInfo(me.jobId).name, nextJob(me), { details: !!jobChangeReady(me) || (ctx.signals || []).some((s) => s.goal === 'job_change') }),
-    `Stat: ${JSON.stringify(me.stats || {})} | สกิล: ${(me.skills || []).map((s) => `${s.name}${s.level}`).join(', ') || '-'}`,
-    `HP ${me.hp}/${me.maxHp} SP ${me.sp}/${me.maxSp} Zeny ${me.zeny} น้ำหนัก ${me.weight}/${me.maxWeight}`,
-    `Status point เหลือ ${me.statusPoints ?? '?'} Skill point เหลือ ${me.skillPoints ?? '?'}`,
-    `แมพ ${me.map} (${me.x},${me.y})${ctx.inTown ? ' — เป็นเมือง ไม่มีมอน' : ''}`,
-    `มอนที่เห็น: ${monsters.join(', ') || 'ไม่มี'}`,
-    `ของใช้ในกระเป๋า: ${consumables.join(', ') || 'ไม่มี'}`,
-    `อุปกรณ์ที่ใส่: ${snap.inventory.filter((i) => i.equipped).map((i) => i.name).join(', ') || '-'}`,
-    `สรุปช่วงที่ผ่านมา: ${recent}`,
-    `สัญญาณจากระบบ: ${(ctx.signals || []).map((s) => `[${s.goal}] ${s.text}`).join(' | ') || 'ไม่มี'}`,
-    '',
-    'ความทรงจำ (MEMORY.md — ปัญหาที่เคยเจอ อย่าทำซ้ำ):',
-    ...(recentLessons().length ? recentLessons() : ['(ยังไม่มี)']),
-    '',
-    `แมพล่ามอนที่เหมาะกับเลเวล ${me.baseLevel} (เรียงจากดีที่สุด, h = จำนวนครั้งที่ต้องเปลี่ยนแมพ):`,
-    ...(candidates.length ? candidates : ['(ไม่มีข้อมูล)']),
+    'เหตุ: ' + why,
+    'goal: ' + (ctx.goal || 'level'),
+    'Base ' + me.baseLevel + ' | อาชีพ ' + jobInfo(me.jobId).name +
+      ' | HP ' + me.hp + '/' + me.maxHp + ' SP ' + me.sp + '/' + me.maxSp +
+      ' | zeny ' + me.zeny,
+    'current_map (ตำแหน่งจริงตอนนี้): ' + me.map + ' (' + me.x + ',' + me.y + ')' +
+      (ctx.inTown ? ' เมือง' : '') +
+      (candidates.some(c => c.map === me.map) ? ' — เลือกล่าต่อที่นี่ได้' : ' — ไม่อยู่ในตัวเลือก'),
+    'ยาสำรอง: HP รวม ' + Math.round(stockHp(snap.inventory, me)) + ' / SP รวม ' + Math.round(stockSp(snap.inventory)),
+    'อุปกรณ์: ' + snap.inventory.filter(i => i.equipped).map(i => i.name).join(', '),
+    'ผลล่าสุด: ' + recent,
+    'บทเรียน (เป็นประวัติ ไม่ใช่รายการแมพที่อนุญาต):',
+    ...recentLessons(8, me.baseLevel),
+    'ข้อมูลตัวเลือก: map | จำนวนเปลี่ยนแมพ | มอน | อันตราย',
+    ...candidates.map(c => c.map + ' | ' + c.hops + ' | ' +
+      c.targets.map(t => t.name + ': Lv=' + t.level + ' count=' + t.count + ' HP=' + (t.hp ?? '?') + ' EXP=' + (t.baseExp ?? '?')).join(', ') +
+      ' | ' + (c.avoid.join(', ') || '-') +
+      (ctx.goal === 'money' ? ' | drops=' + JSON.stringify(c.targets.map(t => ({mob:t.name,knownZenyPerKill:t.drops?.knownZenyPerKill,unknownPrices:t.drops?.unknownPrices,items:t.drops?.items.map(d => ({id:d.id,name:d.name,chancePct:d.rate/100,sellPrice:d.sellPrice}))}))) : '')),
+    'ยืนยัน current_map=' + me.map + '; Base=' + me.baseLevel + '; goal=' + ctx.goal + '; แมพอื่นต้องเดินทาง ห้ามอ้างว่าอยู่แล้ว',
+    'allowed_maps: ' + JSON.stringify(candidates.map(c => c.map)),
   ].join('\n');
 }
 
@@ -64,21 +56,45 @@ function summarize(snap, why, recent, ctx) {
 export async function plan(snap, why, recent, current, ctx = { candidates: [], inTown: false, signals: [] }) {
   const messages = [
     { role: 'system', content: PLANNER_SYSTEM },
-    { role: 'user', content: `แผนปัจจุบัน: ${JSON.stringify(current)}\n\n${summarize(snap, why, recent, ctx)}` },
+    { role: 'user', content: summarize(snap, why, recent, ctx) },
   ];
-  // A plan is a JSON object. The model sometimes loops into a list ("Mantis x1 … x20"): ask once more, cooler.
-  const isPlan = (p) => !!p && typeof p === 'object' && !Array.isArray(p);
-  let text = await llm.chat(messages, { maxTokens: 500, temperature: 0.3, json: true });
+  const invalidReason = (p) => {
+    if (!p || typeof p !== 'object' || Array.isArray(p)) return 'invalid_or_incomplete_json';
+    if (!ctx.candidates.some(c => c.map === p.hunt_map)) return 'map_not_in_candidates';
+    if (p.current_map !== snap.me.map) return 'incorrect_current_map';
+    if ((!Array.isArray(p.target_monsters) || !p.target_monsters.length ||
+        !p.target_monsters.every(name => ctx.candidates.find(c => c.map === p.hunt_map).targets.some(t => t.name === name)))) return 'invalid_target_monsters';
+    if (typeof p.reason !== 'string' || !p.reason.trim()) return 'missing_reason';
+    return null;
+  };
+  let completion = {};
+  const onCompletion = (info) => { completion = info; };
+  const reportInvalid = (parsed, text, attempt) => log('planner_bad_json', {
+    attempt, cause: invalidReason(parsed), map: parsed?.hunt_map,
+    ...completion, chars: text.length, tail: text.slice(-200),
+  });
+  let text = await llm.chat(messages, { maxTokens: 2048, temperature: 0.3, json: true, onCompletion });
   let parsed = llm.parseJson(text);
-  if (!isPlan(parsed)) {
-    text = await llm.chat(messages, { maxTokens: 500, temperature: 0.1, json: true });
+  if (invalidReason(parsed)) {
+    reportInvalid(parsed, text, 1);
+    completion = {};
+    text = await llm.chat([...messages, { role: 'user', content:
+      'คำตอบก่อนหน้าใช้ไม่ได้: ' + invalidReason(parsed) +
+      '; hunt_map ที่ตอบ = ' + JSON.stringify(parsed?.hunt_map ?? null) +
+      '; allowed_maps = ' + JSON.stringify(ctx.candidates.map(c => c.map).sort()) +
+      '. เลือกใหม่จาก allowed_maps เท่านั้น ตอบ JSON: {current_map, hunt_map, goal, target_monsters, reason} เหตุผลสั้นๆ ห้ามเลือกแมพนอกนี้แม้เคยอยู่ในแผนเก่า'
+    }], { maxTokens: 2048, temperature: 0.1, json: true, onCompletion });
     parsed = llm.parseJson(text);
   }
-  if (!isPlan(parsed)) {
-    log('planner_bad_json', { text: text.slice(0, 300) });
-    return current;
+  if (invalidReason(parsed)) {
+    reportInvalid(parsed, text, 2);
+    throw new Error('Plan rejected: ' + invalidReason(parsed) + '; no automatic map selection');
   }
   const next = { ...sanitize(parsed, ctx.candidates), signals: (ctx.signals || []).map((s) => s.text) };
+  if (ctx.goal === 'money' || ctx.goal === 'level') {
+    next.goal = ctx.goal;
+    next.objective = ctx.goal === 'money' ? 'หาเงินจากดรอปโดยเสีย HP และค่ายาน้อย' : 'เก็บเลเวลกับมอนในช่วง Base-10 ถึง Base-1';
+  }
   if (next.goal === 'job_change') {
     const ref = jobReference(jobInfo(snap.me.jobId).name, nextJob(snap.me));
     const ready = ref && jobChangeReady(snap.me) && snap.me.skillPoints === 0;
@@ -103,9 +119,9 @@ export function planFromCandidate(c) {
 export function sanitize(p, candidates = []) {
   const list = (x) => (Array.isArray(x) ? x.filter((s) => typeof s === 'string' && s.trim()).map((s) => s.trim()) : []);
   const num = (x, lo, hi, fallback) => (Number.isFinite(Number(x)) ? Math.min(hi, Math.max(lo, Number(x))) : fallback);
-  const hunt = candidates.find((c) => c.map === p.hunt_map) || candidates[0] || null;
+  const hunt = candidates.find((c) => c.map === p.hunt_map) || null;
   const onMap = new Set(hunt ? hunt.targets.map((t) => t.name) : []);
-  const targets = list(p.target_monsters).filter((n) => !hunt || onMap.has(n));
+  const targets = list(p.target_monsters).filter((n) => hunt && onMap.has(n));
   return {
     goal: GOAL_KEYS.includes(p.goal) ? p.goal : 'level',
     objective: typeof p.objective === 'string' && p.objective ? p.objective : DEFAULT_PLAN.objective,

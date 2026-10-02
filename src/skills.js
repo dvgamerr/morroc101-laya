@@ -237,6 +237,7 @@ export function createSkillBook() {
     if (now - book.lastCastAt < GLOBAL_GAP_MS) return null;
     for (const s of me.skills || []) {
       const efst = TOGGLE_ON[s.name];
+      if (me.maxSp && me.sp / me.maxSp < 0.5) continue;
       if (efst === undefined || efst in (me.status || {})) continue;
       if (now - (book.lastToggleAt[s.id] || 0) < TOGGLE_GAP_MS || !usable(s, me, now)) continue;
       return { id: s.id, level: s.level, targetID: me.GID, name: s.name, toggle: true };
@@ -245,18 +246,18 @@ export function createSkillBook() {
   }
 
   /** The hardest-hitting attack skill usable on `target` right now; {approach} if it's ready but out of reach; null for a normal attack. */
-  function pickAttack(snap, target, crowd = 1, splash = 1, areaOnly = false) {
+  function pickAttack(snap, target, crowd = 1, splash = 1, areaOnly = false, afterNormalTrial = false) {
     const me = snap.me;
     const now = Date.now();
     if (!target || now - book.lastCastAt < GLOBAL_GAP_MS) return null;
-    // Owner's rule: skills always, as long as the SP is there (buffs are picked before this anyway).
-    const order = crowd >= 3 ? [...book.aoe, ...book.attack] : book.attack;
+    // After the normal-attack trial, allow learned AoE damage against a single survivor.
+    const order = crowd >= 3 ? [...book.aoe, ...book.attack] : afterNormalTrial ? [...new Set([...book.attack, ...book.aoe])] : book.attack;
     let tooFar = null;
     for (const id of order) {
       const s = (me.skills || []).find((k) => k.id === id);
       if (!s || !usable(s, me, now)) continue;
       if (areaOnly && !SPLASH_MIN[s.name] && !book.aoe.includes(id)) continue;
-      if ((SPLASH_MIN[s.name] || 0) > splash) continue; // not enough of them bunched up yet
+      if (!afterNormalTrial && (SPLASH_MIN[s.name] || 0) > splash) continue; // not enough of them bunched up yet
       if (BOSS_ONLY.has(s.name) && !book.bosses.has(target.name)) continue;
       const range = Math.max(1, s.range || 1);
       if (target.dist > range + 0.5 && !(s.inf & INF.SELF)) {

@@ -5,7 +5,7 @@ import { healRange, spRange } from './potions.js';
 import * as laya from './laya.js';
 import { log } from './logger.js';
 
-const SUPPLIES = new Set([601, 602, 611, 12323, 12324]);
+const SUPPLIES = new Set([601, 602, 611, 23280, 12323, 12324]);
 const unknown = (i) => !!i.gear && (i.gear.identified !== true || !i.gear.description || !i.name || /^(undefined|null|\d+)$/i.test(i.name));
 const fingerprint = (i) => JSON.stringify([i.index, i.ITID, i.name, i.gear, i.description, i.keep]);
 const contextKey = (s) => JSON.stringify([s.me.jobId, s.me.baseLevel, s.worn, config.build]);

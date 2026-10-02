@@ -1,11 +1,11 @@
 import { act, query } from './browser.js';
 import { log } from './logger.js';
-import { learn } from './lessons.js';
 import { createWarpraTravel } from './warpra-travel.js';
 
 const GO_RETRY_MS = 10000;
+const ROUTE_SETTLE_MS = 3000;
+const ROUTE_RETRIES = 3;
 const GO_MAX_TRIES = 2;
-const GO_BAD_TOWNS_TO_DISABLE = 3; // only give up on @go entirely after this many towns refuse it
 const MOVE_GAP_MS = 2500;
 const IDLE_MOVE_GAP_MS = 700;
 const STUCK_MS = 25000;
@@ -20,10 +20,8 @@ const PAUSE_GAP_MS = 3000;
  * leg at a time: a few cells up the planned path per move, step onto portals,
  * type @go when the leg says so.
  *
- * Whether @go works is learned, not assumed. A town that doesn't take us after two
- * tries is marked bad and this trip walks instead; @go as a whole is switched off only
- * when several towns refuse it. `go` is shared by every travel instance (hunting,
- * shopping, job change) so they agree on it.
+ * A missing warp confirmation only falls back for this trip. It is not evidence
+ * that a town or @go is permanently unavailable.
  */
 export function createTravel(page, go = { canGo: true, bad: new Set() }, world = null) {
   const feeder = world ? createTravel(page, go) : null;
@@ -44,14 +42,26 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
 
   async function start(map) {
     t.dest = map;
+    t.lastMap = null;
+    t.routeReadyAt = 0;
+    t.routeRetries = 0;
+    t.wingKey = null;
+    t.wingBlocked = new Set();
     t.warpChecked = false;
     t.goTries = 0;
+    t.lastGoAt = 0;
     t.tripNoGo = false;
     t.closedNaid = null;
     t.startedAt = t.lastProgressAt = Date.now();
     if (warpra) { warpra.start(map); await act(page, 'navi_clear'); }
     else await act(page, 'navi_start', { map, useGo: useGo() });
     log('travel_start', { to: map, useGo: useGo() });
+  }
+
+  async function refreshRoute() {
+    t.routeReadyAt = Date.now() + ROUTE_SETTLE_MS;
+    t.lastProgressAt = Date.now();
+    await act(page, 'navi_start', { map: t.dest, useGo: useGo() });
   }
 
   async function stop() {
@@ -68,6 +78,12 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
     const me = snap.me;
     const now = Date.now();
     if (!t.dest) return 'failed';
+    // Already here: do not leave to inspect or use a warper.
+    if (me.map === t.dest) {
+      log('travel_arrived', { map: t.dest, seconds: Math.round((now - t.startedAt) / 1000) });
+      await stop();
+      return 'arrived';
+    }
     if (warpra && !t.warpChecked) {
       t.legKind = 'warper';
       const result = await warpra.tick(snap);
@@ -78,14 +94,10 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
       if (result === 'fallback') {
         await warpra.stop();
         t.startedAt = now;
-        await act(page, 'navi_start', { map: t.dest, useGo: useGo() });
+        await refreshRoute();
         log('travel_warper_fallback', { to: t.dest });
+        return 'traveling'; // Wait for a fresh route snapshot, not the feeder's old lost flag.
       }
-    }
-    if (me.map === t.dest) {
-      log('travel_arrived', { map: t.dest, seconds: Math.round((now - t.startedAt) / 1000) });
-      await stop();
-      return 'arrived';
     }
 
     // Travel paused for something else (a fight, the Healer, a shop): that time isn't
@@ -99,9 +111,17 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
       t.lastProgressAt = now;
     }
     if (me.map !== t.lastMap) {
+      const changed = t.lastMap !== null;
       t.lastMap = me.map;
       t.goTries = 0;
+      t.routeRetries = 0;
+      if (changed) {
+        log('travel_map_changed', { map: me.map, to: t.dest });
+        await refreshRoute();
+        return 'traveling';
+      }
     }
+    if (now < t.routeReadyAt) return 'traveling';
     if (now - t.lastProgressAt > STUCK_MS || now - t.startedAt > TRIP_TIMEOUT_MS) {
       log('travel_failed', { to: t.dest, reason: now - t.lastProgressAt > STUCK_MS ? 'stuck' : 'timeout', map: me.map });
       await stop();
@@ -115,11 +135,18 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
       return 'traveling';
     }
     if (n.lost) {
+      if (t.routeRetries < ROUTE_RETRIES) {
+        t.routeRetries++;
+        log('travel_route_retry', { map: me.map, to: t.dest, attempt: t.routeRetries });
+        await refreshRoute();
+        return 'traveling';
+      }
       log('travel_failed', { to: t.dest, reason: useGo() ? 'no route' : 'no walking route', map: me.map, useGo: useGo() });
       await stop();
       return 'failed';
     }
     const leg = n.leg;
+    if (leg) t.routeRetries = 0;
     t.legKind = leg ? leg.kind : null;
     if (!leg) {
       // Still planning (or NaviData still loading): standing still isn't being stuck, for a while.
@@ -133,26 +160,33 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
       if (leg.toMap === me.map) {
         t.tripNoGo = true;
         log('travel_skip_go', { map: me.map, index: leg.goIndex, to: t.dest });
-        await act(page, 'navi_start', { map: t.dest, useGo: false });
+        await refreshRoute();
         return 'traveling';
+      }
+      if (snap.dialog && snap.dialog.state !== 'ended') {
+        const closed = await act(page, 'npc_close', { naid: snap.dialog.naid });
+        log('travel_go_dialog', { state: snap.dialog.state, closed });
+        t.lastProgressAt = now;
+        return 'traveling'; // Re-read the dialog before sending or counting an attempt.
       }
       if (now - t.lastGoAt < GO_RETRY_MS) return 'traveling';
       if (t.goTries >= GO_MAX_TRIES) {
-        // Typed it twice and we're still here: that town refuses us. Walk this trip; turn
-        // @go off altogether only when several towns have refused.
-        go.bad.add(leg.goIndex);
+        // No map change is inconclusive: never blacklist towns or disable shared @go.
         t.tripNoGo = true;
-        if (go.bad.size >= GO_BAD_TOWNS_TO_DISABLE) go.canGo = false;
-        log('travel_no_go', { map: me.map, index: leg.goIndex, toward: leg.toMap, badTowns: go.bad.size, goOff: !go.canGo });
-        learn(`@go ${leg.goIndex} (${leg.toMap}) ใช้ไม่ได้จาก ${me.map} — ต้องเดินไปแทน`);
+        log('travel_go_unconfirmed', { map: me.map, index: leg.goIndex, toward: leg.toMap, tries: t.goTries });
         await act(page, 'navi_start', { map: t.dest, useGo: false });
         return 'traveling';
       }
-      t.goTries++;
       t.lastGoAt = now;
       if (me.sitting) await act(page, 'stand');
       // Read what the server says back: a refusal usually explains itself (cooldown, banned town).
-      const reply = await query(page, `@go ${leg.goIndex}`, 1200).catch(() => []);
+      let reply;
+      try { reply = await query(page, `@go ${leg.goIndex}`, 1200); }
+      catch (err) {
+        log('travel_go_send_error', { index: leg.goIndex, error: err.message });
+        return 'traveling';
+      }
+      t.goTries++;
       log('travel_go', { index: leg.goIndex, toward: leg.toMap, reply: reply.join(' | ').slice(0, 160) });
       return 'traveling';
     }
@@ -163,6 +197,43 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
     t.lastMoveAt = now;
     if (me.sitting) await act(page, 'stand');
     const dLeg = Math.max(Math.abs(me.x - leg.x), Math.abs(me.y - leg.y));
+    const wingKey = me.map + ':' + leg.x + ':' + leg.y;
+    if (t.wingKey !== wingKey) {
+      t.wingKey = wingKey; t.wingTries = 0; t.wingDone = false; t.wingPending = null;
+    }
+    if (t.wingPending) {
+      const pending = t.wingPending;
+      const moved = Math.max(Math.abs(me.x - pending.x), Math.abs(me.y - pending.y)) > 8;
+      const remaining = (snap.inventory || []).filter(i => i.ITID === pending.item).reduce((n,i) => n + i.count, 0);
+      if (moved && remaining < pending.count) {
+        t.wingDone = dLeg < pending.distance || dLeg <= 40 || t.wingTries >= 3;
+        t.wingPending = null;
+        t.lastProgressAt = now;
+        log('travel_wing_landed', { map:me.map, before:pending.distance, after:dLeg, walk:t.wingDone });
+        await act(page, 'navi_start', { map:t.dest, useGo:useGo() });
+        return 'traveling';
+      }
+      if (now - pending.at < 5000) return 'traveling';
+      t.wingPending = null; t.wingDone = true;
+      t.wingBlocked.add(me.map);
+      log('travel_wing_unavailable', {map:me.map});
+    }
+    const wings = (snap.inventory || []).filter(i => [23280, 12323, 601].includes(i.ITID) && i.count > 0);
+    const wingCount = wings.reduce((n,i) => n + i.count, 0);
+    const wing = wings.find(i => i.ITID === 23280) || wings.find(i => i.ITID === 12323) || wings[0];
+    if (dLeg > 100 && !t.wingDone && !t.wingBlocked.has(me.map) && t.wingTries < 3 &&
+        wingCount > 5 && wing && !me.dead && (!snap.dialog || snap.dialog.state === 'ended') &&
+        now - (t.lastWingAt || 0) >= 3000) {
+      if (me.sitting) await act(page, 'stand');
+      t.lastWingAt = now; t.wingTries++;
+      if (await act(page, 'use_item', {index:wing.index}) === false) {
+        t.wingDone = true; t.wingBlocked.add(me.map);
+      } else {
+        t.wingPending = {at:now,x:me.x,y:me.y,distance:dLeg,item:wing.ITID,count:wings.filter(i => i.ITID === wing.ITID).reduce((n,i) => n+i.count,0)};
+        log('travel_wing', {map:me.map,item:wing.ITID,distance:dLeg,attempt:t.wingTries});
+        return 'traveling';
+      }
+    }
     const blocked = now - t.lastProgressAt > DETOUR_AFTER_MS;
     // Not moving: a conversation the server still thinks is open freezes walking and @go.
     // Close the last one we had before trying anything cleverer.

@@ -72,7 +72,7 @@ test('arrives when the map matches and clears the route', async () => {
   expect(t.dest).toBe(null);
 });
 
-test('a town that ignores @go: this trip walks; @go stays on for other towns until 3 refuse', async () => {
+test('unconfirmed @go only falls back for this trip and never disables other towns', async () => {
   const go = { canGo: true, bad: new Set() };
   const t = createTravel({}, go);
   await t.start('prt_fild08');
@@ -88,7 +88,7 @@ test('a town that ignores @go: this trip walks; @go stays on for other towns unt
   tick(10000);
   await t.tick(snap({}, n));
   expect(go.canGo).toBe(true); // one town refused: not a reason to stop using @go
-  expect(go.bad.has(0)).toBe(true);
+  expect(go.bad.has(0)).toBe(false);
   expect(calls.at(-1)).toEqual(['navi_start', { map: 'prt_fild08', useGo: false }]);
   go.bad.add(5);
   go.bad.add(9);
@@ -98,7 +98,7 @@ test('a town that ignores @go: this trip walks; @go stays on for other towns unt
     tick(10000);
     await t2.tick(snap({}, { dest: 'x', leg: { kind: 'go', goIndex: 12, toMap: 'umbala' } }));
   }
-  expect(go.canGo).toBe(false); // the fourth refusing town turns it off
+  expect(go.canGo).toBe(true); // Missing confirmation never disables shared @go
 });
 
 test('walks round with BFS when the client has no path or progress stalls', async () => {
@@ -118,6 +118,10 @@ test('walks round with BFS when the client has no path or progress stalls', asyn
 test('fails when there is no route or the character stops moving', async () => {
   const t = createTravel({});
   await t.start('nowhere');
+  for (let i = 0; i < 3; i++) {
+    expect(await t.tick(snap({}, { dest: 'nowhere', lost: true }))).toBe('traveling');
+    tick(3000);
+  }
   expect(await t.tick(snap({}, { dest: 'nowhere', lost: true }))).toBe('failed');
 
   await t.start('moc_fild07');
@@ -150,4 +154,29 @@ test('"@go to the town we are in" is skipped: walk from here instead of warping 
   await t.tick(snap({ map: 'morocc' }, { dest: 'in_sphinx1', leg: { kind: 'go', goIndex: 1, toMap: 'morocc' } }));
   expect(calls.some(([n, a]) => n === 'navi_start' && a.useGo === false)).toBe(true);
   expect(calls.some(([n]) => n === 'query')).toBe(false);
+});
+
+test('keeps destination across warp, stale go leg and transient lost route', async () => {
+  const t = createTravel({});
+  await t.start('lhz_fild01');
+  await t.tick(snap({map:'morocc'}, {dest:'lhz_fild01',leg:{kind:'go',goIndex:20,toMap:'lighthalzen'}}));
+  calls.length = 0;
+  const stale = snap({map:'lighthalzen'}, {dest:'lhz_fild01',lost:true});
+  expect(await t.tick(stale)).toBe('traveling');
+  expect(t.dest).toBe('lhz_fild01');
+  tick(1000);
+  expect(await t.tick(stale)).toBe('traveling');
+  expect(calls.filter(([n]) => n === 'navi_start').length).toBe(1);
+  tick(2000);
+  expect(await t.tick(snap({map:'lighthalzen'}, {dest:'lhz_fild01',leg:{kind:'go',goIndex:20,toMap:'lighthalzen'}}))).toBe('traveling');
+  expect(calls.at(-1)).toEqual(['navi_start',{map:'lhz_fild01',useGo:false}]);
+  tick(3000);
+  expect(await t.tick(stale)).toBe('traveling');
+  expect(t.dest).toBe('lhz_fild01');
+  tick(3000);
+  const route = {dest:'lhz_fild01',leg:{kind:'portal',x:160,y:100},ahead:{x:155,y:100}};
+  expect(await t.tick(snap({map:'lighthalzen'},route))).toBe('traveling');
+  expect(calls.at(-1)).toEqual(['move',{x:155,y:100}]);
+  expect(calls.some(([n]) => n === 'say')).toBe(false);
+  expect(await t.tick(snap({map:'lhz_fild01'},null))).toBe('arrived');
 });

@@ -13,14 +13,10 @@ cp .env.example .env     # ใส่ LAYA_API_KEY, OMLX_API_KEY, DISCORD_WEBHOOK
 bun test                 # unit test (ไม่ต่อเน็ต)
 bun run check            # เรียก LAYA + oMLX จริงด้วย prompt จริง
 bun run check:browser    # เปิดเกม headless เช็คว่า window.RO + packet observer ขึ้น
-bun start                # ต่อ Chrome ที่เปิดไว้ (CDP 9333) → ล็อกอินเองครั้งแรก → agent เริ่มเมื่อเข้าแมพ
+bun start                # เปิด/เชื่อม Chrome อัตโนมัติ (CDP 9333) → ล็อกอินเองครั้งแรก → agent เริ่มเมื่อเข้าแมพ
 ```
 
-Bot ไม่เปิด/ปิด browser เอง — เปิด Chrome ไว้ก่อนด้วย debugging port แล้วค่อย `bun start` (ถ้าไม่เจอ port bot จะหยุดพร้อมบอกคำสั่ง):
-
-```powershell
-& "C:Program FilesGoogleChromeApplicationchrome.exe" --remote-debugging-port=9333 --user-data-dir="$PWD.browser-profile" --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding
-```
+Bot เชื่อม Chrome เดิมที่พอร์ต 9333 ถ้ายังไม่เปิดจะเปิดเองด้วยโปรไฟล์ `.browser-profile` แล้วรอพอร์ตพร้อม ไม่ต้องพิมพ์คำสั่งเปิด Chrome แยก หากติดตั้ง Chrome ในตำแหน่งอื่นให้ตั้ง `CHROME_PATH` เป็นพาธไฟล์โปรแกรม
 
 Ctrl+C หยุดแค่ agent, session เกมยังอยู่ `bun start` ใหม่ต่อแท็บเดิมได้ทันที
 (อย่ากด F5 ตอน agent ไม่รัน: หน้าเกมจะโหลดใหม่โดยไม่มี `window.RO` และต้องล็อกอินใหม่)

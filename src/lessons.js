@@ -20,15 +20,21 @@ function read() {
     .map((m) => ({ at: m[1], text: m[2], count: Number(m[3] || 1) }));
 }
 
+function ownerPolicy() {
+  if (!existsSync(file())) return '';
+  return readFileSync(file(), 'utf8').match(/<!-- owner-hunting-policy:start -->[\s\S]*?<!-- owner-hunting-policy:end -->/)?.[0] || '';
+}
+
 function write(items) {
   const body = items.map((i) => `- [${i.at}] ${i.text}${i.count > 1 ? ` (×${i.count})` : ''}`).join('\n');
-  writeFileSync(file(), HEADER + body + '\n');
+  writeFileSync(file(), HEADER + (ownerPolicy() ? ownerPolicy() + '\n\n' : '') + body + '\n');
 }
 
 const stamp = () => new Date().toISOString().slice(0, 16).replace('T', ' ');
 
 /** Remember a lesson (one line of Thai). Same text again: count it, move it to "now". */
-export function learn(text) {
+export function learn(text, context = {}) {
+  if (Number.isInteger(context.level) && context.level > 0) text += ' [Base ' + context.level + '; retry Base ' + (context.level + 5) + ']';
   if (process.env.NODE_ENV === 'test' && !process.env.LESSONS_FILE) return;
   const items = read();
   const same = items.find((i) => i.text === text);
@@ -44,8 +50,13 @@ export function learn(text) {
 }
 
 /** The most recent lessons, for the planner's prompt. */
-export function recentLessons(limit = 25) {
-  return read()
+export function recentLessons(limit = 25, baseLevel = null) {
+  const lessons = read()
+    .filter(i => {
+      const retry = /retry Base (\d+)/.exec(i.text);
+      return !retry || !Number.isFinite(baseLevel) || baseLevel < Number(retry[1]);
+    })
     .slice(-limit)
     .map((i) => `- ${i.text}${i.count > 1 ? ` (เกิด ${i.count} ครั้ง)` : ''}`);
+  return [...ownerPolicy().split('\n').filter(line => line.startsWith('- ')), ...lessons];
 }

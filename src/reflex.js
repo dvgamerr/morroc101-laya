@@ -7,17 +7,17 @@ import { SPLASH_MIN } from './skills.js';
 // Renewal/pre-renewal consumables. Unknown healing items fall back to item type 0 (HEALING).
 const HP_ITEMS = [569, 501, 507, 502, 508, 503, 545, 504, 546, 547, 509, 512, 513, 515, 516];
 const SP_ITEMS = [505, 510, 518, 526, 11502, 11503];
-// Owner's rule: Novice Fly Wing first, then Fly Wings (601) — bought at the Tool Dealer on every
-// trip (errand.js) to warp around the hunting map for monsters. No Butterfly Wing to go to town — @go does that. Novice Butterfly Wing
+// Novice Fly Wing first, then existing Fly Wings (601). Only Novice Fly Wing may be bought.
+// Use carried wings to find monsters. No Butterfly Wing to go to town — @go does that. Novice Butterfly Wing
 // stays as a last-resort escape.
-const FLY_WING = [12323, 601];
+const FLY_WING = [23280, 12323, 601];
 const BUTTERFLY_WING = [12324];
 
 // Commands that put the character on a path. Re-sending them every tick makes it
 // jitter in place, so each kind has its own minimum gap.
 const MOVE_GAP_MS = { explore: 2500, pickup_item: 1200, retreat: 1500 };
 const STUCK_MS = 20000;
-const FINISH_HP_PCT = 0.15; // below this, a normal hit finishes the monster
+const NORMAL_ATTACK_TRIAL_MS = 3000; // single target only; groups use damage skills immediately
 const LAYA_MIN_CONFIDENCE = 0.35;
 const LAYA_TIMEOUT_MS = 2000; // the loop waits on it: keep it short
 const UNDER_ATTACK_POTION_PCT = 60; // drink at this while being hit
@@ -27,7 +27,7 @@ const LOSING_TWO_HP_PCT = 50; // two on us and below this -> wing out
 const LOSING_HP_PCT = 35; // anything on us and below this even with potions -> wing out
 const REENGAGE_HP_PCT = 70; // don't start a new fight below this
 const PACK_SIZE = 3; // a target with more than this many neighbours is a pack
-const SP_DRINK_PCT = 25; // below this: drink SP potions up to REFILL_TO (no sitting for SP)
+const SP_DRINK_PCT = 50; // below this: drink SP potions up to REFILL_TO (no sitting for SP)
 const REFILL_TO = 90; // once drinking starts, drink up to this (HP and SP) — owner: 90% is enough
 const ATTACK_RESEND_MS = 3000;
 // Between casts (global gap, cooldowns) wait for the next skill instead of swinging: a swing
@@ -81,7 +81,7 @@ const countOf = (inv, ids) => inv.filter((i) => ids.includes(i.ITID)).reduce((s,
  * @param {{locate?: Function}} [scout] asks the server where monsters are (scout.js)
  * @param {ReturnType<import('./skills.js').createSkillBook>} [skills] buffs + damage skills
  */
-export function createReflex(page, brain, scout = null, skills = null, hotkeys = null, world = null) {
+export function createReflex(page, brain, scout = null, skills = null, hotkeys = null, world = null, readLive = null) {
   // Snapshot entities have no level; use the real world directory, conservatively
   // taking the highest level when several records share a name.
   const mobLevels = new Map();
@@ -92,6 +92,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
   const useItem = async (item) => ((hotkeys && (await hotkeys.press('item', item.ITID))) || (item.index >= 0 ? act(page, 'use_item', { index: item.index }) : false));
   const mem = {
     attackGID: 0,
+    normalFight: null, // {gid,map,at}: timer begins when normal attacks reach the target
     lastAttackAt: 0,
     lastCastAt: 0,
     seenPotion: {}, // kind -> { item, at }: the last potion stack seen, for bag reads mid-refresh
@@ -167,6 +168,8 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
   function stillWorthIt(snap, current) {
     if (!current) {
       mem.engage = null;
+      mem.normalFight = null;
+      mem.meleeOn = false;
       return null;
     }
     const now = Date.now();
@@ -239,6 +242,13 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
   function view(snap) {
     const { me, inventory: inv } = snap;
     // Judge the current fight first: a target dropped here must not be picked again this tick.
+    // Stop chasing an unrelated target as soon as a visible attacker hits us.
+    if (snap.attackers.length && !snap.attackers.includes(mem.attackGID) &&
+        snap.monsters.some(m => snap.attackers.includes(m.GID))) {
+      mem.attackGID = 0;
+      mem.approachSince = 0;
+      if (mem.pull) endPull('under attack');
+    }
     const current = stillWorthIt(snap, snap.monsters.find((m) => m.GID === mem.attackGID) || null);
     const targets = wanted(snap);
     const weightPct = pct(me.weight, me.maxWeight);
@@ -274,7 +284,6 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     if (v.fly && !attacked && !v.current && !v.targets.length && !mem.defendOnly && brain.plan.fly_wing_when_empty !== false) {
       actions.fly_wing = 'ใช้ Fly Wing วาร์ปสุ่มในแมพ เพื่อหามอนใหม่เมื่อแถวนี้ไม่มีมอน';
     }
-    if (!attacked && (v.hp < 60 || v.sp < 40) && !v.targets.some((t) => t.dist < 5)) actions.rest = 'นั่งพักฟื้น HP/SP เมื่อปลอดภัยไม่มีมอนใกล้';
     if (!mem.defendOnly && !v.targets.length && !v.lootable.length && !attacked) actions.explore = 'เดินสำรวจหามอนเมื่อแถวนี้ไม่มีมอนให้ตี';
     actions.wait = 'รอดูสถานการณ์ ไม่ทำอะไร';
     return actions;
@@ -326,7 +335,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     if (attacked >= 2 && v.hp < LOSING_TWO_HP_PCT && (v.fly || v.butterfly)) return escape(`${attacked} attackers, hp ${v.hp}%: wing out to a safe spot`);
     if (attacked && v.hp < LOSING_HP_PCT && (v.fly || v.butterfly)) return escape(`hp ${v.hp}% under attack, potions not keeping up: wing out`);
     // Owner's rule: a potion rule that fired keeps drinking until 95%, not one bottle at a time.
-    if (mem.inTown && !attacked) mem.refill = { hp: false, sp: false }; // town: Healer/sitting, not potions
+    if (mem.inTown && !attacked) mem.refill = { hp: false, sp: false }; // town: Healer/services, not sitting
     if (v.hp >= REFILL_TO || !v.hpPotion) mem.refill.hp = false;
     if (v.sp >= REFILL_TO || !v.spPotion) mem.refill.sp = false;
     if (mem.refill.hp) return ['use_hp_potion', `refill HP to ${REFILL_TO}%`];
@@ -334,13 +343,13 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     // Under attack: drink early, not at the last moment.
     if (attacked && v.hp < potionAt && v.hpPotion) return refillHp(`attacked, hp<${potionAt}`);
     if (attacked && v.hp < retreatAt) return escape(`hp<${retreatAt}, no potion`);
-    // Out of combat and low: never start a fight like this. Monster close -> potion, else sit (free).
+    // Out of combat and low: never start a fight like this. Use a potion or let the service loop obtain supplies.
     if (!attacked && v.hp < REENGAGE_HP_PCT) {
-      // In town nothing is coming for us: never spend potions there (no Healer -> sit).
-      if (mem.inTown) return ['rest', 'in town: sit, no potions'];
-      // Owner's rule: no sitting (too slow) — drink back to 95%. Sit only with no potions at all.
+      // Town services handle healing and supplies.
+      if (mem.inTown) return ['wait', 'town services: sell loot and restock'];
+      // No sitting: drink available supplies, otherwise wait for a supply trip.
       if (v.hpPotion) return refillHp(`hp<${REENGAGE_HP_PCT}, refill before the next fight`);
-      return ['rest', `hp<${REENGAGE_HP_PCT}, no potions: sit`];
+      return ['wait', `hp<${REENGAGE_HP_PCT}, no potions: need supplies`];
     }
     // SP: skills are the whole damage plan. Owner's rule: no sitting for SP (too slow) —
     // drink Blue Potions to 95% whenever SP runs low, in a fight or not (town aside).
@@ -368,23 +377,23 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
         const t = v.targets[0];
         if (me.sitting) await act(page, 'stand');
         mem.attackGID = t.GID;
-        if (await maybePull(snap, v)) return;
         const used = await useSkill(snap, t, v);
-        if (used === true || (used === false && waitingForSkill())) return;
+        if (used === true || (used === false && skillDue(snap, t) && waitingForSkill())) return;
         mem.lastAttackAt = Date.now();
         mem.meleeOn = true;
+        noteNormal(snap, t);
         return act(page, 'attack', { GID: t.GID });
       }
       case 'keep_fighting': {
-        if (await maybePull(snap, v)) return;
         const used = await useSkill(snap, v.current, v);
         if (used === true) return;
-        if (used === false && waitingForSkill()) return;
+        if (used === false && skillDue(snap, v.current) && waitingForSkill()) return;
         // The continuous attack is already running; re-send now and then in case the server dropped it
         // (a skill cast interrupts it, which is why useSkill resets lastAttackAt).
         if (Date.now() - mem.lastAttackAt < ATTACK_RESEND_MS) return;
         mem.lastAttackAt = Date.now();
         mem.meleeOn = true;
+        noteNormal(snap, v.current);
         return act(page, 'attack', { GID: v.current.GID });
       }
       case 'use_hp_potion':
@@ -429,7 +438,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
         return act(page, 'walk_to', { x: me.x + dx * 10, y: me.y + dy * 10 });
       }
       case 'rest':
-        return me.sitting ? undefined : act(page, 'sit');
+        return me.sitting ? act(page, 'stand') : undefined;
       case 'explore':
         mem.meleeOn = false;
         return explore(snap);
@@ -576,11 +585,25 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
   }
 
   /**
-   * Buff first if one is down, then the hardest-hitting skill that's usable on
-   * this target. true = acted; 'finish' = a normal hit finishes it; false = no skill ready now.
+   * Groups skip the normal-attack trial; single targets keep their three-second trial.
    */
+  function skillDue(snap, target) {
+    if (!target) return false;
+    if (snap.attackers.length + (snap.unseenAttackers || 0) >= 2 || splashFor(snap, target) >= 2) return true;
+    const fight = mem.normalFight;
+    if (!fight || fight.gid !== target.GID || fight.map !== snap.me.map) return false;
+    if (fight.at == null && (target.dist <= (snap.me.attackRange || 2) || snap.dealt?.[target.GID]?.dmg > 0)) fight.at = Date.now();
+    return fight.at != null && Date.now() - fight.at >= NORMAL_ATTACK_TRIAL_MS;
+  }
+
+  function noteNormal(snap, target) {
+    if (!mem.normalFight || mem.normalFight.gid !== target.GID || mem.normalFight.map !== snap.me.map) {
+      mem.normalFight = { gid: target.GID, map: snap.me.map, at: target.dist <= (snap.me.attackRange || 2) ? Date.now() : null };
+    }
+  }
+
   async function useSkill(snap, target, v = null) {
-    if (!skills) return false;
+    if (!skills || !skillDue(snap, target)) return false;
     skills.ensurePlan(snap);
     // Owner's rule: a skill that wouldn't go out (stuck, flinching) -> take one step, then cast again.
     if (skills.book?.needStep) {
@@ -589,12 +612,9 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
       return true;
     }
     const crowd = snap.monsters.filter((m) => Math.max(Math.abs(m.x - target.x), Math.abs(m.y - target.y)) <= 3).length;
-    // Owner's rule: buff first, skills always — a plain hit only to finish a monster that's
-    // nearly dead (one swing kills it, a skill would waste SP), or when no skill can go out.
-    const finishing = target.maxHp > 0 && target.hp >= 0 && target.hp / target.maxHp <= FINISH_HP_PCT && crowd <= 1;
-    // Toggles (Maximize Power): switched on once when a fight starts, if they're off.
-    const cast = skills.pickBuff(snap) || skills.pickToggle?.(snap) || (finishing ? null : skills.pickAttack(snap, target, crowd, splashFor(snap, target, v), !!mem.pull));
-    if (!cast) return finishing ? 'finish' : false;
+    // Prioritize damage immediately for groups, or after the single-target trial.
+    const cast = skills.pickAttack(snap, target, crowd, splashFor(snap, target, v), false, true);
+    if (!cast) return false;
     if (cast.approach) {
       // Walk into skill range rather than start a swing. Can't get there for a while (walls,
       // a monster that keeps backing off): fall back to the normal attack's own pathing.
@@ -683,6 +703,21 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     let confidence = 1;
 
     const rule = emergency(snap, v);
+    if (!rule && skills && !inTown && !defendOnly && !snap.me.dead && !snap.attackers.length && !v.current && v.sp >= SP_DRINK_PCT) {
+      skills.ensurePlan(snap);
+      const buff = skills.pickBuff(snap) || skills.pickToggle?.(snap);
+      if (buff) {
+        if (mem.meleeOn) await stepOne(snap, 'cancel attack before buff');
+        else {
+          if (snap.me.sitting) await act(page, 'stand');
+          const pressed = hotkeys && await hotkeys.press('skill', buff.id);
+          if (!pressed) await act(page, 'skill', {SKID:buff.id,level:buff.level,targetID:snap.me.GID});
+          skills.noteCast(buff);
+          log('buff', {skill:buff.name,level:buff.level});
+        }
+        return {action:'buff',stuck:false,drank:false};
+      }
+    }
     if (rule) {
       if (mem.pull) endPull('survival rule');
       [name, why] = rule;
@@ -698,18 +733,39 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
       // run every tick; here the obvious move is to keep hitting.
       name = actions.keep_fighting ? 'keep_fighting' : 'attack_monster';
       why = 'in a fight: rules only';
+    } else if (snap.unseenAttackers) {
+      name = 'wait';
+      why = 'attacker not visible yet';
     } else if (actions.explore && !v.targets.length && !snap.attackers.length && v.hp >= 60) {
       // Nothing here and nothing hurting us: standing still won't bring monsters.
       name = 'explore';
       why = 'nothing in sight';
     } else {
       try {
-        const answer = await laya.choose(
+        const pending = laya.choose(
           layaState(snap, v),
           'You control a Ragnarok Online character. Choose the safest and most useful next action for the current goal.',
           actions,
           { timeoutMs: LAYA_TIMEOUT_MS },
         );
+        // Poll only while a slow decision is pending; late answers cannot issue actions.
+        const settled = pending.then(answer => ({ answer }), error => ({ error }));
+        let result;
+        for (;;) {
+          let timer;
+          result = readLive ? await Promise.race([settled, new Promise(resolve => {
+            timer = setTimeout(() => resolve(null), 120);
+          })]) : await settled;
+          clearTimeout(timer);
+          if (result) break;
+          const live = await readLive();
+          if (!live?.inGame || live.me?.map !== snap.me.map) return { action: 'wait', stuck: false, drank: false };
+          if (live.me.dead || live.attackers.length || live.unseenAttackers) {
+            return tick(live, { defendOnly: true, inTown });
+          }
+        }
+        if (result.error) throw result.error;
+        const answer = result.answer;
         name = answer.choice;
         confidence = answer.confidence ?? 0;
         source = 'laya';

@@ -105,7 +105,7 @@ export function nextJob(me, path = config.classPath) {
 const LOW_REFILLS = 4;
 
 /** Zeny to keep back for potions and travel; grows with level. */
-export const zenyReserve = (baseLevel) => Math.max(2000, (baseLevel || 1) * 500);
+export const zenyReserve = () => 100000; // Owner: one fixed reserve in signals and spending rules.
 
 /**
  * What the code can see that needs a goal, strongest first. Each signal names

@@ -6,6 +6,7 @@ process.env.OMLX_API_KEY ||= 'test';
 const calls = [];
 let layaChoice = 'attack_monster';
 let layaAsked = 0;
+let layaGate = null;
 
 mock.module('../src/browser.js', () => ({
   act: async (_page, name, arg) => (calls.push([name, arg]), name === 'walk_to' ? { x: arg.x, y: arg.y } : undefined),
@@ -15,6 +16,7 @@ mock.module('../src/browser.js', () => ({
 mock.module('../src/laya.js', () => ({
   choose: async (_state, _instructions, options) => {
     layaAsked++;
+    if (layaGate) await layaGate;
     return { choice: options[layaChoice] ? layaChoice : Object.keys(options)[0], confidence: 0.9 };
   },
 }));
@@ -40,6 +42,7 @@ let brain;
 beforeEach(() => {
   calls.length = 0;
   layaAsked = 0;
+  layaGate = null;
   layaChoice = 'attack_monster';
   brain = { plan: { ...DEFAULT_PLAN } };
 });
@@ -529,7 +532,7 @@ test('no pulling where it already hurts (the ein_fild08 death), and two at most 
   expect(calls).not.toContainEqual(['attack', { GID: 9 }]);
 });
 
-test('Cart Revolution only with 2+ monsters in its splash (saves Blue Potions); a lone one gets normal hits', async () => {
+test('group skills skip the three-second trial; a lone target starts with normal hits', async () => {
   let seenSplash = null;
   const skills = {
     book: {},
@@ -546,7 +549,7 @@ test('Cart Revolution only with 2+ monsters in its splash (saves Blue Potions); 
   layaChoice = 'attack_monster';
   const lone = createReflex({}, brain, null, skills);
   await lone(snap({ me, monsters: [a] })); // nobody else in sight
-  expect(seenSplash).toBe(1);
+  expect(seenSplash).toBeNull(); // no skill selection before the single-target trial
   expect(calls.at(-1)).toEqual(['attack', { GID: 7 }]);
   const b = { GID: 8, name: 'Poring', x: 102, y: 101, dist: 2 };
   const pair = createReflex({}, brain, null, skills);
@@ -605,4 +608,33 @@ test('hit by monsters we cannot see (entity list empty after a warp): still coun
   const tick = createReflex({}, brain);
   const r = await tick(snap({ me: { hp: 45 }, monsters: [], attackers: [], unseenAttackers: 3, inventory: [{ index: 2, ITID: 501, count: 30, type: 0 }, wing] }));
   expect(r.action).toBe('fly_wing');
+});
+
+
+test('combat immediately replaces an unreachable unrelated target with the attacker', async () => {
+  const tick = createReflex({}, brain);
+  await tick(snap());
+  calls.length = 0;
+  layaAsked = 0;
+  const r = await tick(snap({attackers:[8],monsters:[
+    {GID:7,name:'Poring',x:109,y:100,dist:9},
+    {GID:8,name:'Wind Ghost',x:101,y:100,dist:1},
+  ]}));
+  expect(r.action).toBe('attack_monster');
+  expect(calls).toContainEqual(['attack',{GID:8}]);
+  expect(layaAsked).toBe(0);
+});
+
+test('combat interrupts a pending LAYA answer and ignores its late action', async () => {
+  let release;
+  layaGate = new Promise(resolve => { release = resolve; });
+  const tick = createReflex({}, brain, null, null, null, null, async () => snap({attackers:[7]}));
+  try {
+    const result = await tick(snap());
+    expect(result.action).toBe('attack_monster');
+    expect(calls.filter(([name]) => name === 'attack')).toHaveLength(1);
+    release();
+    await Promise.resolve();
+    expect(calls.filter(([name]) => name === 'attack')).toHaveLength(1);
+  } finally { release(); layaGate = null; }
 });

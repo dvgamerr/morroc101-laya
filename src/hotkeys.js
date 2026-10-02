@@ -14,7 +14,7 @@ export const KEY_NAMES = [
 ];
 
 const SP_ITEMS = [505, 510, 518, 526, 11502, 11503];
-const WINGS = [12323, 601, 12324]; // Novice Fly Wing, Fly Wing (only what's in the bag), Novice Butterfly Wing
+const WINGS = [23280, 12323, 601, 12324]; // Novice Fly Wing, Fly Wing (only what's in the bag), Novice Butterfly Wing
 const SYNC_EVERY_MS = 10000;
 
 /**

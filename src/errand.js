@@ -1,11 +1,12 @@
+import { observeSellPrices } from './drop-values.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { act } from './browser.js';
 import { findNpcEntity } from './npc.js';
 import { spareGear } from './gear.js';
 import { log } from './logger.js';
 import { learn } from './lessons.js';
-import { createPotionLoadout, isHealing } from './potion-loadout.js';
-import { shopsSelling, travelCosts } from './world.js';
+import { createPotionLoadout, isHealing, SP_STOCK_REFILLS, SP_LOW_REFILLS } from './potion-loadout.js';
+import { shopsSelling, travelCosts, isTown } from './world.js';
 import { zenyReserve } from './goals.js';
 import { POTIONS, SP_POTIONS, choosePotion, stockHp, stockSp, healOf, healRange, spRange, WEAK_HEAL_SHARE } from './potions.js';
 
@@ -14,12 +15,12 @@ const MIN_SP_BUY = 3; // Blue Potions are dear; a few are already worth it
 const ITEM = { HEALING: 0, ETC: 3, CARD: 6 };
 
 // Owner's request: carry Fly Wings to warp around the hunting map for monsters instead of walking.
-// (Novice Fly Wings aren't sold anywhere; the Tool Dealer's Fly Wing does the same.)
-export const FLY_WING = { ITID: 601, name: 'Fly Wing', price: 60, weight: 50 };
+// Buy Novice Fly Wing only, and only when a real shop offers it. Never substitute 601.
+export const FLY_WING = { ITID: 23280, name: 'Novice Fly Wing', price: 10, weight: 0 };
 const WING_LOW = 10; // fewer than this: worth a trip on its own
 const WING_TARGET = 100; // top up to this on any trip
 const MIN_WING_BUY = 10;
-export const wingsIn = (inv) => (inv || []).filter((i) => (i.ITID === 601 || i.ITID === 12323) && i.count > 0).reduce((n, i) => n + i.count, 0);
+export const wingsIn = (inv) => (inv || []).filter((i) => ([23280, 12323, 601].includes(i.ITID)) && i.count > 0).reduce((n, i) => n + i.count, 0);
 
 // Potion stock is measured in full HP bars it can refill, whatever the bottles are:
 // 9 White Potions is plenty, 9 Red Potions is not.
@@ -39,9 +40,8 @@ const RATES_FILE = 'logs/usage-rates.json'; // last known rates, so a restart do
 const RATES_FRESH_MS = 2 * 60 * 60 * 1000;
 const SAVE_RATES_SPAN_MS = 10 * 60 * 1000;
 // Owner's money goal: farm money until the purse covers what the bag is short of now plus this
-// many more levelling trips' worth of supplies; back to money below RESUME_TRIPS' worth.
+// many more levelling trips' worth of supplies; resume farming only below the fixed reserve.
 export const SUPPLY_TRIPS = 6;
-export const RESUME_TRIPS = 5;
 export const MONEY_RESERVE = 100000; // fixed reserve added to the supply money goal
 const BROKE_RETRY_MS = 10 * 60 * 1000; // went to buy and couldn't afford anything: don't keep going back
 const SETTLE_AFTER_MAP_MS = 15000;
@@ -99,7 +99,7 @@ export function spBudget(me, inv) {
 
 
 // What the agent uses itself and never sells: SP items and wings (HP healers are matched by healRange).
-const IN_USE = new Set([505, 510, 11502, 11503, 12323, 601, 12324]);
+const IN_USE = new Set([505, 510, 11502, 11503, 23280, 12323, 601, 12324]);
 
 /**
  * Owner's rule: everything we don't use goes — loot, spare gear, odd consumables. Never sold:
@@ -144,7 +144,7 @@ export function spareSupplies(inv, me, rates = null) {
   trim(strongHp >= (me.maxHp || 0) * LOW_REFILLS ? strong : healers, heal, Math.max((me.maxHp || 0) * KEEP_HP_BARS, (rates?.hp || 0) * TRIP_MINUTES * 2));
   const sp = (i) => stockSp([{ ...i, count: 1 }]);
   if (me.maxSp > 0) trim(loose.filter((i) => sp(i) > 0), sp, Math.max(me.maxSp * KEEP_SP_BARS, (rates?.sp || 0) * TRIP_MINUTES * 2));
-  trim(loose.filter((i) => i.ITID === FLY_WING.ITID || i.ITID === 12323), () => 1, Math.max(KEEP_WINGS, (rates?.wing || 0) * TRIP_MINUTES * 2));
+  trim(loose.filter((i) => [23280, 12323, 601].includes(i.ITID)), () => 1, Math.max(KEEP_WINGS, (rates?.wing || 0) * TRIP_MINUTES * 2));
   return out;
 }
 
@@ -177,6 +177,26 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
   function need(snap) {
     const me = snap.me;
     const inv = snap.inventory || [];
+    // Empty HP/SP supplies can deadlock farming below reserve: sell, then buy a small recovery batch.
+    const empty = stockHp(inv, me) === 0 || (me.maxSp > 0 && stockSp(inv) === 0);
+    if (!empty || (snap.mapAgeMs ?? Infinity) < SETTLE_AFTER_MAP_MS) e.emptySince = 0;
+    else if (!e.emptySince) e.emptySince = Date.now();
+    if (empty && e.emptySince && Date.now() - e.emptySince >= LOW_CONFIRM_MS &&
+        ((me.zeny || 0) > POCKET_MONEY || saleItems(snap).length > 0)) {
+      e.request = null;
+      return { sell: saleItems(snap).length > 0, reviewPotions: true, emergencySupplies: true };
+    }
+    // Once per return from a field: sell approved loot before reviewing supplies.
+    if (world && isTown(world, me.map) && !e.townServiced && (snap.mapAgeMs ?? Infinity) >= 3000) {
+      const sell = saleItems(snap).length > 0;
+      if (sell || (me.zeny || 0) >= MONEY_RESERVE) return { sell, reviewPotions: true, townReturn: true, emergencySupplies: empty };
+    }
+    // Below the owner's reserve: farm/sell first, never start a restocking trip.
+    if ((me.zeny || 0) < MONEY_RESERVE) {
+      e.request = null;
+      const heavy = me.maxWeight && me.weight / me.maxWeight * 100 >= SELL_AT_WEIGHT_PCT;
+      return heavy && saleItems(snap).length ? { sell: true } : null;
+    }
     if (e.request) {
       const r = e.request;
       e.request = null;
@@ -210,9 +230,8 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     const blueRow = SP_POTIONS.find((p) => shopsSelling(world, p.ITID).length);
     const blue = blueRow && { ...blueRow, price: priceOf(blueRow) };
     const hpSpend = wantPotions ? Math.min(potionBudget(me, inv), potion.price * MIN_BUY) : 0;
-    // Rates known: only "runs out soon" — a "below max SP" floor sent us shopping with 20 minutes of SP left.
-    // A zero SP rate means "not measured using any", not "never needed": under half a bar is low then.
-    const spShort = r && r.sp > 0 ? runsOut(stockSp(inv), r.sp) : stockSp(inv) < (me.maxSp || 0) * (r ? 0.5 : LOW_REFILLS);
+    // Skill-heavy fights: restock before SP reserves drop below two bars or six minutes of observed use.
+    const spShort = stockSp(inv) < Math.max((r?.sp || 0) * LOW_MINUTES * 1.5, (me.maxSp || 0) * SP_LOW_REFILLS);
     // Confirmed for a few seconds like HP potions: right after a warp the bag reads empty for 1-3s.
     if (!spShort) e.spLowSince = 0;
     else if (!e.spLowSince) e.spLowSince = Date.now();
@@ -264,6 +283,8 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
    * Called every tick; a bag read mid-refresh (fewer stacks than last time) is ignored.
    */
   function observe(snap, goal = null) {
+    observeSellPrices(snap);
+    if (!e.active && world?.spawnsByMap?.get(snap.me.map)?.length) e.townServiced = false;
     const inv = snap.inventory || [];
     const now = Date.now();
     if (goal !== e.goal) {
@@ -309,18 +330,20 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     if (e.active || Date.now() < e.cooldownUntil || !world) return null;
     const n = need(snap);
     if (!n) return null;
+    if (n.emergencySupplies) e.townServiced = true;
     const shop = pickShop(snap, n.buy || n.buySp || (n.buyWing ? FLY_WING : null));
     if (!shop) {
       e.cooldownUntil = Date.now() + RETRY_AFTER_MS;
       log('errand_no_shop', { potion: n.buy?.name });
       return null;
     }
+    if (n.townReturn) e.townServiced = true;
     Object.assign(e, { active: true, stage: 'travel', shop, plan: n, stageAt: Date.now(), sold: 0, bought: [], selection: null, cleanup: false, refilled: false, pendingBuy: null });
-    const goal = n.buy || n.buySp || n.buyWing ? 'buy' : 'sell';
+    const goal = n.buy || n.buySp || n.buyWing || (n.reviewPotions && !n.sell) ? 'buy' : 'sell';
     const where = `${shop.name} (${shop.map}, ~${Math.round(shop.cost)} ช่อง)`;
     const stock = `ยาในตัวฟื้นได้รวม ${Math.round(e.choice?.stock || 0)} HP (< ${LOW_REFILLS} หลอด = ${(snap.me.maxHp || 0) * LOW_REFILLS})`;
     const what = [n.buy && n.buy.name, n.buySp && n.buySp.name, n.buyWing && FLY_WING.name].filter(Boolean).join(' + ');
-    const why = n.buy ? `${stock} → ไปซื้อ ${what} ที่ ${where} — ${e.choice?.reason || ''}` : n.buySp ? `SP ใกล้หมด → ไปซื้อ ${what} ที่ ${where}` : n.buyWing ? `Fly Wing ใกล้หมด → ไปซื้อที่ ${where}` : `ของหนัก ไปขายที่ ${where}`;
+    const why = n.emergencySupplies ? 'ยา HP/SP หมด: ขายของก่อน แล้วซื้อชุดเล็กเพื่อฟาร์มเงินต่อ' : n.townReturn ? 'กลับเมือง: ขายของที่อนุมัติก่อน แล้วตรวจและซื้อยา/Novice Fly Wing' : n.buy ? `${stock} → ไปซื้อ ${what} ที่ ${where} — ${e.choice?.reason || ''}` : n.buySp ? `SP ใกล้หมด → ไปซื้อ ${what} ที่ ${where}` : n.buyWing ? `Fly Wing ใกล้หมด → ไปซื้อที่ ${where}` : `ของหนัก ไปขายที่ ${where}`;
     log('errand_start', { goal, shop: `${shop.name}@${shop.map} ${shop.x},${shop.y}`, sell: n.sell, buy: n.buy?.name, buySp: n.buySp?.name, buyWing: n.buyWing || undefined });
     return { goal, why, shop };
   }
@@ -338,6 +361,7 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     e.cooldownUntil = Date.now() + (note === 'nothing affordable' ? BROKE_RETRY_MS : ok ? AFTER_TRIP_MS : 60000);
     e.lastTripAt = Date.now();
     e.lowSince = 0;
+    e.emptySince = 0;
     const summary = { ok, note, sold: e.sold, bought: [...e.bought] };
     Object.assign(e, { active: false, stage: 'idle', shop: null, plan: null });
     return summary;
@@ -415,6 +439,10 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
       }
       case 'buying': {
         if (snap.shop?.stage !== 'buy') return null;
+        if ((snap.me.zeny || 0) < MONEY_RESERVE && !e.plan.emergencySupplies) {
+          await act(page, 'close_shop');
+          return finish(true, 'below reserve: farm money first');
+        }
         for (const o of snap.shop.list) if (o.price > 0) e.prices[o.ITID] = o.price;
         savePrices(e.prices);
         const r = rates();
@@ -423,8 +451,11 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
           await act(page, 'close_shop');
           return finish(false, 'LAYA did not select a valid potion loadout');
         }
-        const potions = loadout.purchase(snap, snap.shop.list, r, e.selection);
-        const items = [...potions, ...purchaseWings(snap, snap.shop.list, potions, 0.45)];
+        const wingBudget = e.plan.emergencySupplies ? Math.max(0, Math.min(snap.me.zeny - POCKET_MONEY, snap.me.zeny * 0.25)) * 0.1 : Infinity;
+        const wings = purchaseWings(snap, snap.shop.list, [], 0.45, wingBudget);
+        const wingCost = wings.reduce((sum,i) => sum + i.count * (snap.shop.list.find(o => o.ITID === i.ITID)?.price || 0), 0);
+        const potions = loadout.purchase(snap, snap.shop.list, r, e.selection, wingCost, e.plan.emergencySupplies);
+        const items = [...potions, ...wings];
         if (!items.length) {
           await act(page, 'close_shop');
           if (!e.refilled && loadout.surplus(snap, e.selection).length) { e.cleanup = true; to('talk_sell'); return null; }
@@ -515,7 +546,7 @@ export function moneyTarget(snap, rates, prices = {}, trips = SUPPLY_TRIPS, sele
   const spStock = selection ? inv.filter((i) => i.ITID === selection.sp) : inv;
   const lines = [
     hpPot && { ITID: hpPot.ITID, name: hpPot.name, unit: healOf(hpPot, me), price: price(hpPot), perTrip: Math.max(r.hp * TRIP_MINUTES, (me.maxHp || 0) * (rates ? LOW_REFILLS * 2 : TARGET_REFILLS)), stock: stockHp(hpStock, me) },
-    sp && { ITID: sp.ITID, name: sp.name, unit: (sp.sp[0] + sp.sp[1]) / 2, price: price(sp), perTrip: Math.max(r.sp * TRIP_MINUTES, (me.maxSp || 0) * (rates ? 0.5 : LOW_REFILLS)), stock: stockSp(spStock) },
+    sp && { ITID: sp.ITID, name: sp.name, unit: (sp.sp[0] + sp.sp[1]) / 2, price: price(sp), perTrip: Math.max(r.sp * TRIP_MINUTES * 1.5, (me.maxSp || 0) * SP_STOCK_REFILLS), stock: stockSp(spStock) },
     { name: FLY_WING.name, unit: 1, price: price(FLY_WING), perTrip: Math.max(r.wing * TRIP_MINUTES, rates ? WING_LOW * 2 : WING_TARGET), stock: wingsIn(inv) },
   ].filter(Boolean);
   if (hpPot && sp && hpPot.ITID === sp.ITID) {
@@ -528,7 +559,7 @@ export function moneyTarget(snap, rates, prices = {}, trips = SUPPLY_TRIPS, sele
   const reserve = MONEY_RESERVE;
   return {
     target: Math.round(nowCost + trips * tripCost + reserve),
-    resume: Math.round(nowCost + RESUME_TRIPS * tripCost + reserve),
+    resume: reserve,
     tripCost: Math.round(tripCost),
     reserve,
     trips,
@@ -606,19 +637,16 @@ export function balancedPurchase(snap, list, rates, dps = null) {
 }
 
 /** Fly Wings with what's left after the potions (keeping pocket money), up to WING_TARGET. */
-function purchaseWings(snap, list, already, weightLimit = 0.7) {
+export function purchaseWings(snap, list, already, weightLimit = 0.7, budgetCap = Infinity) {
   const me = snap.me;
   const offer = list.find((i) => i.ITID === FLY_WING.ITID);
-  if (!offer || !offer.price) return [];
+  if (!offer || !Number.isFinite(offer.price) || offer.price < 0) return [];
   const spent = already.reduce((z, i) => z + i.count * (list.find((o) => o.ITID === i.ITID)?.price || 0), 0);
   const weightUsed = already.reduce((w, i) => w + i.count * (i.weight || [...POTIONS, ...SP_POTIONS].find((p) => p.ITID === i.ITID)?.weight || 100), 0);
-  const budget = Math.min((me.zeny || 0) - POCKET_MONEY, (me.zeny || 0) * SPEND_SHARE) - spent;
+  const budget = Math.min(budgetCap, Math.min((me.zeny || 0) - POCKET_MONEY, (me.zeny || 0) * SPEND_SHARE) - spent);
   const room = (me.maxWeight ? me.maxWeight * weightLimit - (me.weight || 0) : Infinity) - weightUsed;
   const have = wingsIn(snap.inventory);
-  // Potions first: no wings while the bag (with what's being bought) still holds under LOW_REFILLS bars of HP.
-  const healBought = stockHp(already, me);
-  if (stockHp(snap.inventory || [], me) + healBought < (me.maxHp || 0) * LOW_REFILLS) return [];
-  const count = Math.floor(Math.min(WING_TARGET - have, budget / offer.price, room / FLY_WING.weight, offer.stock ?? Infinity));
+  const count = Math.floor(Math.min(WING_TARGET - have, (offer.price > 0 ? Math.max(0, budget) / offer.price : Infinity), (FLY_WING.weight > 0 ? room / FLY_WING.weight : Infinity), offer.stock ?? Infinity));
   if (count <= 0 || (count < MIN_WING_BUY && have >= WING_LOW)) return [];
   return [{ ITID: FLY_WING.ITID, count, name: FLY_WING.name }];
 }

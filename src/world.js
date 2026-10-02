@@ -1,3 +1,4 @@
+import { dropValue } from './drop-values.js';
 import { config } from './config.js';
 import { warpOptions } from './warper-reference.js';
 
@@ -189,13 +190,9 @@ export function hopsFrom(world, from, { canGo }) {
   return dist;
 }
 
-/** Level band worth hunting: Renewal gives full EXP within a few levels either side. */
+/** Owner's hunting band uses the real player level for every hunting goal. */
 export function levelBand(level, goal = 'level', priestSupport = false) {
-  // Money: well below us — no deaths, few potions, quick kills, lots of drops to sell.
-  if (goal === 'money') return { min: Math.max(1, level - 25), max: Math.max(1, level - 8), danger: level + 3 };
-  if (priestSupport) return { min: Math.max(1, level - 2), max: level + 10, danger: level + 15 };
-  // Level: as much EXP as we can take, even if it means drinking all along.
-  return { min: Math.max(1, level - 6), max: level + 4, danger: level + 10 };
+  return { min: Math.max(1, level - (goal === 'money' ? 20 : 10)), max: Math.max(1, level - 1), danger: goal === 'money' ? level : level + 3 };
 }
 
 /** Money grounds need a crowd: drops come per kill. */
@@ -231,9 +228,9 @@ export function pickHuntingGrounds(world, { level, goal = 'level', priestSupport
     if (population < (MIN_POPULATION[goal] ?? 10)) continue;
     const value =
       goal === 'money'
-        ? targets.reduce((v, s) => v + (s.count * Math.max(1, (s.drops || []).length)) / Math.sqrt(s.hp), 0)
+        ? targets.reduce((v, s) => v + (s.count * dropValue(s.drops).knownZenyPerKill) / Math.sqrt(s.hp), 0)
         // With healing support, give more weight to EXP per kill while still penalizing HP.
-        : targets.reduce((v, s) => v + (s.count * s.baseExp) / (priestSupport ? Math.sqrt(s.hp) : s.hp), 0);
+        : targets.reduce((v, s) => v + (s.count * s.baseExp) / ((priestSupport ? Math.sqrt(s.hp) : s.hp) * (1 + Math.abs(s.level - level) / 3)), 0);
     const h = warp ? (hops.get(warp.npc.map) ?? 0) + 1 : hops.get(map);
     // Distance in cells walked (portals + @go), not just map count: two "1 hop" maps can be
     // a minute apart. ~150 cells is about what a map change used to stand for.
@@ -245,7 +242,7 @@ export function pickHuntingGrounds(world, { level, goal = 'level', priestSupport
       warp: warp ? { npc: warp.npc.name, town: warp.npc.map, path: warp.path } : null,
       score: Math.round((value / (1 + cost / 150)) * 100) / 100,
       population,
-      targets: merge(targets).map(({ name, level, count }) => ({ name, level, count })),
+      targets: merge(targets).map(({ name, level, count, hp, baseExp, drops }) => ({ name, level, count, hp, baseExp, drops: dropValue(drops) })),
       avoid: merge(spawns.filter((s) => s.level > band.max + 3 || ELITE.test(s.name) || isBoss(s))).map((s) => s.name),
     });
   }

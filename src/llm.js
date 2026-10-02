@@ -4,7 +4,7 @@ import { config } from './config.js';
  * Chat completion against oMLX (OpenAI-compatible).
  * Thinking is turned off: replies must be fast and short, and the planner asks for JSON.
  */
-export async function chat(messages, { maxTokens = 256, temperature = 0.7, json = false, timeoutMs = 60000 } = {}) {
+export async function chat(messages, { maxTokens = 256, temperature = 0.7, json = false, timeoutMs = 60000, onCompletion } = {}) {
   const res = await fetch(`${config.llm.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -25,6 +25,7 @@ export async function chat(messages, { maxTokens = 256, temperature = 0.7, json 
   if (!res.ok || body.error) {
     throw new Error(`oMLX ${res.status}: ${body.error?.message || body.detail || JSON.stringify(body)}`);
   }
+  onCompletion?.({ finishReason: body.choices?.[0]?.finish_reason, completionTokens: body.usage?.completion_tokens });
   const text = body.choices?.[0]?.message?.content ?? '';
   return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 }

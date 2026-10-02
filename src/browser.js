@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { ensureBrowser } from './browser-start.js';
 import { config } from './config.js';
 import { installPageAgent } from './page-agent.js';
 import { withNames } from './skilldb.js';
@@ -6,20 +7,9 @@ import { clickGameUi, UI_ACTIONS } from './ui-click.js';
 
 const CDP_URL = `http://127.0.0.1:${config.game.cdpPort}`;
 
-/**
- * The browser is the owner's: they open and close it themselves (with a debugging
- * port), and the agent only connects to it — it never starts or closes Chrome.
- * Stopping or restarting the agent leaves the window, the login and the game
- * session exactly where they were; the next `bun start` reconnects to the same tab.
- */
+/** Reuse Chrome when available; otherwise start a detached process with the same profile. */
 export async function openGame() {
-  if (!(await cdpReady())) {
-    throw new Error(
-      `no browser on debugging port ${config.game.cdpPort}. Open Chrome yourself first, e.g.:\n` +
-        `  chrome.exe --remote-debugging-port=${config.game.cdpPort} --user-data-dir=.browser-profile ` +
-        '--disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding',
-    );
-  }
+  await ensureBrowser({ port: config.game.cdpPort, fallbackExecutable: chromium.executablePath(), ready: cdpReady });
   const browser = await chromium.connectOverCDP(CDP_URL);
   const context = browser.contexts()[0];
 
@@ -106,6 +96,11 @@ export const drainEvents = (page) => page.evaluate(() => window.__agent?.drain()
 export const query = (page, command, waitMs) => page.evaluate(([c, w]) => window.__agent.query(c, w), [command, waitMs]);
 export const exploreTarget = (page, min, max, avoid) =>
   page.evaluate(([a, b, c]) => window.__agent.exploreTarget(a, b, c), [min, max, avoid ?? []]);
-export const act = (page, name, arg) => UI_ACTIONS.has(name)
+let escapeUntil = 0;
+export const holdCombatForEscape = (durationMs = 3000) => { escapeUntil = Date.now() + durationMs; };
+const INTERRUPTED_BY_ESCAPE = new Set(['attack', 'move', 'walk_to', 'skill', 'talk', 'navi_start']);
+export const act = (page, name, arg) => Date.now() < escapeUntil && INTERRUPTED_BY_ESCAPE.has(name)
+  ? Promise.resolve(false)
+  : UI_ACTIONS.has(name)
   ? clickGameUi(page, name, arg ?? {})
   : page.evaluate(([n, a]) => window.__agent.act(n, a), [name, arg ?? {}]);

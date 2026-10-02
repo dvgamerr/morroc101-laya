@@ -1,3 +1,4 @@
+import { closeWarpra } from './warpra-ui.js';
 // Playwright locators pierce the client's open shadow roots. locator.click()
 // sends mouse input and checks visibility, stability and whether the target is
 // covered; never force-click or guess a screen coordinate for a hidden button.
@@ -58,6 +59,7 @@ export async function clickGameUi(page, action, arg = {}) {
       break;
     }
     case 'npc_close':
+      if (state.dialog?.lines?.some(line => line.includes('<WARPRA>'))) await closeWarpra(page);
       if (await visible('#NpcMenu ui-button.cancel')) await close('#NpcMenu ui-button.cancel', '#NpcMenu');
       else if (await visible('#NpcBox ui-button.close')) await close('#NpcBox ui-button.close', '#NpcBox');
       else if (await visible('#NpcBox') || await visible('#NpcMenu')) return false;

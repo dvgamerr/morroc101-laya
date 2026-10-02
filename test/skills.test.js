@@ -108,7 +108,7 @@ test('Merchant buffs and attacks work with no names from the server (the bug tha
     { id: 42, name: '', label: 'Mammonite', inf: INF.ENEMY, level: 5, sp: 5, range: 1 },
   ]);
   const b = createSkillBook();
-  const s = { me: { GID: 100, jobId: 5, baseLevel: 50, zeny: 100000, sp: 50, maxSp: 50, skills: merchant, status: {}, cooldowns: {} } };
+  const s = { me: { GID: 100, jobId: 5, baseLevel: 50, zeny: 100500, sp: 50, maxSp: 50, skills: merchant, status: {}, cooldowns: {} } };
   b.ensurePlan(s);
   expect(b.pickBuff(s)).toMatchObject({ id: 155, name: 'MC_LOUD' });
   b.book.lastCastAt = 0;
@@ -142,9 +142,9 @@ test('Mammonite costs zeny: only cast while money stays above the reserve (61 ca
   const skills = withNames([{ id: 42, name: '', label: 'Mammonite', inf: INF.ENEMY, level: 10, sp: 5, range: 1 }]);
   const b = createSkillBook();
   const at = (zeny) => ({ me: { GID: 100, jobId: 5, baseLevel: 80, zeny, sp: 50, maxSp: 50, skills, status: {}, cooldowns: {} } });
-  b.ensurePlan(at(100000));
-  expect((b.setBosses(['Phreeoni']), b.pickAttack(at(100000), { GID: 7, name: 'Phreeoni', x: 1, y: 1, dist: 1 }))).toMatchObject({ id: 42 });
-  expect(b.pickAttack(at(40500), { GID: 7, name: 'Phreeoni', x: 1, y: 1, dist: 1 })).toBe(null); // reserve at 80 = 40000; 40500 - 1000 < it
+  b.ensurePlan(at(101000));
+  expect((b.setBosses(['Phreeoni']), b.pickAttack(at(101000), { GID: 7, name: 'Phreeoni', x: 1, y: 1, dist: 1 }))).toMatchObject({ id: 42 });
+  expect(b.pickAttack(at(100999), { GID: 7, name: 'Phreeoni', x: 1, y: 1, dist: 1 })).toBe(null); // Fixed reserve 100000; 100999 - 1000 falls below it
 });
 
 test('on/off toggles (Maximize Power) are never kept up as buffs: recasting would switch them off', () => {

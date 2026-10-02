@@ -3,6 +3,8 @@ import { POTIONS, SP_POTIONS, healRange, spRange, stockHp, stockSp } from './pot
 import * as laya from './laya.js';
 import { log } from './logger.js';
 
+export const SP_STOCK_REFILLS = 8;
+export const SP_LOW_REFILLS = 2;
 const FILE = 'logs/potion-selection.json';
 const known = [...POTIONS, ...SP_POTIONS,
   { ITID: 518, name: 'Honey', weight: 100 }, { ITID: 526, name: 'Royal Jelly', weight: 150 },
@@ -56,7 +58,7 @@ export function createPotionLoadout() {
       });
     });
     try {
-      const answer = await laya.choose({ character: snap.me, incomingDps: dps, usePerMinute: rates, potions, current: selection },
+      const answer = await laya.choose({ character: snap.me, incomingDps: dps, usePerMinute: rates, combatPolicy: "normal attack for 3 seconds, then damage skills; prepare extra SP", potions, current: selection },
         'Choose a practical healing loadout: exactly one HP type and one SP type, OR one dual HP/SP type alone. Keep the strongest restoration per item; sell the weakest HP/SP items first, not the smallest stacks or cheapest items. Weaker dominated loadouts have already been excluded. For equally strong choices use stock, weight and price; for dual-resource tradeoffs compare BOTH HP and SP. Avoid an unbuyable item with too little stock for the trip. Unselected healing items will be sold only after selected replacements are present.',
         Object.fromEntries(pairs.map((p, i) => [`loadout_${i}`, JSON.stringify(p)])));
       const index = pairs.findIndex((_, i) => answer?.choice === `loadout_${i}`);
@@ -87,19 +89,23 @@ export function createPotionLoadout() {
         (!p.sp || (chosen.sp != null && p.sp <= sp));
     }).sort((a, b) => relative(a) - relative(b) || a.ITID - b.ITID);
   }
-  function purchase(snap, list, rates, chosen = selection) {
+  function purchase(snap, list, rates, chosen = selection, reservedZeny = 0, emergency = false) {
     if (!valid(chosen)) return [];
     const catalog = options(snap, list);
-    let budget = Math.max(0, Math.min(snap.me.zeny - 1000, snap.me.zeny * 0.6));
+    let budget = Math.max(0, Math.min(snap.me.zeny - 1000, snap.me.zeny * (emergency ? 0.25 : 0.6)) - reservedZeny);
     let room = snap.me.maxWeight ? Math.max(0, snap.me.maxWeight * 0.45 - snap.me.weight) : 0;
     const out = [];
     for (const id of new Set([chosen.hp, chosen.sp])) {
       const p = catalog.find((p) => p.ITID === id && p.price > 0);
       if (!p) continue;
-      const hpTarget = Math.max((rates?.hp || 0) * 20, (snap.me.maxHp || 0) * 15);
-      const spTarget = Math.max((rates?.sp || 0) * 20, (snap.me.maxSp || 0) * 4);
+      const hpTarget = emergency ? (snap.me.maxHp || 0) * 4 : Math.max((rates?.hp || 0) * 20, (snap.me.maxHp || 0) * 15);
+      const spTarget = emergency ? (snap.me.maxSp || 0) * 2 : Math.max((rates?.sp || 0) * 30, (snap.me.maxSp || 0) * SP_STOCK_REFILLS);
       const target = Math.max(id === chosen.hp ? Math.ceil(hpTarget / p.hp) : 0, id === chosen.sp ? Math.ceil(spTarget / p.sp) : 0);
-      const count = Math.max(0, Math.floor(Math.min(target - p.count, budget / p.price, room / p.weight, p.stock ?? Infinity)));
+      const spItem = catalog.find(p => p.ITID === chosen.sp && p.price > 0);
+      const reserveSp = id === chosen.hp && chosen.hp !== chosen.sp && spItem && spItem.count * spItem.sp < spTarget;
+      const spend = reserveSp ? budget * 0.6 : budget;
+      const weightRoom = reserveSp ? room * 0.6 : room;
+      const count = Math.max(0, Math.floor(Math.min(target - p.count, spend / p.price, weightRoom / p.weight, p.stock ?? Infinity)));
       if (!count) continue;
       out.push({ ITID: id, name: p.name, count, weight: p.weight });
       budget -= count * p.price;
