@@ -1,21 +1,24 @@
 import { chromium } from 'playwright';
-import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
 import { config } from './config.js';
 import { installPageAgent } from './page-agent.js';
+import { withNames } from './skilldb.js';
 
 const CDP_URL = `http://127.0.0.1:${config.game.cdpPort}`;
 
 /**
- * The browser is its own process, started detached with a debugging port, and
- * the agent only connects to it. Stopping or restarting the agent leaves the
- * window, the login and the game session exactly where they were; the next
- * `bun start` reconnects to the same tab.
+ * The browser is the owner's: they open and close it themselves (with a debugging
+ * port), and the agent only connects to it — it never starts or closes Chrome.
+ * Stopping or restarting the agent leaves the window, the login and the game
+ * session exactly where they were; the next `bun start` reconnects to the same tab.
  */
 export async function openGame() {
-  const running = await cdpReady();
-  if (!running) await launchDetached();
+  if (!(await cdpReady())) {
+    throw new Error(
+      `no browser on debugging port ${config.game.cdpPort}. Open Chrome yourself first, e.g.:\n` +
+        `  chrome.exe --remote-debugging-port=${config.game.cdpPort} --user-data-dir=.browser-profile ` +
+        '--disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding',
+    );
+  }
   const browser = await chromium.connectOverCDP(CDP_URL);
   const context = browser.contexts()[0];
 
@@ -42,7 +45,7 @@ export async function openGame() {
     await page.goto(config.game.url, { waitUntil: 'domcontentloaded' });
   }
   await page.bringToFront().catch(() => {});
-  return { browser, context, page, reused, launched: !running };
+  return { browser, context, page, reused };
 }
 
 async function cdpReady() {
@@ -52,53 +55,6 @@ async function cdpReady() {
   } catch {
     return false;
   }
-}
-
-function findBrowser() {
-  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
-  const pf = process.env.ProgramFiles || 'C:\\Program Files';
-  const pf86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
-  const local = process.env.LOCALAPPDATA || '';
-  const candidates = {
-    chrome: [
-      join(pf, 'Google/Chrome/Application/chrome.exe'),
-      join(pf86, 'Google/Chrome/Application/chrome.exe'),
-      join(local, 'Google/Chrome/Application/chrome.exe'),
-      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      '/usr/bin/google-chrome',
-    ],
-    msedge: [
-      join(pf86, 'Microsoft/Edge/Application/msedge.exe'),
-      join(pf, 'Microsoft/Edge/Application/msedge.exe'),
-      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-    ],
-  };
-  const list = candidates[config.game.browserChannel] || [];
-  const exe = list.find((p) => existsSync(p)) || (config.game.browserChannel === 'chromium' ? chromium.executablePath() : null);
-  if (!exe) throw new Error(`cannot find ${config.game.browserChannel}; set CHROME_PATH in .env`);
-  return exe;
-}
-
-async function launchDetached() {
-  const child = spawn(
-    findBrowser(),
-    [
-      `--remote-debugging-port=${config.game.cdpPort}`,
-      `--user-data-dir=${resolve('.browser-profile')}`,
-      '--start-maximized',
-      '--autoplay-policy=no-user-gesture-required',
-      '--no-first-run',
-      '--no-default-browser-check',
-      'about:blank',
-    ],
-    { detached: true, stdio: 'ignore' },
-  );
-  child.unref();
-  for (let i = 0; i < 40; i++) {
-    if (await cdpReady()) return;
-    await Bun.sleep(500);
-  }
-  throw new Error(`browser started but its debugging port ${config.game.cdpPort} never answered`);
 }
 
 /**
@@ -137,8 +93,16 @@ export async function waitForInGame(page, onWait) {
   }
 }
 
-export const snapshot = (page) => page.evaluate(() => window.__agent?.snapshot() ?? { ready: false });
+export async function snapshot(page) {
+  const snap = await page.evaluate(() => window.__agent?.snapshot() ?? { ready: false });
+  if (snap.me) {
+    snap.me.skills = withNames(snap.me.skills);
+    snap.me.skillTree = withNames(snap.me.skillTree);
+  }
+  return snap;
+}
 export const drainEvents = (page) => page.evaluate(() => window.__agent?.drain() ?? []);
+export const query = (page, command, waitMs) => page.evaluate(([c, w]) => window.__agent.query(c, w), [command, waitMs]);
 export const exploreTarget = (page, min, max, avoid) =>
   page.evaluate(([a, b, c]) => window.__agent.exploreTarget(a, b, c), [min, max, avoid ?? []]);
 export const act = (page, name, arg) => page.evaluate(([n, a]) => window.__agent.act(n, a), [name, arg ?? {}]);

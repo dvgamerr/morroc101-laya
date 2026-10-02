@@ -21,7 +21,57 @@ export function installPageAgent() {
     25: 'maxWeight', 55: 'jobLevel',
   };
 
-  const A = { events: [], stats: { ...(prev && prev.stats) }, hits: [], attached: false };
+  const A = {
+    events: [],
+    stats: { ...(prev && prev.stats) },
+    // Skill list, buffs and stats arrive once at map load; keep them across a re-install.
+    skills: { ...(prev && prev.skills) },
+    status: { ...(prev && prev.status) },
+    cooldowns: {},
+    base: { ...(prev && prev.base) },
+    cost: { ...(prev && prev.cost) },
+    hits: [],
+    // What our own hits and skills did to each monster (GID -> {dmg, hits, misses, at}): tells a
+    // fight that goes nowhere (every swing misses, skills land for 0) from one that's just long.
+    dealt: {},
+    selfLines: [],
+    attached: false,
+    // Last non-empty inventory: the list blinks empty on every map load.
+    lastInv: prev && prev.lastInv,
+    lastInvAt: prev && prev.lastInvAt,
+  };
+  function noteDealt(gid, damage) {
+    const now = Date.now();
+    const d = A.dealt[gid] || (A.dealt[gid] = { dmg: 0, hits: 0, misses: 0, at: now });
+    d.dmg += damage;
+    if (damage > 0) d.hits++;
+    else d.misses++;
+    d.at = now;
+    for (const [k, v] of Object.entries(A.dealt)) if (now - v.at > 120000) delete A.dealt[k];
+  }
+  const STAT_NAMES = ['str', 'agi', 'vit', 'int', 'dex', 'luk'];
+  // NPC text carries colour codes (^0055FF) and the odd control char; keep the words.
+  const npcText = (s) => String(s || '').replace(/\^[0-9a-fA-F]{6}/g, '').replace(/[\0-\x1f]/g, ' ').replace(/\s+/g, ' ').trim();
+  // One conversation at a time; a new NPC id starts a fresh transcript.
+  const dialogFor = (naid) => {
+    if (!A.dialog || A.dialog.naid !== naid || A.dialog.state === 'ended') {
+      A.dialog = { naid, lines: [], state: 'text', menu: null, input: null, at: Date.now() };
+    }
+    A.dialog.at = Date.now();
+    return A.dialog;
+  };
+  // ZC_SKILLINFO type is the skill's target kind: 1 enemy, 2 ground, 4 self, 16 ally (bit flags).
+  const skillRow = (s) => ({
+    id: s.SKID,
+    // Newer clients get no name in the skill list; the client's own SkillInfo gives the display name.
+    name: String(s.skillName || '').replace(/\0.*$/, ''),
+    label: (window.RO.DB.getSkillName && window.RO.DB.getSkillName(s.SKID)) || '',
+    inf: s.type,
+    level: s.level,
+    sp: s.spcost,
+    range: s.attackRange,
+    upgradable: !!s.upgradable,
+  });
   window.__agent = A;
 
   const push = (e) => {
@@ -81,11 +131,214 @@ export function installPageAgent() {
         if (p.targetGID && p.targetGID === myGID() && p.damage > 0) {
           A.hits.push({ t: Date.now(), from: p.GID, damage: p.damage + (p.leftDamage || 0) });
           if (A.hits.length > 100) A.hits.shift();
+        } else if (p.targetGID && p.GID === myGID() && p.targetGID !== myGID()) {
+          noteDealt(p.targetGID, (p.damage || 0) + (p.leftDamage || 0));
+        }
+        break;
+      // Skill damage too: Dryads, plants and shooters hurt with skills, and counting only plain hits
+      // left us "not attacked" (no escape) while HP went from 31% to 0.
+      case 'PACKET_ZC_NOTIFY_SKILL':
+      case 'PACKET_ZC_NOTIFY_SKILL2':
+      case 'PACKET_ZC_NOTIFY_SKILL_POSITION':
+        if (p.targetID && p.targetID === myGID() && p.AID !== myGID() && p.damage > 0) {
+          A.hits.push({ t: Date.now(), from: p.AID, damage: p.damage });
+          if (A.hits.length > 100) A.hits.shift();
+        } else if (p.targetID && p.AID === myGID() && p.targetID !== myGID()) {
+          noteDealt(p.targetID, p.damage > 0 ? p.damage : 0);
         }
         break;
       case 'PACKET_ZC_NOTIFY_VANISH':
         if (p.GID === myGID() && p.type === 1) push({ type: 'died' });
         break;
+
+      // ---- skills: what we have, what failed, when each can be used again
+      case 'PACKET_ZC_SKILLINFO_LIST':
+      case 'PACKET_ZC_SKILLINFO_LIST2':
+        A.skills = {};
+        for (const s of p.skillList || []) A.skills[s.SKID] = skillRow(s);
+        break;
+      case 'PACKET_ZC_ADD_SKILL':
+        if (p.data) A.skills[p.data.SKID] = skillRow(p.data);
+        break;
+      case 'PACKET_ZC_SKILLINFO_UPDATE':
+      case 'PACKET_ZC_SKILLINFO_UPDATE2':
+      case 'PACKET_ZC_SKILLINFO_UPDATE3': {
+        const s = A.skills[p.SKID];
+        if (s) {
+          Object.assign(s, { level: p.level ?? s.level, sp: p.spcost ?? s.sp, range: p.attackRange ?? s.range });
+          if (p.type !== undefined) s.inf = p.type;
+          if (p.upgradable !== undefined) s.upgradable = !!p.upgradable;
+        }
+        break;
+      }
+      case 'PACKET_ZC_SKILLINFO_DELETE':
+        delete A.skills[p.SKID];
+        break;
+      case 'PACKET_ZC_SKILL_POSTDELAY':
+        A.cooldowns[p.SKID] = Date.now() + (p.DelayTM || 0);
+        break;
+      case 'PACKET_ZC_ACK_TOUSESKILL':
+        if (p.result === 0) push({ type: 'skill_fail', SKID: p.SKID, cause: p.cause });
+        break;
+
+      // ---- status effects on us (buffs/debuffs), by EFST index
+      case 'PACKET_ZC_MSG_STATE_CHANGE':
+      case 'PACKET_ZC_MSG_STATE_CHANGE2':
+      case 'PACKET_ZC_MSG_STATE_CHANGE3':
+      case 'PACKET_ZC_MSG_STATE_CHANGE4':
+      case 'PACKET_ZC_MSG_STATE_CHANGE5':
+        if (p.AID === myGID() && p.index !== undefined) {
+          if (p.state) A.status[p.index] = { since: Date.now(), until: p.RemainMS ? Date.now() + p.RemainMS : 0 };
+          else delete A.status[p.index];
+          push({ type: 'status', index: p.index, on: !!p.state, remain: p.RemainMS || 0 });
+        }
+        break;
+
+      // ---- body states that stop us acting (stone/freeze/stun/sleep...) and silence
+      case 'PACKET_ZC_STATE_CHANGE':
+      case 'PACKET_ZC_STATE_CHANGE3':
+        if (p.AID === myGID()) {
+          const BODY = { 1: 'stone', 2: 'freeze', 3: 'stun', 4: 'sleep', 6: 'stone', 8: 'imprison' };
+          const state = BODY[p.bodyState] || (p.healthState & 4 ? 'silence' : null);
+          if (state && state !== A.disabledState) {
+            // Who was hitting us when it happened: the likely cause.
+            const from = [...new Set(A.hits.filter((h) => Date.now() - h.t < 4000).map((h) => h.from))];
+            const names = from.map((g) => window.RO.EntityManager.get(g)).filter(Boolean).map((e) => e.display && e.display.name).filter(Boolean);
+            push({ type: 'disabled', state, from: names });
+          }
+          A.disabledState = state;
+        }
+        break;
+
+      // ---- player trades (someone offers us zeny/items)
+      case 'PACKET_ZC_REQ_EXCHANGE_ITEM':
+      case 'PACKET_ZC_REQ_EXCHANGE_ITEM2':
+        A.trade = { stage: 'requested', from: clean(p.name), at: Date.now(), zeny: 0, items: [], otherLocked: false, selfLocked: false };
+        push({ type: 'trade_request', from: A.trade.from });
+        break;
+      case 'PACKET_ZC_ACK_EXCHANGE_ITEM':
+      case 'PACKET_ZC_ACK_EXCHANGE_ITEM2':
+        if (A.trade) A.trade.stage = p.result === 3 ? 'open' : 'closed';
+        break;
+      case 'PACKET_ZC_ADD_EXCHANGE_ITEM':
+      case 'PACKET_ZC_ADD_EXCHANGE_ITEM2':
+      case 'PACKET_ZC_ADD_EXCHANGE_ITEM3':
+      case 'PACKET_ZC_ADD_EXCHANGE_ITEM4':
+        if (A.trade) {
+          if (!p.ITID) A.trade.zeny = p.count; // index 0 is the zeny field
+          else A.trade.items.push({ ITID: p.ITID, count: p.count });
+        }
+        break;
+      case 'PACKET_ZC_CONCLUDE_EXCHANGE_ITEM':
+        if (A.trade) A.trade[p.who ? 'otherLocked' : 'selfLocked'] = true;
+        break;
+      case 'PACKET_ZC_EXEC_EXCHANGE_ITEM':
+        push({ type: 'trade_done', ok: p.result === 0, from: A.trade && A.trade.from, zeny: A.trade && A.trade.zeny, items: A.trade ? A.trade.items.length : 0 });
+        A.trade = null;
+        break;
+      case 'PACKET_ZC_CANCEL_EXCHANGE_ITEM':
+        push({ type: 'trade_cancelled', from: A.trade && A.trade.from });
+        A.trade = null;
+        break;
+
+      // ---- NPC dialogs: text, Next, menus, input boxes, Close, end of script
+      case 'PACKET_ZC_SAY_DIALOG':
+        dialogFor(p.NAID).lines.push(npcText(p.msg));
+        A.dialog.state = 'text';
+        break;
+      case 'PACKET_ZC_WAIT_DIALOG':
+        dialogFor(p.NAID).state = 'next';
+        break;
+      case 'PACKET_ZC_MENU_LIST':
+        Object.assign(dialogFor(p.NAID), { state: 'menu', menu: String(p.msg || '').split(':').map(npcText) });
+        break;
+      case 'PACKET_ZC_OPEN_EDITDLG':
+        Object.assign(dialogFor(p.NAID), { state: 'input', input: 'number' });
+        break;
+      case 'PACKET_ZC_OPEN_EDITDLGSTR':
+        Object.assign(dialogFor(p.NAID), { state: 'input', input: 'text' });
+        break;
+      case 'PACKET_ZC_CLOSE_DIALOG':
+        dialogFor(p.NAID).state = 'close';
+        break;
+      case 'PACKET_ZC_CLOSE_SCRIPT':
+        if (A.dialog && (!p.NAID || A.dialog.naid === p.NAID)) A.dialog.state = 'ended';
+        break;
+
+      // ---- NPC shops: buy/sell choice, the lists with prices, the results
+      case 'PACKET_ZC_SELECT_DEALTYPE':
+        A.shop = { naid: p.NAID, stage: 'select', at: Date.now() };
+        break;
+      case 'PACKET_ZC_PC_PURCHASE_ITEMLIST':
+      case 'PACKET_ZC_PC_PURCHASE_ITEMLIST2': // newer clients (this server) use the "2" list
+        A.shop = { ...A.shop, kind: 'npc', stage: 'buy', at: Date.now(), list: (p.itemList || []).map((i) => ({ ITID: i.ITID, price: i.discountprice || i.price })) };
+        break;
+      case 'PACKET_ZC_NPC_MARKET_OPEN':
+      case 'PACKET_ZC_NPC_MARKET_OPEN2':
+        // Market shops open straight to a buy list (no buy/sell choice) and have stock.
+        A.shop = { naid: A.shop && A.shop.naid, kind: 'market', stage: 'buy', at: Date.now(), list: (p.itemList || []).map((i) => ({ ITID: i.ITID, price: i.price, stock: i.qty })) };
+        break;
+      case 'PACKET_ZC_NPC_MARKET_PURCHASE_RESULT':
+      case 'PACKET_ZC_NPC_MARKET_PURCHASE_RESULT2':
+        push({ type: 'shop_result', kind: 'buy', ok: p.result === 1, result: p.result });
+        // Keep kind until close_shop, which still has to send NPC_MARKET_CLOSE.
+        A.shop = { ...A.shop, stage: 'done' };
+        break;
+      case 'PACKET_ZC_PC_SELL_ITEMLIST':
+        A.shop = { ...A.shop, stage: 'sell', at: Date.now(), list: (p.itemList || []).map((i) => ({ index: i.index, price: i.overchargeprice || i.price })) };
+        break;
+      case 'PACKET_ZC_PC_PURCHASE_RESULT':
+        push({ type: 'shop_result', kind: 'buy', ok: p.result === 0, result: p.result });
+        A.shop = null;
+        break;
+      case 'PACKET_ZC_PC_SELL_RESULT':
+        push({ type: 'shop_result', kind: 'sell', ok: p.result === 0, result: p.result });
+        A.shop = null;
+        break;
+
+      // ---- Kafra storage: the item lists arrive when it opens; ZC_CLOSE_STORE when it shuts.
+      case 'PACKET_ZC_STORE_NORMAL_ITEMLIST':
+      case 'PACKET_ZC_STORE_NORMAL_ITEMLIST2':
+      case 'PACKET_ZC_STORE_NORMAL_ITEMLIST3':
+      case 'PACKET_ZC_STORE_NORMAL_ITEMLIST4':
+      case 'PACKET_ZC_STORE_EQUIPMENT_ITEMLIST':
+      case 'PACKET_ZC_STORE_EQUIPMENT_ITEMLIST2':
+      case 'PACKET_ZC_STORE_EQUIPMENT_ITEMLIST3':
+      case 'PACKET_ZC_STORE_EQUIPMENT_ITEMLIST4':
+      case 'PACKET_ZC_STORE_EQUIPMENT_ITEMLIST5':
+      case 'PACKET_ZC_NOTIFY_STOREITEM_COUNTINFO':
+        A.storage = { open: true, at: Date.now(), added: (A.storage && A.storage.added) || 0, count: p.curCount ?? (A.storage && A.storage.count), max: p.maxCount ?? (A.storage && A.storage.max) };
+        break;
+      case 'PACKET_ZC_ADD_ITEM_TO_STORE':
+      case 'PACKET_ZC_ADD_ITEM_TO_STORE2':
+      case 'PACKET_ZC_ADD_ITEM_TO_STORE3':
+      case 'PACKET_ZC_ADD_ITEM_TO_STORE4':
+        if (A.storage) A.storage.added += 1;
+        push({ type: 'storage_added', ITID: p.ITID ?? p.itemId, count: p.count });
+        break;
+      case 'PACKET_ZC_CLOSE_STORE':
+        A.storage = null;
+        break;
+
+      // ---- base stats (STR..LUK) and what the next point of each costs
+      case 'PACKET_ZC_STATUS':
+        A.stats.statusPoints = p.point;
+        A.base = { str: p.str, agi: p.agi, vit: p.vit, int: p.Int, dex: p.dex, luk: p.luk };
+        A.cost = { str: p.standardStr, agi: p.standardAgi, vit: p.standardVit, int: p.standardInt, dex: p.standardDex, luk: p.standardLuk };
+        break;
+      case 'PACKET_ZC_STATUS_CHANGE_ACK':
+        if (p.result && STAT_NAMES[p.statusID - 13]) A.base[STAT_NAMES[p.statusID - 13]] = p.value;
+        break;
+      case 'PACKET_ZC_COUPLESTATUS':
+        if (STAT_NAMES[p.statusType - 13]) A.base[STAT_NAMES[p.statusType - 13]] = p.defaultStatus;
+        break;
+      default:
+        // @command replies come back as our own chat line (clif_displaymessage) or a
+        // system message; keep the recent ones so query() can read them.
+        if (typeof p.msg === 'string' && /PLAYERCHAT|MSG|BROADCAST/.test(name)) {
+          A.selfLines.push({ t: Date.now(), text: clean(p.msg) });
+          if (A.selfLines.length > 100) A.selfLines.shift();
+        }
     }
   }
 
@@ -106,17 +359,84 @@ export function installPageAgent() {
     }
   }
 
+  /** Why the client's junk rules (RO.JunkData) say never to sell this stack, or null. */
+  function keepReason(it) {
+    const J = window.RO.JunkData;
+    try {
+      if (!J || !J.isReady || !J.isReady()) return null;
+      const R = J.REASON;
+      const c = J.classify(it.ITID, 0, null, it);
+      return [R.REFINED, R.CARDED, R.SIGNED, R.NEVER].includes(c.reason) ? c.reason : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * What a piece of gear is, read off the client's item description (iteminfo):
+   * slot bitmask, weapon/armour kind, Atk/Def, who can wear it, level needed, refine.
+   */
+  function gearInfo(it) {
+    const d = window.RO.DB.getItemInfo(it.ITID) || {};
+    const text = String(it.IsIdentified === 0 ? d.unidentifiedDescriptionName || d.identifiedDescriptionName || '' : d.identifiedDescriptionName || '').replace(/\^[0-9a-fA-F]{6}/g, '');
+    const field = (re) => (text.match(re) || [])[1]?.trim() || '';
+    return {
+      loc: it.location || 0,
+      kind: field(/(?:ประเภท|Type)\s*:\s*([^\n]+)/i),
+      atk: Number(field(/\bAtk\s*:\s*(\d+)/i)) || 0,
+      def: Number(field(/\bDef\s*:\s*(\d+)/i)) || 0,
+      jobs: field(/(?:อาชีพที่ใช้ได้|Jobs?)\s*:\s*([^\n]+)/i), // '' = everyone
+      reqLv: Number(field(/(?:Lv\. ที่ต้องการ|Required Level|Base Level)\s*:\s*(\d+)/i)) || 0,
+      refine: it.RefiningLevel || 0,
+      identified: it.IsIdentified !== 0, // unidentified gear can't be worn until appraised
+    };
+  }
+
+  /** What we're wearing, slot by slot (the Equipment window keeps it; isInEquipList(mask) finds it). */
+  const WORN_SLOTS = { head_low: 1, weapon: 2, garment: 4, acc_left: 8, armor: 16, shield: 32, shoes: 64, acc_right: 128, head_top: 256, head_mid: 512 };
+  function worn() {
+    const eq = component('Equipment');
+    if (!eq || typeof eq.isInEquipList !== 'function') return null;
+    const out = [];
+    const seen = new Set();
+    for (const [slot, mask] of Object.entries(WORN_SLOTS)) {
+      const it = eq.isInEquipList(mask);
+      if (!it || seen.has(it.index)) continue;
+      seen.add(it.index);
+      out.push({ slot, index: it.index, ITID: it.ITID, name: (window.RO.DB.getItemInfo(it.ITID) || {}).identifiedDisplayName || String(it.ITID), ...gearInfo(it) });
+    }
+    return out;
+  }
+
+  const INVENTORY_BLINK_MS = 5 * 60 * 1000;
   function inventory() {
     const RO = window.RO;
     const inv = component('Inventory');
-    const list = (inv && inv.list) || [];
+    let list = (inv && inv.list) || [];
+    // The client empties and refills the list while it refreshes (around shop windows, and for a
+    // while after a Fly Wing warp): "nothing in the bag" must not read as "out of potions". It once
+    // stayed empty 13s after a wing — past the old 10s — and the character fought on without drinking.
+    // We always carry potions or wings, so a truly empty bag is not a case worth trusting quickly.
+    if (list.length) {
+      // A copy: the client empties this very array in place on a warp, and a kept reference
+      // emptied with it — the cache read 0 items 0.7s after it was taken.
+      A.lastInv = list.map((it) => ({ ...it }));
+      A.lastInvAt = Date.now();
+    } else if (A.lastInv && Date.now() - A.lastInvAt < INVENTORY_BLINK_MS) {
+      list = A.lastInv;
+    }
     return list.map((it) => ({
       index: it.index,
       ITID: it.ITID,
       name: (RO.DB.getItemInfo(it.ITID) || {}).identifiedDisplayName || String(it.ITID),
-      count: it.count,
+      // Gear doesn't stack and carries no count: one piece.
+      count: it.count ?? 1,
       type: it.type,
-      equipped: !!it.WearState,
+      // Worn gear lives in the equipment window, not here. On a card, WearState is the slot it
+      // can be compounded into — it once made every loose card look "worn" (never stored).
+      equipped: !!it.WearState && it.type !== 6,
+      keep: keepReason(it),
+      ...(it.type === 4 || it.type === 5 ? { gear: gearInfo(it) } : {}),
     }));
   }
 
@@ -127,12 +447,34 @@ export function installPageAgent() {
     if (!me || !me.playing || me.x === undefined) return { ready: true, inGame: false };
 
     const now = Date.now();
+    // Hits from the map we just left (portal, @go, fly wing) are not a fight here.
+    const map = String(me.map || '');
+    if (A.mapNow !== map) {
+      A.mapNow = map;
+      A.mapSince = now;
+    }
+    if (A.hitsMap === undefined) A.hitsMap = map; // first look: these hits are from here
+    else if (A.hitsMap !== map) {
+      A.hits = [];
+      A.hitsMap = map;
+    }
     A.hits = A.hits.filter((h) => now - h.t < 6000);
-    const attackers = [...new Set(A.hits.map((h) => h.from))];
+    // A wing warp (same map, position jumps): the hits came from where we were, not from here.
+    if (A.lastPos && Math.max(Math.abs(me.x - A.lastPos.x), Math.abs(me.y - A.lastPos.y)) > 15) A.hits = [];
+    A.lastPos = { x: me.x, y: me.y };
     const ents = RO.entities();
+    // Only attackers we can still see count as "being attacked": a monster that died,
+    // walked off screen or was left behind would otherwise keep us fighting nothing.
+    const visible = new Set(ents.filter((e) => e.type === TYPE.MOB && e.hp !== 0).map((e) => e.GID));
+    const attackers = [...new Set(A.hits.filter((h) => visible.has(h.from)).map((h) => h.from))];
+    // Who hit us in the last few seconds but isn't in the entity list (it reads empty for a while
+    // after a wing warp: four Wootan Fighters beat us for 15s while we saw "0 monsters").
+    const unseenAttackers = new Set(A.hits.filter((h) => now - h.t < 4000 && !visible.has(h.from)).map((h) => h.from)).size;
     const target = RO.AutoCombat.target && RO.AutoCombat.target();
     const pick = (e) => ({ GID: e.GID, name: e.name, x: e.x, y: e.y, dist: e.dist, hp: e.hp, maxHp: e.maxHp });
     const session = RO.Session.Entity || {};
+    const selfIds = new Set([me.GID, session.GID, RO.Session.AID, RO.Session.GID, RO.Session.Character?.GID].filter((v) => v !== undefined && v !== null));
+    const myName = me.name || session.display?.name || RO.Session.Character?.name || '';
 
     return {
       ready: true,
@@ -143,12 +485,21 @@ export function installPageAgent() {
         map: String(me.map || '').replace(/\.(gat|rsw)$/i, ''),
         baseLevel: A.stats.baseLevel ?? session.clevel,
         jobLevel: A.stats.jobLevel ?? session.joblevel,
-        jobId: A.stats.job ?? session._job ?? session.job,
+        // The entity is updated by the sprite-change packet on a job change; the status value may be stale.
+        jobId: session._job ?? session.job ?? A.stats.job,
         zeny: A.stats.zeny ?? RO.Session.zeny,
         baseExp: A.stats.baseExp, baseExpNext: A.stats.baseExpNext,
         jobExp: A.stats.jobExp, jobExpNext: A.stats.jobExpNext,
         weight: A.stats.weight, maxWeight: A.stats.maxWeight,
         statusPoints: A.stats.statusPoints, skillPoints: A.stats.skillPoints,
+        stats: { ...A.base },
+        statCost: { ...A.cost },
+        skills: Object.values(A.skills).filter((s) => s.level > 0),
+        // Everything in the tree the server sent, learned or not, with whether a point can go in now.
+        skillTree: Object.values(A.skills).map(({ id, name, label, level, upgradable }) => ({ id, name, label, level, upgradable })),
+        // Active status effects (EFST index -> ms left, 0 = unknown/permanent).
+        status: Object.fromEntries(Object.entries(A.status).map(([k, v]) => [k, v.until ? Math.max(0, v.until - now) : 0])),
+        cooldowns: Object.fromEntries(Object.entries(A.cooldowns).filter(([, t]) => t > now).map(([k, t]) => [k, t - now])),
         sitting: !!session.ACTION && session.action === session.ACTION.SIT,
         walking: !!session.ACTION && session.action === session.ACTION.WALK,
         // hp is 0 for a moment after login, before the first status packet; that isn't death.
@@ -157,13 +508,25 @@ export function installPageAgent() {
       target: target ? { GID: target.GID, name: target.display?.name } : null,
       autoCombat: !!(RO.AutoCombat.isChaining && RO.AutoCombat.isChaining()),
       damageTaken6s: A.hits.reduce((s, h) => s + h.damage, 0),
+      dealt: { ...A.dealt },
       attackers,
+      unseenAttackers,
       monsters: ents.filter((e) => e.type === TYPE.MOB && e.hp !== 0).slice(0, 15).map(pick),
       items: ents.filter((e) => e.type === TYPE.ITEM || e.type === TYPE.ITEM2).slice(0, 10).map(pick),
-      players: ents.filter((e) => e.type === TYPE.PC && e.GID !== me.GID).slice(0, 10).map(pick),
-      npcs: ents.filter((e) => e.type === TYPE.NPC).slice(0, 10).map(pick),
+      // The bridge's me.GID isn't always the id our own entity carries (char id vs account id):
+      // drop ourselves by every id and by name, or we end up begging from our own character.
+      players: ents.filter((e) => e.type === TYPE.PC && !selfIds.has(e.GID) && !(myName && e.name === myName)).slice(0, 10).map(pick),
+      // rAthena NPC names carry a hidden "#suffix" (Healer#mor); the navigation data says "Healer".
+      npcs: ents.filter((e) => e.type === TYPE.NPC).slice(0, 15).map((e) => ({ ...pick(e), name: String(e.name || '').replace(/#.*$/, '').trim() })),
       inventory: inventory(),
+      worn: worn(),
       navi: navi(),
+      shop: A.shop || null,
+      trade: A.trade ? { ...A.trade, items: [...A.trade.items] } : null,
+      storage: A.storage ? { ...A.storage } : null,
+      // How long we've been on this map: the inventory reloads in pieces after a map change.
+      mapAgeMs: now - (A.mapSince || now),
+      dialog: A.dialog ? { ...A.dialog, lines: [...A.dialog.lines], idleMs: Date.now() - A.dialog.at } : null,
     };
   };
 
@@ -183,6 +546,17 @@ export function installPageAgent() {
   }
 
   A.drain = () => A.events.splice(0, A.events.length);
+
+  /**
+   * Send an @command and collect what the server says back within `waitMs`.
+   * Replies arrive as our own chat lines, so anything after the send is the answer.
+   */
+  A.query = async (command, waitMs = 1500) => {
+    const since = Date.now();
+    window.RO.say(command);
+    await new Promise((r) => setTimeout(r, waitMs));
+    return A.selfLines.filter((l) => l.t >= since && !l.text.includes(command)).map((l) => l.text);
+  };
 
   // ---- Walking on the map grid -------------------------------------------------
   // The client's PathFinding.search stops at ~145 nodes, like the server's own
@@ -328,6 +702,105 @@ export function installPageAgent() {
         return send(PACKET.CZ.REQUEST_ACT2 || PACKET.CZ.REQUEST_ACT, { targetGID: 0, action: 2 });
       case 'stand':
         return send(PACKET.CZ.REQUEST_ACT2 || PACKET.CZ.REQUEST_ACT, { targetGID: 0, action: 3 });
+      case 'skill': {
+        // Same version switch as the client's own skill use.
+        if (arg.x !== undefined) return send(PACKET.CZ.USE_SKILL_TOGROUND, { SKID: arg.SKID, selectedLevel: arg.level, xPos: arg.x, yPos: arg.y });
+        const Struct = RO.PACKETVER.value >= 20180307 ? PACKET.CZ.USE_SKILL2 : PACKET.CZ.USE_SKILL;
+        return send(Struct, { SKID: arg.SKID, selectedLevel: arg.level, targetID: arg.targetID || RO.Session.Entity.GID });
+      }
+      case 'talk':
+        A.shop = null;
+        return RO.talkTo(arg.GID);
+      case 'deal': // 0 buy, 1 sell — answers ZC_SELECT_DEALTYPE without the dialog
+        return send(PACKET.CZ.ACK_SELECT_DEALTYPE, { NAID: arg.naid, type: arg.type });
+      case 'buy':
+        if (A.shop && A.shop.kind === 'market') {
+          return send(PACKET.CZ.NPC_MARKET_PURCHASE, { itemList: arg.items.map((i) => ({ itemId: i.ITID, amount: i.count })) });
+        }
+        return send(PACKET.CZ.PC_PURCHASE_ITEMLIST, { itemList: arg.items.map((i) => ({ ITID: i.ITID, count: i.count })) });
+      case 'sell':
+        return send(PACKET.CZ.PC_SELL_ITEMLIST, { itemList: arg.items.map((i) => ({ index: i.index, count: i.count })) });
+      case 'close_shop':
+        // A market shop keeps the NPC session open until told otherwise.
+        if (A.shop && A.shop.kind === 'market' && PACKET.CZ.NPC_MARKET_CLOSE) send(PACKET.CZ.NPC_MARKET_CLOSE, {});
+        // The client opened its own buy/sell windows when the packets arrived; put them away.
+        for (const name of ['NpcStore', 'NpcMenu']) {
+          const c = component(name);
+          if (c && c.__active && c.remove) c.remove();
+        }
+        A.shop = null;
+        return true;
+      // ---- wear a piece of gear from the bag in the slot(s) it goes to
+      case 'equip':
+        return send(PACKET.CZ.REQ_WEAR_EQUIP, { index: arg.index, wearLocation: arg.loc });
+      // ---- Kafra storage (open it by talking to a Kafra; these only work while it's open).
+      // Same choice as the client's StorageController.reqAddItem: the "2" packet from packetver
+      // 20180307 (this server: 20211103). The old one went out and the server ignored it.
+      case 'storage_put': {
+        const ver = (RO.PACKETVER && (RO.PACKETVER.value ?? RO.PACKETVER)) || 0;
+        const Struct = ver >= 20180307 && PACKET.CZ.MOVE_ITEM_FROM_BODY_TO_STORE2 ? PACKET.CZ.MOVE_ITEM_FROM_BODY_TO_STORE2 : PACKET.CZ.MOVE_ITEM_FROM_BODY_TO_STORE;
+        return send(Struct, { index: arg.index, Index: arg.index, count: arg.count });
+      }
+      case 'storage_close': {
+        send(PACKET.CZ.CLOSE_STORE, {});
+        A.storage = null;
+        const c = component('Storage');
+        if (c && c.__active && c.remove) c.remove();
+        return true;
+      }
+      // ---- NPC dialog answers (what the client's NpcBox/NpcMenu buttons send)
+      case 'npc_next':
+        return send(PACKET.CZ.REQ_NEXT_SCRIPT, { NAID: arg.naid });
+      case 'npc_menu': // 1-based option, 255 = cancel
+        if (A.dialog) A.dialog.state = 'text';
+        return send(PACKET.CZ.CHOOSE_MENU, { NAID: arg.naid, num: arg.num });
+      case 'npc_input':
+        if (A.dialog) A.dialog.state = 'text';
+        if (typeof arg.value === 'number') return send(PACKET.CZ.INPUT_EDITDLG, { NAID: arg.naid, value: arg.value });
+        return send(PACKET.CZ.INPUT_EDITDLGSTR, { NAID: arg.naid, msg: String(arg.value) });
+      case 'npc_close':
+        send(PACKET.CZ.CLOSE_DIALOG, { NAID: arg.naid });
+        if (A.dialog) A.dialog.state = 'ended';
+        for (const name of ['NpcBox', 'NpcMenu']) {
+          const c = component(name);
+          if (c && c.__active && c.remove) c.remove();
+        }
+        return true;
+      case 'hotkey_set': {
+        // Show it on the bar and save it on the server, as a drag-and-drop would.
+        const bar = component('ShortCut');
+        if (bar && bar.addElement) bar.addElement(arg.index, arg.isSkill, arg.ID, arg.count);
+        const Struct = RO.PACKETVER.value >= 20190522 ? PACKET.CZ.SHORTCUT_KEY_CHANGE2 : PACKET.CZ.SHORTCUT_KEY_CHANGE1;
+        send(Struct, { Index: arg.index, ShortCutKey: { isSkill: arg.isSkill ? 1 : 0, ID: arg.ID, count: arg.count } });
+        return true;
+      }
+      case 'hotkey_press': {
+        // Exactly what pressing the slot's key does (ShortCut.onShortCut -> EXECUTE<n>).
+        const bar = component('ShortCut');
+        if (!bar || !bar.onShortCut) return false;
+        bar.onShortCut({ cmd: 'EXECUTE' + arg.index });
+        return true;
+      }
+      // ---- player trade. There is deliberately no "add item/zeny": the agent only receives.
+      case 'trade_accept':
+        return send(PACKET.CZ.ACK_EXCHANGE_ITEM, { result: 3 });
+      case 'trade_reject':
+        return send(PACKET.CZ.ACK_EXCHANGE_ITEM, { result: 4 });
+      case 'trade_lock':
+        return send(PACKET.CZ.CONCLUDE_EXCHANGE_ITEM, {});
+      case 'trade_ok':
+        return send(PACKET.CZ.EXEC_EXCHANGE_ITEM, {});
+      case 'trade_cancel':
+        A.trade = null;
+        return send(PACKET.CZ.CANCEL_EXCHANGE_ITEM, {});
+      case 'upgrade_skill':
+        return send(PACKET.CZ.UPGRADE_SKILLLEVEL, { SKID: arg.SKID });
+      case 'raise_stat': {
+        const i = STAT_NAMES.indexOf(arg.stat);
+        if (i === -1) return false;
+        send(PACKET.CZ.STATUS_CHANGE, { statusID: 13 + i, changeAmount: 1 });
+        return true;
+      }
       case 'respawn':
         return send(PACKET.CZ.RESTART, { type: 0 });
       case 'navi_start':
