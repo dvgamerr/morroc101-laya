@@ -5,6 +5,8 @@ import { log } from './logger.js';
 import { remember, history } from './memory.js';
 import { CHAT_SYSTEM } from './prompts.js';
 import { config } from './config.js';
+import { jobInfo, nextJob } from './goals.js';
+import { jobReferenceContext } from './job-reference.js';
 
 const REPLY_MODES = {
   ignore: 'ข้อความไม่ได้คุยกับเรา เป็นสแปม ประกาศขายของ หรือคุยกันเองระหว่างคนอื่น',
@@ -17,6 +19,13 @@ const REPLY_MODES = {
  * Priority 80: a player talked. LAYA decides whether/how to react (cheap, fast),
  * the LLM writes the actual line. Runs off the combat loop so farming keeps going.
  */
+const PUBLIC_REPLY_CONFIDENCE = 0.7;
+const PUBLIC_REPLY_RANGE = 3;
+const ABOUT_OWNER_P = 0.8;
+const OWNER_WORDS = new RegExp(`(${config.game.ownerName.replace(/^พี่/, '')}|เจ้าของ|คนเล่น|owner|ใครเล่น|ตัวจริง)`, 'i');
+// Qwen sometimes drifts into Chinese/Japanese/Korean mid-sentence; such a line is not sent.
+const FOREIGN_SCRIPT = /[぀-ヿ㐀-鿿가-힯]/;
+
 // Two bots answering each other would never stop; neither would a spammer.
 const PER_PLAYER_PER_MIN = 4;
 const TOTAL_PER_MIN = 10;
@@ -68,15 +77,22 @@ export function createChat(page, brain) {
     );
 
     let mode = answers.mode?.choice || 'ignore';
-    // Whisper/party/guild are always addressed to us; on public chat LAYA may say ignore.
+    // Whisper/party/guild are always addressed to us.
     if (mode === 'ignore' && directed) mode = 'reply';
-    if (mode === 'ignore' && near && near.dist <= 4 && (answers.mode?.probabilities?.reply ?? 0) > 0.3) mode = 'reply';
-    const aboutOwner = (answers.about_owner?.probability ?? 0) > 0.5;
+    // Public chat that doesn't name us: only someone standing right next to us, and only when
+    // LAYA is sure it's meant for us. (Other players' auto-shouts were being answered.)
+    if (ev.channel === 'public' && !mentionsMe && mode !== 'ignore') {
+      const sure = (answers.mode?.confidence ?? 0) >= PUBLIC_REPLY_CONFIDENCE;
+      if (!(near && near.dist <= PUBLIC_REPLY_RANGE && sure)) mode = 'ignore';
+    }
+    // "Asking about the owner" needs both LAYA's say-so and words that actually point at the owner.
+    const aboutOwner = (answers.about_owner?.probability ?? 0) > ABOUT_OWNER_P && OWNER_WORDS.test(ev.text);
     log('chat_in', { channel: ev.channel, from: ev.from, text: ev.text, mode, aboutOwner });
     remember(ev.from, ev.from, ev.text);
     if (mode === 'ignore') return;
 
     const situation = [
+      jobReferenceContext(snap.me, jobInfo(snap.me.jobId).name, nextJob(snap.me), { details: /อาชีพ|จุติ|ไฮคลาส|class|job|rebirth|blacksmith|whitesmith|mechanic|meister/i.test(ev.text) }),
       `แมพ: ${snap.me.map} ตำแหน่ง ${snap.me.x},${snap.me.y}`,
       `เลเวล: ${snap.me.baseLevel}/${snap.me.jobLevel} HP ${snap.me.hp}/${snap.me.maxHp}`,
       `กำลังทำ: ${brain.plan.objective || 'เก็บเลเวล'}${snap.target ? ` (ตี ${snap.target.name} อยู่)` : ''}`,
@@ -98,6 +114,10 @@ export function createChat(page, brain) {
     let reply = await llm.chat(messages, { maxTokens: 80, temperature: 0.8 });
     reply = reply.split('\n')[0].replace(/^["'“]|["'”]$/g, '').replace(/^[@/]+/, '').trim().slice(0, 90);
     if (!reply) return;
+    if (FOREIGN_SCRIPT.test(reply)) {
+      log('chat_dropped', { reason: 'foreign script', text: reply });
+      return;
+    }
 
     // A beat of "typing" time so it doesn't read like an instant bot.
     await Bun.sleep(800 + Math.min(reply.length * 60, 3000));
