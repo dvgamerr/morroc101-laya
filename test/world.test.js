@@ -104,3 +104,31 @@ test('plan from candidate carries its targets and avoid list', () => {
   expect(p.hunt_map).toBe('field_a');
   expect(p.avoid_monsters).toContain('Furious Drops');
 });
+
+test('a map crowded with avoided monsters (they come to us) is not offered', () => {
+  const offered = (avoid) => pickHuntingGrounds(world, { level: 1, fromMap: 'town', limit: 10, avoid }).map((c) => c.map);
+  expect(offered([])).toContain('field_a');
+  expect(offered(['Drops'])).not.toContain('field_a'); // 30 Drops there
+  expect(offered(['Furious Drops'])).toContain('field_a'); // only 2: still fine
+});
+
+test('money hunts well below us in big crowds (safe, cheap, many drops); level hunts for EXP', () => {
+  // Level 20: for EXP, Baby Desert Wolf (14) on field_b; for money, the Poring/Drops crowds far below.
+  const forExp = pickHuntingGrounds(world, { level: 20, fromMap: 'town', limit: 10 });
+  expect(forExp[0].map).toBe('field_b');
+  const forMoney = pickHuntingGrounds(world, { level: 20, goal: 'money', fromMap: 'town', canGo: true, limit: 10 });
+  expect(forMoney.every((c) => c.targets.every((t) => t.level <= 12))).toBe(true);
+  expect(['field_a', 'field_e']).toContain(forMoney[0].map);
+  expect(forMoney.every((c) => c.population >= 20)).toBe(true);
+  expect(levelBand(80, 'money')).toEqual({ min: 55, max: 72, danger: 83 });
+});
+
+test('bosses (MVP-size HP) are never targets and go on the avoid list, whatever their level', () => {
+  const w = buildWorld(
+    { mobs: { 1: ['Hode', 63, 2000, '', '', 1, '', 2000, 1000, []], 2: ['Phreeoni', 69, 300000, '', '', 1, '', 90000, 30000, []] }, spawns: [['desert', 1, 40], ['desert', 2, 1]], immobile: [] },
+    { edges: { town: [portal('desert')], desert: [portal('town')] }, go: [['town', 0, 0]] },
+  );
+  const [ground] = pickHuntingGrounds(w, { level: 66, fromMap: 'town' });
+  expect(ground.targets.map((t) => t.name)).toEqual(['Hode']);
+  expect(ground.avoid).toContain('Phreeoni');
+});

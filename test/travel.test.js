@@ -7,13 +7,22 @@ const calls = [];
 mock.module('../src/browser.js', () => ({
   act: async (_p, name, arg) => calls.push([name, arg]),
   exploreTarget: async () => null,
-  query: async () => [],
+  query: async (_p, cmd) => (calls.push(['say', { text: cmd }]), []),
 }));
 mock.module('../src/logger.js', () => ({ log: () => {} }));
 const { createTravel } = await import('../src/travel.js');
 
 let now;
 const tick = (ms) => setSystemTime((now += ms));
+/** Keep ticking travel every 2s for ms (a real stall, not a pause). */
+async function stall(t, s, ms) {
+  let last;
+  for (let left = ms; left > 0; left -= 2000) {
+    tick(2000);
+    last = await t.tick(s);
+  }
+  return last;
+}
 beforeEach(() => {
   calls.length = 0;
   now = Date.UTC(2026, 9, 1);
@@ -63,8 +72,9 @@ test('arrives when the map matches and clears the route', async () => {
   expect(t.dest).toBe(null);
 });
 
-test('types @go, and turns @go off when the server ignores it', async () => {
-  const t = createTravel({});
+test('a town that ignores @go: this trip walks; @go stays on for other towns until 3 refuse', async () => {
+  const go = { canGo: true, bad: new Set() };
+  const t = createTravel({}, go);
   await t.start('prt_fild08');
   calls.length = 0;
   const n = { dest: 'prt_fild08', leg: { kind: 'go', goIndex: 0, toMap: 'prontera' } };
@@ -73,12 +83,22 @@ test('types @go, and turns @go off when the server ignores it', async () => {
   tick(1000);
   await t.tick(snap({}, n)); // too soon to retry
   expect(calls.length).toBe(1);
-  tick(6000);
+  tick(10000);
   await t.tick(snap({}, n));
-  tick(6000);
+  tick(10000);
   await t.tick(snap({}, n));
-  expect(t.canGo).toBe(false);
+  expect(go.canGo).toBe(true); // one town refused: not a reason to stop using @go
+  expect(go.bad.has(0)).toBe(true);
   expect(calls.at(-1)).toEqual(['navi_start', { map: 'prt_fild08', useGo: false }]);
+  go.bad.add(5);
+  go.bad.add(9);
+  const t2 = createTravel({}, go);
+  await t2.start('x');
+  for (let k = 0; k < 3; k++) {
+    tick(10000);
+    await t2.tick(snap({}, { dest: 'x', leg: { kind: 'go', goIndex: 12, toMap: 'umbala' } }));
+  }
+  expect(go.canGo).toBe(false); // the fourth refusing town turns it off
 });
 
 test('walks round with BFS when the client has no path or progress stalls', async () => {
@@ -89,8 +109,9 @@ test('walks round with BFS when the client has no path or progress stalls', asyn
   await tr.tick(snap({}, { dest: 'moc_fild07', leg, ahead: null }));
   expect(calls).toEqual([['walk_to', { x: 160, y: 40 }]]);
   calls.length = 0;
-  tick(9000); // standing still past DETOUR_AFTER_MS, client path present
-  await tr.tick(snap({}, { dest: 'moc_fild07', leg, ahead: { x: 150, y: 90 } }));
+  calls.length = 0;
+  await stall(tr, snap({}, { dest: 'moc_fild07', leg, ahead: { x: 150, y: 90 } }), 10000); // standing still past DETOUR_AFTER_MS
+  calls.splice(0, calls.length - 1);
   expect(calls).toEqual([['walk_to', { x: 160, y: 40 }]]);
 });
 
@@ -102,8 +123,7 @@ test('fails when there is no route or the character stops moving', async () => {
   await t.start('moc_fild07');
   const n = { dest: 'moc_fild07', leg: { kind: 'portal', x: 160, y: 40 }, ahead: { x: 152, y: 90 } };
   await t.tick(snap({}, n));
-  tick(26000);
-  expect(await t.tick(snap({}, n))).toBe('failed');
+  expect(await stall(t, snap({}, n), 28000)).toBe('failed');
 });
 
 test('re-asks the planner when the client dropped the destination', async () => {
@@ -112,4 +132,22 @@ test('re-asks the planner when the client dropped the destination', async () => 
   calls.length = 0;
   await t.tick(snap({}, null));
   expect(calls).toEqual([['navi_start', { map: 'moc_fild07', useGo: true }]]);
+});
+
+test('time spent away from travel (healer, fight) is not counted as being stuck', async () => {
+  const t = createTravel({});
+  await t.start('moc_fild07');
+  const n = { dest: 'moc_fild07', leg: { kind: 'portal', x: 160, y: 40 }, ahead: { x: 152, y: 90 } };
+  await t.tick(snap({}, n));
+  tick(40000); // 40s at the Healer, travel not ticked
+  expect(await t.tick(snap({}, n))).toBe('traveling');
+});
+
+test('"@go to the town we are in" is skipped: walk from here instead of warping to the same town over and over', async () => {
+  const t = createTravel({});
+  await t.start('in_sphinx1');
+  calls.length = 0;
+  await t.tick(snap({ map: 'morocc' }, { dest: 'in_sphinx1', leg: { kind: 'go', goIndex: 1, toMap: 'morocc' } }));
+  expect(calls.some(([n, a]) => n === 'navi_start' && a.useGo === false)).toBe(true);
+  expect(calls.some(([n]) => n === 'query')).toBe(false);
 });
