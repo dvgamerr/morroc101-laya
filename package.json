@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "bun src/main.js",
+    "dev": "bun --watch src/main.js",
     "check": "bun src/check.js",
     "check:browser": "bun src/check-browser.js",
     "test": "bun test"
