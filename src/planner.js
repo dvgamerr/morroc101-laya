@@ -1,7 +1,7 @@
 import * as llm from './llm.js';
 import { log } from './logger.js';
 import { PLANNER_SYSTEM } from './prompts.js';
-import { GOAL_KEYS, jobInfo, nextJob, jobChangeReady } from './goals.js';
+import { GOAL_KEYS, jobInfo, nextJob, jobChangeReady, zenyReserve } from './goals.js';
 import { jobReference } from './job-reference.js';
 import { stockHp, stockSp } from './potions.js';
 import { recentLessons } from './lessons.js';
@@ -24,9 +24,15 @@ export const DEFAULT_PLAN = {
 function summarize(snap, why, recent, ctx) {
   const me = snap.me;
   const candidates = [...ctx.candidates].sort((a,b) => a.map.localeCompare(b.map));
+  const reserve = zenyReserve(me.baseLevel);
+  const hasZeny = Number.isFinite(me.zeny);
+  const belowReserve = hasZeny && me.zeny < reserve;
+  const moneyStatus = !hasZeny ? 'unknown' : belowReserve ? 'below_reserve'
+    : ctx.goal === 'money' ? 'continuing_to_target' : 'reserve_met';
   return [
     'เหตุ: ' + why,
     'goal: ' + (ctx.goal || 'level'),
+    'money_reference: ' + JSON.stringify({ zeny: hasZeny ? me.zeny : null, reserve, status: moneyStatus, target: ctx.moneyTarget?.target ?? null }),
     'Base ' + me.baseLevel + ' | อาชีพ ' + jobInfo(me.jobId).name +
       ' | HP ' + me.hp + '/' + me.maxHp + ' SP ' + me.sp + '/' + me.maxSp +
       ' | zeny ' + me.zeny,
@@ -36,6 +42,8 @@ function summarize(snap, why, recent, ctx) {
     'ยาสำรอง: HP รวม ' + Math.round(stockHp(snap.inventory, me)) + ' / SP รวม ' + Math.round(stockSp(snap.inventory)),
     'อุปกรณ์: ' + snap.inventory.filter(i => i.equipped).map(i => i.name).join(', '),
     'ผลล่าสุด: ' + recent,
+    'farmResults คือเงินสุทธิหลังขายของและเติมเสบียงเทียบก่อนออกฟาร์ม: เลือกแมพที่มีผลกำไรจริงเมื่อยังอยู่ใน allowed_maps; ถ้าต้องทดลองแมพใหม่ให้เลือกมอนที่อ่อนลงและดรอปขายได้ ห้ามอ้างว่าราคาดรอปคือกำไรสุทธิ',
+    'หลังจบรอบขายต้องเปรียบเทียบ previous_hunt_map กับตัวเลือกอื่น แม้รอบเดิมมีกำไร: ใช้ zenyPerMinute (นับตั้งแต่ถึงแมพล่าจนขายและเติมเสบียงเสร็จ), ความสดของ finishedAt, ความยาก ค่าเดินทางและค่ายา เลือกอยู่ต่อได้ถ้ายังคุ้มกว่า หรือทดลองย้ายเมื่อมีหลักฐานว่าน่าจะได้เงินต่อเวลามากขึ้น ระบุใน reason ว่าอยู่ต่อหรือย้ายเพราะอะไร ไม่รับประกันกำไรแมพที่ยังไม่เคยทดลอง; ถ้า maps มีหลายแมพ ผลนั้นเป็นของทั้งรอบ ห้ามถือเป็นกำไรของแต่ละแมพแยกกัน; ค่า null หมายถึงยังไม่มีข้อมูล หาก goal เป็น level ให้ยังเคารพเป้าหมายเลเวลด้วย',
     'บทเรียน (เป็นประวัติ ไม่ใช่รายการแมพที่อนุญาต):',
     ...recentLessons(8, me.baseLevel),
     'ข้อมูลตัวเลือก: map | จำนวนเปลี่ยนแมพ | มอน | อันตราย',

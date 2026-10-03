@@ -2,7 +2,8 @@ import * as laya from './laya.js';
 import { act, exploreTarget } from './browser.js';
 import { log } from './logger.js';
 import { pickBottle, POTION_GAP_MS } from './potions.js';
-import { SPLASH_MIN } from './skills.js';
+import { SPLASH_MIN, GLOBAL_GAP_MS } from './skills.js';
+import { bossNames } from './world.js';
 
 // Renewal/pre-renewal consumables. Unknown healing items fall back to item type 0 (HEALING).
 const HP_ITEMS = [569, 501, 507, 502, 508, 503, 545, 504, 546, 547, 509, 512, 513, 515, 516];
@@ -85,6 +86,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
   // Snapshot entities have no level; use the real world directory, conservatively
   // taking the highest level when several records share a name.
   const mobLevels = new Map();
+  const bosses = bossNames(world);
   for (const m of world?.mobs?.values() || []) {
     mobLevels.set(m.name, Math.max(mobLevels.get(m.name) || 0, m.level || 0));
   }
@@ -124,11 +126,16 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     // Something already hitting us is fought regardless of the avoid list.
     // Travelling: only answer what is already hitting us.
     if (mem.defendOnly) return snap.monsters.filter((m) => snap.attackers.includes(m.GID)).sort((a, b) => a.dist - b.dist);
-    // On the chosen hunting map, only the monsters picked for our level (plus anything hitting us).
+    // Planned targets remain preferred; weaker monsters on the same map are also eligible.
     const onHuntMap = brain.plan.hunt_map && brain.plan.hunt_map === snap.me.map && prefer.size > 0;
+    const targetLevel = Math.max(0, ...[...prefer].map(name => mobLevels.get(name) || 0));
+    const weaker = (m) => {
+      const level = mobLevels.get(m.name);
+      return level > 0 && level < targetLevel && !bosses.has(m.name);
+    };
     const now = Date.now();
     const mobs = snap.monsters.filter(
-      (m) => snap.attackers.includes(m.GID) || (m.dist <= 14 && !((mem.ignored.get(m.GID) || 0) > now) && !avoid.has(m.name) && (!onHuntMap || prefer.has(m.name))),
+      (m) => snap.attackers.includes(m.GID) || (m.dist <= 14 && !((mem.ignored.get(m.GID) || 0) > now) && !avoid.has(m.name) && (!onHuntMap || prefer.has(m.name) || weaker(m))),
     );
     // Don't pull a pack: a monster with more than PACK_SIZE others around it is skipped
     // (unless it's already on us, or there's nothing else to fight).
@@ -703,8 +710,14 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     let confidence = 1;
 
     const rule = emergency(snap, v);
-    if (!rule && skills && !inTown && !defendOnly && !snap.me.dead && !snap.attackers.length && !v.current && v.sp >= SP_DRINK_PCT) {
+    // Check missing buffs before both opening attacks and continuing combat, including defence.
+    // Skill eligibility checks the actual SP cost; low SP percentage alone must not skip buffs.
+    if (!rule && skills && !snap.me.dead && (!inTown || actions.attack_monster || actions.keep_fighting)) {
       skills.ensurePlan(snap);
+      // A cooldown makes pickBuff return null; it does not mean every buff is active.
+      if (Date.now() - (skills.book?.lastCastAt || 0) < GLOBAL_GAP_MS) {
+        return { action: 'wait', stuck: false, drank: false };
+      }
       const buff = skills.pickBuff(snap) || skills.pickToggle?.(snap);
       if (buff) {
         if (mem.meleeOn) await stepOne(snap, 'cancel attack before buff');

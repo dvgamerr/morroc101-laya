@@ -26,9 +26,10 @@ export function createItemReview(page) {
     return candidates(snap).filter((i) => !unknown(i) && decision(snap, i)?.action === action && (action !== 'sell' || !i.keep));
   }
   function observe(snap) {
-    if (busy || Date.now() < retryAt || snap.me.dead || snap.attackers?.length || !snap.inventory?.length || (snap.mapAgeMs ?? Infinity) < 15000) return;
+    if (busy || snap.me.dead || snap.attackers?.length || (snap.mapAgeMs ?? Infinity) < 15000) return true;
     const pending = candidates(snap).filter((i) => !unknown(i) && !decision(snap, i)).slice(0, 6);
-    if (!pending.length) return;
+    if (!pending.length) return false;
+    if (Date.now() < retryAt) return true;
     busy = true;
     const key = contextKey(snap);
     const questions = Object.fromEntries(pending.map((i) => [`item_${i.index}`, {
@@ -36,7 +37,7 @@ export function createItemReview(page) {
       instructions: `Decide for inventory index ${i.index} using its full description and the character's CURRENT class, level, build and worn equipment. For equipment: equip only if usable NOW and better overall in its slot (bonuses, refine, cards, slots and build, not just ATK/DEF); sell inferior/equal duplicates or unusable items with no useful future role. Store only a specifically useful future item. For cards/materials/other items decide individual usefulness, never store merely because of item type. If information is insufficient choose keep. Protected items cannot be sold.`,
       criteria: { keep: 'Keep in bag / defer uncertain decision', ...(!i.keep ? { sell: 'Sell unused or inferior item' } : {}), store: 'Store this item for a concrete future use', ...(i.gear && !i.gear.damaged && snap.worn && i.gear.loc && (i.gear.reqLv || 0) <= snap.me.baseLevel ? { equip: 'Wear now: compatible with current class and an upgrade over worn gear' } : {}) },
     }]));
-    laya.ask({ character: { job: jobInfo(snap.me.jobId).name, level: snap.me.baseLevel, stats: snap.me.stats, build: config.buildDescription, classPath: config.classPath }, worn: snap.worn, inventory: candidates(snap), review: pending.map((i) => i.index) }, questions)
+    laya.ask({ character: { job: jobInfo(snap.me.jobId).name, level: snap.me.baseLevel, stats: snap.me.stats, build: config.buildDescription, classPath: config.classPath }, worn: snap.worn, inventory: pending, review: pending.map((i) => i.index) }, questions)
       .then((answers) => {
         for (const i of pending) {
           const a = answers[`item_${i.index}`];
@@ -51,6 +52,7 @@ export function createItemReview(page) {
       })
       .catch((err) => log('item_review_error', { error: err.message }))
       .finally(() => { busy = false; retryAt = Date.now() + 10000; });
+    return true;
   }
   async function identify(snap) {
     if (snap.me.dead || snap.attackers?.length) return false;
@@ -80,6 +82,8 @@ export function createItemReview(page) {
   }
   return {
     observe, identify, decision,
+    // Planning a shop visit needs no model call; final sale approval happens at the counter.
+    needsSaleReview: (s) => candidates(s).some(i => !i.keep && (!decision(s, i) || decision(s, i).action === 'sell')),
     saleItems: (s) => items(s, 'sell'),
     storageItems: (s) => items(s, 'store'),
     pickEquip: (s) => {

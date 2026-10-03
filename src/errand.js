@@ -4,7 +4,6 @@ import { act } from './browser.js';
 import { findNpcEntity } from './npc.js';
 import { spareGear } from './gear.js';
 import { log } from './logger.js';
-import { learn } from './lessons.js';
 import { createPotionLoadout, isHealing, SP_STOCK_REFILLS, SP_LOW_REFILLS } from './potion-loadout.js';
 import { shopsSelling, travelCosts, isTown } from './world.js';
 import { zenyReserve } from './goals.js';
@@ -39,10 +38,9 @@ const SPEND_SHARE = 0.6; // and never more than this share of our zeny on one tr
 const RATES_FILE = 'logs/usage-rates.json'; // last known rates, so a restart doesn't start blind
 const RATES_FRESH_MS = 2 * 60 * 60 * 1000;
 const SAVE_RATES_SPAN_MS = 10 * 60 * 1000;
-// Owner's money goal: farm money until the purse covers what the bag is short of now plus this
-// many more levelling trips' worth of supplies; resume farming only below the fixed reserve.
+// Enter below reserve, then farm until cash covers this many full levelling trips.
 export const SUPPLY_TRIPS = 6;
-export const MONEY_RESERVE = 100000; // fixed reserve added to the supply money goal
+export const MONEY_RESERVE = 100000; // trigger threshold, not added to the target
 const BROKE_RETRY_MS = 10 * 60 * 1000; // went to buy and couldn't afford anything: don't keep going back
 const SETTLE_AFTER_MAP_MS = 15000;
 const SELL_AT_WEIGHT_PCT = 80;
@@ -165,6 +163,7 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     const extras = e.cleanup ? loadout.surplus(snap, e.selection) : [];
     return [...reviewed, ...extras];
   };
+  const hasSaleCandidates = (snap) => !!review?.needsSaleReview?.(snap) || saleItems(snap).length > 0;
   e.levelRates = e.savedRates?.level || null;
 
   /** Asked from outside: the bottles we carry can't keep up with this map — buy this one. */
@@ -177,31 +176,32 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
   function need(snap) {
     const me = snap.me;
     const inv = snap.inventory || [];
+    if (e.forceSell) return { sell: true };
     // Empty HP/SP supplies can deadlock farming below reserve: sell, then buy a small recovery batch.
     const empty = stockHp(inv, me) === 0 || (me.maxSp > 0 && stockSp(inv) === 0);
     if (!empty || (snap.mapAgeMs ?? Infinity) < SETTLE_AFTER_MAP_MS) e.emptySince = 0;
     else if (!e.emptySince) e.emptySince = Date.now();
     if (empty && e.emptySince && Date.now() - e.emptySince >= LOW_CONFIRM_MS &&
-        ((me.zeny || 0) > POCKET_MONEY || saleItems(snap).length > 0)) {
+        ((me.zeny || 0) > POCKET_MONEY || hasSaleCandidates(snap))) {
       e.request = null;
-      return { sell: saleItems(snap).length > 0, reviewPotions: true, emergencySupplies: true };
+      return { sell: hasSaleCandidates(snap), reviewPotions: true, emergencySupplies: true };
     }
     // Once per return from a field: sell approved loot before reviewing supplies.
     if (world && isTown(world, me.map) && !e.townServiced && (snap.mapAgeMs ?? Infinity) >= 3000) {
-      const sell = saleItems(snap).length > 0;
+      const sell = hasSaleCandidates(snap);
       if (sell || (me.zeny || 0) >= MONEY_RESERVE) return { sell, reviewPotions: true, townReturn: true, emergencySupplies: empty };
     }
     // Below the owner's reserve: farm/sell first, never start a restocking trip.
     if ((me.zeny || 0) < MONEY_RESERVE) {
       e.request = null;
       const heavy = me.maxWeight && me.weight / me.maxWeight * 100 >= SELL_AT_WEIGHT_PCT;
-      return heavy && saleItems(snap).length ? { sell: true } : null;
+      return heavy && hasSaleCandidates(snap) ? { sell: true } : null;
     }
     if (e.request) {
       const r = e.request;
       e.request = null;
       e.choice = { potion: r.potion, reason: r.why, stock: stockHp(inv, me) };
-      return { buy: r.potion, sell: saleItems(snap).length > 0 };
+      return { buy: r.potion, sell: hasSaleCandidates(snap) };
     }
     // Which potion is decided by how hard we're being hit, not by level (potions.js).
     // Only potions some shop on this server actually sells.
@@ -238,7 +238,7 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     const spLow = spShort && Date.now() - e.spLowSince >= LOW_CONFIRM_MS;
     const spOut = stockSp(inv) < (me.maxSp || 0);
     const wantSp = !!blue && spLow && spBudget(me, inv) - hpSpend >= blue.price * (spOut ? 1 : MIN_SP_BUY);
-    const heavy = me.maxWeight && (me.weight / me.maxWeight) * 100 >= SELL_AT_WEIGHT_PCT && saleItems(snap).length > 0;
+    const heavy = me.maxWeight && (me.weight / me.maxWeight) * 100 >= SELL_AT_WEIGHT_PCT && hasSaleCandidates(snap);
     const mixedPotions = inv.filter((i) => i.count > 0 && healRange(i.ITID)).map((i) => i.ITID);
     const mixedSp = inv.filter((i) => i.count > 0 && stockSp([i]) > 0).map((i) => i.ITID);
     const consolidate = (new Set(mixedPotions).size > 1 || new Set(mixedSp).size > 1) && Date.now() - (e.lastTripAt || 0) >= TOPUP_GAP_MS;
@@ -254,7 +254,7 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     if (topUpOnly && !consolidate && Date.now() - (e.lastTripAt || 0) < TOPUP_GAP_MS && stockSp(inv) > 0) return null;
     if (!wantPotions && !wantSp && !wantWing && !heavy && !consolidate) return null;
     const buying = wantPotions || wantSp || wantWing;
-    return { buy: wantPotions ? potion : null, buySp: wantSp ? blue : null, buyWing: wantWing, reviewPotions: true, sell: heavy || ((buying || consolidate) && saleItems(snap).length > 0) };
+    return { buy: wantPotions ? potion : null, buySp: wantSp ? blue : null, buyWing: wantWing, reviewPotions: true, sell: heavy || ((buying || consolidate) && hasSaleCandidates(snap)) };
   }
 
   /**
@@ -283,6 +283,7 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
    * Called every tick; a bag read mid-refresh (fewer stacks than last time) is ignored.
    */
   function observe(snap, goal = null) {
+    if (snap.me.maxWeight > 0 && snap.me.weight / snap.me.maxWeight < 0.9) e.weightSaleRequested = false;
     observeSellPrices(snap);
     if (!e.active && world?.spawnsByMap?.get(snap.me.map)?.length) e.townServiced = false;
     const inv = snap.inventory || [];
@@ -339,6 +340,7 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     }
     if (n.townReturn) e.townServiced = true;
     Object.assign(e, { active: true, stage: 'travel', shop, plan: n, stageAt: Date.now(), sold: 0, bought: [], selection: null, cleanup: false, refilled: false, pendingBuy: null });
+    e.forceSell = false;
     const goal = n.buy || n.buySp || n.buyWing || (n.reviewPotions && !n.sell) ? 'buy' : 'sell';
     const where = `${shop.name} (${shop.map}, ~${Math.round(shop.cost)} ช่อง)`;
     const stock = `ยาในตัวฟื้นได้รวม ${Math.round(e.choice?.stock || 0)} HP (< ${LOW_REFILLS} หลอด = ${(snap.me.maxHp || 0) * LOW_REFILLS})`;
@@ -355,8 +357,6 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
 
   function finish(ok, note) {
     log(ok ? 'errand_done' : 'errand_failed', { stage: e.stage, note, sold: e.sold, bought: e.bought.join(', ') });
-    if (!ok && e.shop) learn(`ไปร้าน ${e.shop.name} ที่ ${e.shop.map} ไม่สำเร็จ: ${note}`);
-    if (note === 'nothing affordable') learn('ไปร้านแล้วเงินไม่พอซื้อยา — ต้องหาเงิน/ขายของก่อนไปร้าน');
     if (!ok && e.shop) e.badShops.set(`${e.shop.map}:${e.shop.name}`, Date.now() + RETRY_AFTER_MS);
     e.cooldownUntil = Date.now() + (note === 'nothing affordable' ? BROKE_RETRY_MS : ok ? AFTER_TRIP_MS : 60000);
     e.lastTripAt = Date.now();
@@ -376,7 +376,7 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     if (!e.active) return null;
     const me = snap.me;
     const shop = e.shop;
-    if (Date.now() - e.stageAt > (e.stage === 'travel' ? 15 * 60 * 1000 : STAGE_TIMEOUT_MS)) return finish(false, `timeout at ${e.stage}`);
+    if (Date.now() - e.stageAt > (e.stage === 'travel' ? 15 * 60 * 1000 : e.stage === 'review' ? 180000 : STAGE_TIMEOUT_MS)) return finish(false, `timeout at ${e.stage}`);
 
     switch (e.stage) {
       case 'travel': {
@@ -395,9 +395,15 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
           if (!me.walking) await act(page, 'walk_to', { x: shop.x, y: shop.y });
           return null;
         }
-        // Judge "anything to sell" again at the counter: the plan was made from one snapshot, and a
-        // bag read mid-refresh (right after a storage window) once sent us past the sale with 40 spares.
-        e.plan.sell = e.plan.sell || saleItems(snap).length > 0;
+        to('review');
+        return null;
+      }
+      case 'review': {
+        // Appraise and review all drops, including equipment, only when ready to sell.
+        if (await review?.identify?.(snap)) return null;
+        if (review?.observe?.(snap)) return null;
+        e.plan.sell = saleItems(snap).length > 0;
+        if (!e.plan.sell && !e.plan.buy && !e.plan.buySp && !e.plan.buyWing && !e.plan.reviewPotions) return finish(true, 'review complete: nothing to sell');
         to(e.plan.sell ? 'talk_sell' : 'talk_buy');
         return null;
       }
@@ -507,6 +513,11 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
   }
 
   return {
+    requestSell: () => {
+      if (!e.weightSaleRequested) e.cooldownUntil = 0;
+      e.weightSaleRequested = true;
+      e.forceSell = true;
+    },
     requestBuy,
     observe,
     rates,
@@ -529,8 +540,8 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
 }
 
 /**
- * How much zeny levelling needs: the supplies the bag is short of for one trip right now, plus
- * SUPPLY_TRIPS more full trips, plus the reserve. One trip = TRIP_MINUTES of use at the levelling
+ * Target cash = SUPPLY_TRIPS full trips. Current shortages and reserve are separate references.
+ * One trip = TRIP_MINUTES of use at the levelling
  * rates (or, unmeasured, the same minimums a shopping trip buys up to), at the prices the shops
  * really charge, with the HP potion fitting our level and max HP.
  */
@@ -558,7 +569,7 @@ export function moneyTarget(snap, rates, prices = {}, trips = SUPPLY_TRIPS, sele
   const nowCost = lines.reduce((z, l) => z + count(l.perTrip - l.stock, l) * l.price, 0);
   const reserve = MONEY_RESERVE;
   return {
-    target: Math.round(nowCost + trips * tripCost + reserve),
+    target: trips * Math.round(tripCost),
     resume: reserve,
     tripCost: Math.round(tripCost),
     reserve,

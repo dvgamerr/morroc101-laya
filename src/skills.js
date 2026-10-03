@@ -32,7 +32,7 @@ export const INF = { ENEMY: 1, GROUND: 2, SELF: 4, ALLY: 16 };
 
 // Spam skills: the only gap we impose is against sending two casts in one breath; the
 // real limit is the server's own cooldown (ZC_SKILL_POSTDELAY -> me.cooldowns).
-const GLOBAL_GAP_MS = 150;
+export const GLOBAL_GAP_MS = 150;
 // A failed cast backs off 1s, doubling while it keeps failing (no cart, no Madogear, ...)
 // up to 30s; quiet for 30s and the count starts over.
 const FAIL_BACKOFF_MS = 1000;

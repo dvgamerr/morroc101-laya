@@ -1,3 +1,4 @@
+import { observeFarmTrip, finishFarmTrip } from './farm-profit.js';
 import { createEmergencyReturn } from './emergency-return.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { config } from './config.js';
@@ -122,7 +123,7 @@ const healer = createHealer(page, world, createDialog(page), createTravel(page, 
 const storage = createStorage(page, world, createDialog(page), itemReview);
 const chat = createChat(page, brain);
 const travel = createTravel(page, goState, world);
-const emergencyReturn = createEmergencyReturn(page);
+const emergencyReturn = createEmergencyReturn(page, map => map === 'morocc' || !!world && isTown(world, map));
 const getSnap = () => snapshot(page);
 // Safety polling continues while LAYA, NPC dialogs or other actions are awaited.
 let checkingEmergency = false;
@@ -253,7 +254,7 @@ function candidates(snap) {
   // Compare EXP for leveling and drop value / low damage for money.
   const goal = committedGoal(snap);
   const base = snap.me.baseLevel || 1;
-  const level = base; // Use real Base; world applies the band for the current goal.
+  const level = Math.max(1, base + Math.min(0, brain.levelOffset));
   return pickHuntingGrounds(world, {
     level,
     goal,
@@ -262,7 +263,7 @@ function candidates(snap) {
     fromX: snap.me.x,
     fromY: snap.me.y,
     canGo: travel.canGo,
-    exclude: [...new Set([...excluded(), ...tooHard(snap.me.baseLevel)])],
+    exclude: [...new Set([...excluded(), ...tooHard(snap.me.baseLevel), ...Object.keys(brain.farmResults || {}).filter(map => brain.farmResults[map].net <= 0 && base < brain.farmResults[map].level + HARD_MAP_LEVELS)])],
     avoid: [...brain.avoidExtra],
     limit: Infinity,
   }).sort((a, b) => a.map.localeCompare(b.map));
@@ -283,8 +284,8 @@ function replan(snap, why) {
   brain.planning = true;
   brain.lastPlanAt = Date.now();
   const revision = brain.huntRevision || 0;
-  const recent = 'actions ' + JSON.stringify(brain.counters.actions) + ', deaths ' + brain.counters.deaths;
-  const ctx = { candidates: candidates(snap), inTown: world ? isTown(world, snap.me.map) : false, signals: signals(snap), goal: committedGoal(snap) };
+  const recent = 'actions ' + JSON.stringify(brain.counters.actions) + ', deaths ' + brain.counters.deaths + ', previous_hunt_map ' + brain.plan.hunt_map + ', farmResults ' + JSON.stringify(brain.farmResults || {});
+  const ctx = { candidates: candidates(snap), inTown: world ? isTown(world, snap.me.map) : false, signals: signals(snap), goal: committedGoal(snap), moneyTarget: currentMoneyTarget(snap) };
   if (!ctx.candidates.length) {
     brain.planning = false;
     log('hunt_none', { why, level: snap.me.baseLevel });
@@ -338,9 +339,8 @@ function currentMoneyTarget(snap) {
 }
 
 /**
- * Owner's rule: farm money until the purse pays for what the bag is short of plus 6 levelling
- * trips of supplies and a fixed 100,000 zeny reserve (errand.moneyTarget), then level;
- * back to money only when zeny falls below the fixed reserve.
+ * Enter money mode below reserve, continue until cash covers six levelling trips, then level.
+ * Reserve is only the entry threshold; it is not added to the target.
  */
 function committedGoal(snap) {
   const zeny = snap.me.zeny || 0;
@@ -349,8 +349,8 @@ function committedGoal(snap) {
     brain.moneyMode = false;
     saveState();
     log('money_goal_reached', { zeny, ...t });
-    notify(`💰 เก็บเงินครบ ${t.target.toLocaleString()} zeny แล้ว`, `พอซื้อของเก็บเลเวลได้อีก ${t.trips} รอบ + เงินสำรอง ${t.reserve.toLocaleString()} zeny (รอบละ ~${t.tripCost.toLocaleString()} z: ${t.trip}) กลับไปเก็บเลเวล`, {}, 0xffc107);
-  } else if (!brain.moneyMode && zeny < t.resume) {
+    notify(`💰 เก็บเงินครบ ${t.target.toLocaleString()} zeny แล้ว`, `ค่าใช้จ่ายรอบละ ~${t.tripCost.toLocaleString()} zeny × ${t.trips} รอบ (${t.trip}) กลับไปเก็บเลเวล`, {}, 0xffc107);
+  } else if (!brain.moneyMode && zeny < t.resume && zeny < t.target) {
     brain.moneyMode = true;
     saveState();
     log('money_goal_resume', { zeny, resume: t.resume, target: t.target, tripCost: t.tripCost, trip: t.trip });
@@ -496,7 +496,7 @@ function checkOutpaced(snap) {
   // two minutes spent drinking, not the theory alone (that bounced us off fine maps).
   const share = drinkShare();
   log('potion_check_share', { map: huntMap, drinkShare: Math.round(share * 100) });
-  if (buyable.potion && !buyable.outpaced) {
+  if (brain.plan.goal !== 'money' && buyable.potion && !buyable.outpaced) {
     // A stronger potion fixes it and we can pay: go get it.
     if (errand.requestBuy(buyable.potion, `ยาในตัวฟื้น ${Math.round(carried)} HP/วิ ไม่พอสู้ดาเมจ ${Math.round(dps)} HP/วิ (ต้อง ${Math.round(need)}) → ซื้อ ${buyable.potion.name}`)) {
       log('potion_upgrade', { from: Math.round(carried), want: buyable.potion.name });
@@ -532,6 +532,7 @@ function endJobChange(done, snap) {
 }
 
 function endErrand(done, snap) {
+  brain.profitSettleAfter = Date.now() + 3000; // Wait for a fresh purse after shop result packets.
   const what = [done.sold ? `ขายของ ${done.sold} ชิ้น` : '', done.bought.length ? `ซื้อ ${done.bought.join(', ')}` : ''].filter(Boolean).join(', ');
   const objective = done.ok ? `${what || 'ธุระเสร็จ'} — กลับไปล่าที่ ${brain.plan.hunt_map || 'แมพเดิม'}` : `ไปร้านไม่สำเร็จ (${done.note}) — กลับไปล่าก่อน`;
   setPlan({ ...brain.plan, goal: committedGoal(snap), objective, reason: done.note }, snap);
@@ -580,6 +581,12 @@ function sampleHuntResult(snap) {
 }
 
 async function farmTick(snap) {
+  const overweight = snap.me.maxWeight > 0 && snap.me.weight / snap.me.maxWeight >= 0.9;
+  if (overweight && world && isTown(world, snap.me.map) && !errand.active) errand.requestSell();
+  if (world && !snap.me.dead && (snap.mapAgeMs ?? Infinity) >= 3000) {
+    const trip = observeFarmTrip(brain.farmTrip, snap.me, isTown(world, snap.me.map), brain.plan.hunt_map);
+    if (JSON.stringify(trip) !== JSON.stringify(brain.farmTrip)) { brain.farmTrip = trip; saveState(); }
+  }
   // Combat preempts planning, equipment, services and travel; survival stays first in reflex.
   if (!snap.me.dead && (snap.attackers.length || snap.unseenAttackers)) {
     brain.fighting = true;
@@ -602,7 +609,6 @@ async function farmTick(snap) {
         if (done?.cleansed) { triedWear.clear(); lastWearCheck = 0; }
       }
     } else {
-      itemReview.observe(snap);
       await wearBetterGear(snap);
     }
     return;
@@ -610,10 +616,11 @@ async function farmTick(snap) {
   const moneyObjective = committedGoal(snap);
   if (!errand.active && !jobChange.active && !brain.huntPending &&
       ['level', 'money'].includes(brain.plan.goal) && brain.plan.goal !== moneyObjective) {
-    chooseHunt(snap, moneyObjective === 'money' ? 'เงินต่ำกว่าเงินสำรอง: หาเงิน' : 'หาเงินครบเป้าหมาย: เก็บเลเวล');
+    chooseHunt(snap, moneyObjective === 'money'
+      ? (snap.me.zeny < currentMoneyTarget(snap).reserve ? 'เงินต่ำกว่าเงินสำรอง: หาเงิน' : 'หาเงินต่อจากรอบเดิมให้ถึงเป้าหมายสะสม')
+      : 'หาเงินครบเป้าหมาย: เก็บเลเวล');
   }
   errand.observe(snap, brain.plan.goal); // usage rates of potions and wings, for balanced shopping
-  itemReview.observe(snap);
   const hp = snap.me.maxHp ? snap.me.hp / snap.me.maxHp : 1;
   const huntMap = brain.plan.hunt_map;
   // The live map is authoritative, including after restarting in the hunting ground.
@@ -677,6 +684,35 @@ async function farmTick(snap) {
   if (errand.active) {
     const done = await errand.tick(snap);
     if (done) endErrand(done, snap);
+    return;
+  }
+
+  // Compare settled cash after town services, before departing for another hunt.
+  if (Date.now() < (brain.profitSettleAfter || 0)) return;
+  if (world && isTown(world, snap.me.map)) {
+    const result = finishFarmTrip(brain.farmTrip, snap.me.zeny);
+    if (result) {
+      brain.farmTrip = observeFarmTrip(null, snap.me, true, brain.plan.hunt_map);
+      brain.farmResults ||= {};
+      for (const map of result.maps) brain.farmResults[map] = { ...result, level: snap.me.baseLevel };
+      log('farm_profit', result);
+      saveState();
+      if (result.net <= 0) {
+        brain.levelOffset = Math.max(-MAX_LEVEL_DROP, brain.levelOffset - LEVEL_DROP_PER_DEATH);
+        for (const map of result.maps) exclude(map, 'กลับมาขายและเติมของแล้วเงินไม่เพิ่ม');
+        chooseHunt(snap, 'รอบฟาร์มเงินไม่เพิ่ม (' + result.net + ' zeny): ลดระดับและเปลี่ยนแมพ');
+        return;
+      }
+      chooseHunt(snap, 'จบรอบขายและเติมเสบียง: กำไรสุทธิ ' + result.net + ' zeny' +
+        (result.zenyPerMinute !== null ? ' (' + result.zenyPerMinute + ' zeny/นาที)' : '') +
+        ' ประเมินว่าจะฟาร์มแมพเดิมหรือย้ายเพื่อเพิ่มรายได้สุทธิต่อเวลา พร้อมระบุเหตุผล');
+      return;
+    }
+  }
+
+  // A failed sale must not send a character unable to attack back to the hunting ground.
+  if (overweight) {
+    if (travel.dest) await travel.stop();
     return;
   }
 
@@ -751,7 +787,7 @@ async function farmTick(snap) {
 /** What the agent learned and must not forget on a restart (monsters to avoid). */
 function saveState() {
   try {
-    writeFileSync(STATE_FILE, JSON.stringify({ avoidExtra: [...brain.avoidExtra], avoidAtLevel: Object.fromEntries(brain.avoidAtLevel), levelOffset: brain.levelOffset, excluded: Object.fromEntries(brain.excluded), hardMaps: Object.fromEntries(brain.hardMaps), moneyMode: brain.moneyMode, scoutDropped: [...brain.scoutDropped] }, null, 2));
+    writeFileSync(STATE_FILE, JSON.stringify({ avoidExtra: [...brain.avoidExtra], avoidAtLevel: Object.fromEntries(brain.avoidAtLevel), levelOffset: brain.levelOffset, excluded: Object.fromEntries(brain.excluded), hardMaps: Object.fromEntries(brain.hardMaps), moneyMode: brain.moneyMode, farmTrip: brain.farmTrip, farmResults: brain.farmResults, scoutDropped: [...brain.scoutDropped] }, null, 2));
   } catch (err) {
     log('state_save_error', { error: err.message });
   }
@@ -770,6 +806,8 @@ function loadState() {
     for (const cmd of s.scoutDropped || []) brain.scoutDropped.add(cmd);
     for (const [map, h] of Object.entries(s.hardMaps || {})) brain.hardMaps.set(map, h);
     brain.moneyMode = s.moneyMode ?? false;
+    brain.farmTrip = s.farmTrip || null;
+    brain.farmResults = s.farmResults || {};
     for (const [map, until] of Object.entries(s.excluded || {})) if (until > Date.now()) brain.excluded.set(map, until);
     log('state_loaded', { avoid: [...brain.avoidExtra].join(', '), levelOffset: brain.levelOffset, moneyMode: brain.moneyMode });
   } catch {}

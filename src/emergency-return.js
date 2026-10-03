@@ -4,11 +4,24 @@ import { healRange, healOf, POTION_GAP_MS } from './potions.js';
 import { log } from './logger.js';
 
 // Owner confirmed: no automatic @go for rapid damage; ask LAYA below 10% HP only.
-export function createEmergencyReturn(page) {
+export function createEmergencyReturn(page, inTown = map => map === 'morocc') {
   let nextAt = 0, busy = false;
   return async function emergencyReturn(snap) {
     if (busy) return true;
     const me = snap.me;
+    if (me && !me.dead && me.maxWeight > 0 && me.weight / me.maxWeight >= 0.9 && !inTown(me.map)) {
+      holdCombatForEscape();
+      if (Date.now() < nextAt) return true;
+      busy = true;
+      try {
+        if (snap.dialog && snap.dialog.state !== 'ended') await act(page, 'npc_close', {naid:snap.dialog.naid});
+        if (me.sitting) await act(page, 'stand');
+        await act(page, 'say', {text:'@go 1'});
+        nextAt = Date.now() + 3000;
+        log('overweight_return', {from:me.map, weight:me.weight, maxWeight:me.maxWeight, to:'morocc'});
+        return true;
+      } finally { busy = false; }
+    }
     if (!me || me.dead || !me.maxHp || me.hp / me.maxHp >= 0.1) return false;
     if (Date.now() < nextAt) return true;
     const items = (snap.inventory || []).filter(i => i.count > 0 && i.index >= 0 && healRange(i.ITID))
