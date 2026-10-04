@@ -1,6 +1,7 @@
 import { config } from './config.js';
 import { stockHp } from './potions.js';
 import { jobReference, jobLevelEligible } from './job-reference.js';
+import { gearObjective } from './gear-goal.js';
 
 /**
  * Goals, taken one-to-one from the original system document (the long agent
@@ -12,13 +13,13 @@ import { jobReference, jobLevelEligible } from './job-reference.js';
  * quests, shops, refining) isn't automated yet.
  */
 export const GOALS = {
-  level: { label: 'เก็บเลเวล', emoji: '⚔️', auto: true, when: 'ปกติ: ล่ามอนที่เลเวลเหมาะ จนถึง Base 99 และต่อไปจนขึ้น Class 4' },
+  level: { label: 'เก็บเลเวล', emoji: '⚔️', auto: true, when: 'เป้าหมายหลัก: ล่ามอนที่เลเวลเหมาะและเปลี่ยนอาชีพตามสาย จนถึง Class 4 Base Level 255' },
   money: { label: 'หาเงิน', emoji: '💰', auto: true, when: 'zeny ต่ำกว่าเงินสำรองจนกระทบการเล่น: ล่ามอนที่ drop ขายได้ เก็บของทุกชิ้น' },
   build: { label: 'พัฒนา build', emoji: '📈', auto: true, when: 'มี status/skill point เหลือ: อัป stat และ skill เองตาม build (BUILD)' },
   job_change: { label: 'เปลี่ยนอาชีพ', emoji: '🎓', auto: true, when: 'Job/Base level ถึงเงื่อนไข: @go prontera คุย Job Master เลือกอาชีพถัดไปตามสาย (CLASS_PATH)' },
   sell: { label: 'ขายของ', emoji: '🏪', auto: true, when: 'น้ำหนัก >= 80%: @go/เดินไป Tool Dealer ที่ใกล้สุด ขายของ ETC (ไม่ขายการ์ด/อุปกรณ์)' },
   buy: { label: 'ซื้อของ', emoji: '🛒', auto: true, when: 'potion ใกล้หมดและมีเงินเกินเงินสำรอง: ไปซื้อ potion ตามเลเวลเอง' },
-  gear: { label: 'อัปเกรดอุปกรณ์', emoji: '🛡️', auto: false, when: 'มีเงินพอซื้อ/ตีบวก/ใส่การ์ดที่เพิ่ม damage, ความอึด หรือ EXP/ชม. อย่างคุ้มค่า' },
+  gear: { label: 'อุปกรณ์ NPC +7 / ขวานสองมือ', emoji: '🛡️', auto: true, when: 'เป้าหมายเจ้าของ: ตรวจ Kafra ก่อน ซื้อของ NPC แพงสุดที่อาชีพปัจจุบันใส่ได้อย่างละ 1 ชิ้น ตี +7 ตามราคาจริง แล้วใส่กลับ; เงินไม่พอให้หาเงินโดยเหลือสำรอง 100000' },
   card_hunt: { label: 'ล่าการ์ด/ไอเทม', emoji: '🃏', auto: false, when: 'มีการ์ดหรือไอเทมที่เหมาะกับ class/build/เลเวลนี้ ที่ล่าเองคุ้มกว่าซื้อ' },
   quest: { label: 'ทำเควส', emoji: '📜', auto: false, when: 'มีเควสที่ช่วยให้เลเวลหรือพัฒนาตัวละครเร็วขึ้น' },
   rest: { label: 'พัก/ฟื้นตัว', emoji: '💤', auto: true, when: 'ตายติดกัน, damage ที่โดนสูงผิดปกติ, หรือ potion ไม่พอให้สู้ต่อ' },
@@ -136,5 +137,6 @@ export function detectSignals(snap, { recentDeaths = 0 } = {}) {
   const next = nextJob(me);
   if (ready && next) out.push({ key: 'job', goal: 'job_change', text: `${ready} → ตามสายไป ${next}` });
   if (me.skillPoints > 0) out.push({ key: 'skill', goal: 'build', text: `skill point เหลือ ${me.skillPoints}` });
+  if (gearObjective(snap, jobInfo(me.jobId).name).status !== 'complete') out.push({ key: 'gear7', goal: 'gear', text: 'เป้าหมายเจ้าของ: อุปกรณ์ NPC ที่ใส่ได้ +7 / ขวานสองมือ / ตรวจ Kafra ก่อนซื้ออย่างละ 1 ชิ้น' });
   return out;
 }

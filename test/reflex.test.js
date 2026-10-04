@@ -574,7 +574,7 @@ test('a bag read without the potions right after a map change (it loads in piece
   const tick = createReflex({}, brain);
   await tick(snap({ me: { hp: 100 } })); // bag with Red Potion seen
   calls.length = 0;
-  const r = await tick(snap({ me: { hp: 40 }, attackers: [7], inventory: [{ index: 9, ITID: 909, count: 3, type: 3 }] })); // partial bag: no potion in it
+  const r = await tick(snap({ mapAgeMs: 1000, me: { hp: 40 }, attackers: [7], inventory: [{ index: 9, ITID: 909, count: 3, type: 3 }] })); // partial bag: no potion in it
   expect(r.action).toBe('use_hp_potion');
   expect(calls.some(([n]) => n === 'use_item')).toBe(true);
 });
@@ -623,6 +623,26 @@ test('combat immediately replaces an unreachable unrelated target with the attac
   expect(r.action).toBe('attack_monster');
   expect(calls).toContainEqual(['attack',{GID:8}]);
   expect(layaAsked).toBe(0);
+});
+
+test('empty settled inventory never invents a potion from its hotkey binding', async () => {
+  const pressed = [];
+  const keys = { slots: new Map([[0, 'i:504']]), press: async (...args) => { pressed.push(args); return true; } };
+  const tick = createReflex({}, brain, null, null, keys);
+  const r = await tick(snap({ mapAgeMs: 60000, me: { hp: 40 }, inventory: [], monsters: [] }));
+  expect(r.action).not.toBe('use_hp_potion');
+  expect(r.drank).toBe(false);
+  expect(pressed).toEqual([]);
+});
+
+test('a depleted bottle is forgotten as soon as the map inventory has settled', async () => {
+  const tick = createReflex({}, brain);
+  await tick(snap({ me: { hp: 100 }, mapAgeMs: 10000 }));
+  calls.length = 0;
+  const r = await tick(snap({ mapAgeMs: 10000, me: { hp: 40 }, inventory: [], monsters: [] }));
+  expect(r.action).not.toBe('use_hp_potion');
+  expect(r.drank).toBe(false);
+  expect(calls.some(([name]) => name === 'use_item')).toBe(false);
 });
 
 test('combat interrupts a pending LAYA answer and ignores its late action', async () => {

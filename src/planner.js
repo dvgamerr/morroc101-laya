@@ -5,6 +5,8 @@ import { GOAL_KEYS, jobInfo, nextJob, jobChangeReady, zenyReserve } from './goal
 import { jobReference } from './job-reference.js';
 import { stockHp, stockSp } from './potions.js';
 import { recentLessons } from './lessons.js';
+import { gearObjective } from './gear-goal.js';
+import { moneyEvidence, moneyReason } from './planner-evidence.js';
 
 export { GOAL_KEYS };
 
@@ -40,10 +42,14 @@ function summarize(snap, why, recent, ctx) {
       (ctx.inTown ? ' เมือง' : '') +
       (candidates.some(c => c.map === me.map) ? ' — เลือกล่าต่อที่นี่ได้' : ' — ไม่อยู่ในตัวเลือก'),
     'ยาสำรอง: HP รวม ' + Math.round(stockHp(snap.inventory, me)) + ' / SP รวม ' + Math.round(stockSp(snap.inventory)),
-    'อุปกรณ์: ' + snap.inventory.filter(i => i.equipped).map(i => i.name).join(', '),
+    'อุปกรณ์: ' + (snap.worn || []).map(i => `+${i.refine || 0} ${i.name}`).join(', '),
+    'gear_reference: ' + JSON.stringify(gearObjective(snap, jobInfo(me.jobId).name)),
     'ผลล่าสุด: ' + recent,
-    'farmResults คือเงินสุทธิหลังขายของและเติมเสบียงเทียบก่อนออกฟาร์ม: เลือกแมพที่มีผลกำไรจริงเมื่อยังอยู่ใน allowed_maps; ถ้าต้องทดลองแมพใหม่ให้เลือกมอนที่อ่อนลงและดรอปขายได้ ห้ามอ้างว่าราคาดรอปคือกำไรสุทธิ',
-    'หลังจบรอบขายต้องเปรียบเทียบ previous_hunt_map กับตัวเลือกอื่น แม้รอบเดิมมีกำไร: ใช้ zenyPerMinute (นับตั้งแต่ถึงแมพล่าจนขายและเติมเสบียงเสร็จ), ความสดของ finishedAt, ความยาก ค่าเดินทางและค่ายา เลือกอยู่ต่อได้ถ้ายังคุ้มกว่า หรือทดลองย้ายเมื่อมีหลักฐานว่าน่าจะได้เงินต่อเวลามากขึ้น ระบุใน reason ว่าอยู่ต่อหรือย้ายเพราะอะไร ไม่รับประกันกำไรแมพที่ยังไม่เคยทดลอง; ถ้า maps มีหลายแมพ ผลนั้นเป็นของทั้งรอบ ห้ามถือเป็นกำไรของแต่ละแมพแยกกัน; ค่า null หมายถึงยังไม่มีข้อมูล หาก goal เป็น level ให้ยังเคารพเป้าหมายเลเวลด้วย',
+    'หน่วยข้อมูล: knownZenyPerKill = รายได้ดรอปคาดหมาย zeny/ตัว ก่อนต้นทุน; farmResults.zenyPerMinute = กำไรสุทธิ zeny/นาที ที่วัดจริง รวมเดินทางและเติมของ ห้ามนำสองหน่วยนี้มาเทียบตรงๆ; แมพไม่มีผลวัดให้ระบุว่ายังไม่ทราบกำไรต่อเวลา',
+    ctx.goal === 'level'
+      ? 'ประเมิน farmResults ด้วย expPercent (เปอร์เซ็นต์ความคืบหน้า Base EXP สุทธิ รวมข้ามเลเวลและหัก EXP ที่เสีย), expPercentPerMinute เป็นหลัก เทียบ observedSpend และ zenyPerExpPercent กับเงินที่ใช้ได้เหนือ reserve; เป้าหมาย Class 4 Base 255 ไม่ใช่กำไรขายของ แมพขาดทุนแต่ EXP คุ้มและเงินสำรองพอยังใช้ได้ ห้ามลดระดับมอนหรือตัดแมพเพียงเพราะ net <= 0; เปรียบเทียบเฉพาะช่วงเลเวลใกล้เคียงเพราะ EXP ที่ต้องใช้ต่อเลเวลต่างกัน'
+      : 'ประเมิน farmResults ด้วย net และ zenyPerMinute: เงินสุทธิหลังขายและเติมเสบียงเทียบก่อนออกฟาร์ม เลือกแมพที่ทำกำไรจริง ห้ามถือราคาดรอปเป็นกำไรสุทธิ',
+    'หลังจบรอบเปรียบเทียบ previous_hunt_map กับ allowed_maps และระบุเหตุผลอยู่ต่อหรือย้ายตาม goal; durationMs รวมเดินทางไปล่า กลับเมือง ขายและเติมเสบียง; observedSpend คือยอดเงินลดลงที่สังเกตระหว่าง snapshot ไม่ใช่ต้นทุนรวมที่แน่นอนหากรายรับรายจ่ายเกิดพร้อมกัน; ตรวจ finishedAt, startLevel/endLevel และความเสี่ยงตาย; maps หลายแมพเป็นผลรวมทั้งรอบ ห้ามอ้างเป็นผลของแมพเดียว; null คือไม่ทราบ ห้ามแต่งค่าประสิทธิภาพแมพที่ยังไม่เคยทดลอง',
     'บทเรียน (เป็นประวัติ ไม่ใช่รายการแมพที่อนุญาต):',
     ...recentLessons(8, me.baseLevel),
     'ข้อมูลตัวเลือก: map | จำนวนเปลี่ยนแมพ | มอน | อันตราย',
@@ -53,6 +59,10 @@ function summarize(snap, why, recent, ctx) {
       (ctx.goal === 'money' ? ' | drops=' + JSON.stringify(c.targets.map(t => ({mob:t.name,knownZenyPerKill:t.drops?.knownZenyPerKill,unknownPrices:t.drops?.unknownPrices,items:t.drops?.items.map(d => ({id:d.id,name:d.name,chancePct:d.rate/100,sellPrice:d.sellPrice}))}))) : '')),
     'ยืนยัน current_map=' + me.map + '; Base=' + me.baseLevel + '; goal=' + ctx.goal + '; แมพอื่นต้องเดินทาง ห้ามอ้างว่าอยู่แล้ว',
     'allowed_maps: ' + JSON.stringify(candidates.map(c => c.map)),
+    ...(ctx.goal === 'money' ? [
+      'money_evidence_by_map: ' + JSON.stringify(Object.fromEntries(candidates.map(c => [c.map, moneyEvidence(c.map, ctx.farmResults)]))),
+      'goal=money: ใช้ money_evidence_by_map ประกอบการเลือกแมพ (null คือยังไม่มีผลวัดของแมพนั้น) ห้ามอ้างผลของแมพอื่น ไม่ต้องคัดลอกตารางในคำตอบ ระบบจะเติมผลวัดจริงของแมพที่เลือกเอง',
+    ] : []),
   ].join('\n');
 }
 
@@ -81,7 +91,7 @@ export async function plan(snap, why, recent, current, ctx = { candidates: [], i
     attempt, cause: invalidReason(parsed), map: parsed?.hunt_map,
     ...completion, chars: text.length, tail: text.slice(-200),
   });
-  let text = await llm.chat(messages, { maxTokens: 2048, temperature: 0.3, json: true, onCompletion });
+  let text = await llm.chat(messages, { maxTokens: 2048, temperature: 0.3, json: true, timeoutMs: 120000, onCompletion });
   let parsed = llm.parseJson(text);
   if (invalidReason(parsed)) {
     reportInvalid(parsed, text, 1);
@@ -91,7 +101,7 @@ export async function plan(snap, why, recent, current, ctx = { candidates: [], i
       '; hunt_map ที่ตอบ = ' + JSON.stringify(parsed?.hunt_map ?? null) +
       '; allowed_maps = ' + JSON.stringify(ctx.candidates.map(c => c.map).sort()) +
       '. เลือกใหม่จาก allowed_maps เท่านั้น ตอบ JSON: {current_map, hunt_map, goal, target_monsters, reason} เหตุผลสั้นๆ ห้ามเลือกแมพนอกนี้แม้เคยอยู่ในแผนเก่า'
-    }], { maxTokens: 2048, temperature: 0.1, json: true, onCompletion });
+    }], { maxTokens: 2048, temperature: 0.1, json: true, timeoutMs: 120000, onCompletion });
     parsed = llm.parseJson(text);
   }
   if (invalidReason(parsed)) {
@@ -99,6 +109,7 @@ export async function plan(snap, why, recent, current, ctx = { candidates: [], i
     throw new Error('Plan rejected: ' + invalidReason(parsed) + '; no automatic map selection');
   }
   const next = { ...sanitize(parsed, ctx.candidates), signals: (ctx.signals || []).map((s) => s.text) };
+  if (ctx.goal === 'money') next.reason = moneyReason(parsed, ctx.farmResults);
   if (ctx.goal === 'money' || ctx.goal === 'level') {
     next.goal = ctx.goal;
     next.objective = ctx.goal === 'money' ? 'หาเงินจากดรอปโดยเสีย HP และค่ายาน้อย' : 'เก็บเลเวลกับมอนในช่วง Base-10 ถึง Base-1';

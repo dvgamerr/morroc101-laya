@@ -212,37 +212,17 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     return null;
   }
 
-  /**
-   * The bag arrives in pieces after a map change: the first piece can lack the potions, and the
-   * character once sat down "with no potions" holding 96 Orange Potions. A potion seen in the last
-   * POTION_MEMORY_MS still counts (it's pressed by its hotkey, which the client resolves itself).
-   */
-  function remembered(kind, item) {
+  // Only bridge a known potion across a short map-load gap. A hotkey binding
+  // says nothing about the remaining stock and must never create a bottle.
+  function remembered(kind, item, mapAgeMs) {
     const now = Date.now();
     if (item) {
       mem.seenPotion[kind] = { item, at: now };
       return item;
     }
     const last = mem.seenPotion[kind];
-    if (last && now - last.at < POTION_MEMORY_MS) return last.item;
-    // Still nothing: if an HP potion sits on the hotkey bar, press that — the client knows its
-    // own bag even when our read of it is empty (fresh start after a restart, mid-warp).
-    if (kind === 'hp' && hotkeys && hotkeys.slots) {
-      for (const key of hotkeys.slots.values()) {
-        const id = Number(String(key).replace(/^i:/, ''));
-        if (String(key).startsWith('i:') && HP_ITEMS.includes(id)) {
-          if (now - (mem.noPotionLoggedAt || 0) > 10000) {
-            mem.noPotionLoggedAt = now;
-            log('potion_unseen', { kind, using: 'hotkey', ITID: id });
-          }
-          return { ITID: id, index: -1, count: 1, fromHotkey: true };
-        }
-      }
-    }
-    if (kind === 'hp' && now - (mem.noPotionLoggedAt || 0) > 10000) {
-      mem.noPotionLoggedAt = now;
-      log('potion_unseen', { kind, using: 'none' });
-    }
+    if (mapAgeMs < 3000 && last && now - last.at < POTION_MEMORY_MS) return last.item;
+    delete mem.seenPotion[kind];
     return null;
   }
 
@@ -268,8 +248,8 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
       current,
       weightPct,
       lootable: weightPct < LOOT_MAX_WEIGHT_PCT && brain.plan.loot !== false && !mem.defendOnly ? lootable : [],
-      hpPotion: remembered('hp', hpItem(inv)),
-      spPotion: remembered('sp', findItem(inv, SP_ITEMS)),
+      hpPotion: remembered('hp', hpItem(inv), snap.mapAgeMs),
+      spPotion: remembered('sp', findItem(inv, SP_ITEMS), snap.mapAgeMs),
       fly: findItem(inv, FLY_WING),
       butterfly: findItem(inv, BUTTERFLY_WING),
       emptyFor: Date.now() - mem.lastTargetSeenAt,
@@ -409,16 +389,16 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
         // The HP bar lags the heal by a tick; don't chug three potions for one hit.
         if (Date.now() - mem.lastPotionAt < POTION_GAP_MS) return;
         mem.lastPotionAt = Date.now();
-        mem.drank = true;
-        watchPotions(snap, v);
         // The bottle that fits what's missing (no overheal waste); the biggest when it's an emergency.
-        return useItem(pickBottle(snap.inventory, me, (brain.plan.retreat_hp_pct ?? 25) / 100) || v.hpPotion);
+        mem.drank = (await useItem(pickBottle(snap.inventory, me, (brain.plan.retreat_hp_pct ?? 25) / 100) || v.hpPotion)) !== false;
+        if (mem.drank && hpItem(snap.inventory)) watchPotions(snap, v);
+        return;
       case 'use_sp_potion':
         // Own clock: HP and SP potions don't wait for each other.
         if (Date.now() - mem.lastSpPotionAt < POTION_GAP_MS) return;
         mem.lastSpPotionAt = Date.now();
-        mem.drank = true;
-        return useItem(v.spPotion);
+        mem.drank = (await useItem(v.spPotion)) !== false;
+        return;
       case 'fly_wing':
       case 'butterfly_wing':
         mem.attackGID = 0;

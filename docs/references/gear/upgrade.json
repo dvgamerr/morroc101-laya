@@ -1,0 +1,1318 @@
+{
+  "updatedAt": "2026-10-03T13:02:31.245Z",
+  "enabled": true,
+  "targetRefine": 7,
+  "quantityPerSlot": 1,
+  "weaponType": "Two-handed axes",
+  "selection": "Most expensive NPC gear usable by current job; inspect Equipment, Inventory and Kafra before buying one missing piece per slot.",
+  "authorizedByOwner": {
+    "npcPurchase": true,
+    "breaks": false,
+    "unequippedItemsReturnToInventory": true,
+    "normalRefineTo7": true
+  },
+  "reserveZeny": 100000,
+  "jobAtResearch": {
+    "id": 10,
+    "name": "Blacksmith",
+    "baseLevel": 98,
+    "str": 96
+  },
+  "candidateIdsByPriority": [
+    1371,
+    5013,
+    2315,
+    2507,
+    2418
+  ],
+  "candidateCaveat": "Blacksmith base class: exclude Meteo Plate Armor, Wool Scarf and Tidal Shoes (Upper/Third/Fourth only). For price ties choose suitable stats; reread live NPC price before purchase.",
+  "materials": [
+    {
+      "id": 984,
+      "name": "Oridecon",
+      "use": "Weapon Lv.3/4"
+    },
+    {
+      "id": 985,
+      "name": "Elunium",
+      "use": "ordinary armor"
+    },
+    {
+      "id": 756,
+      "name": "Rough Oridecon",
+      "use": "smelting; verify NPC exchange"
+    },
+    {
+      "id": 757,
+      "name": "Rough Elunium",
+      "use": "smelting; verify NPC exchange"
+    },
+    {
+      "id": 1010,
+      "name": "Phracon",
+      "use": "Weapon Lv.1"
+    },
+    {
+      "id": 1011,
+      "name": "Emveretarcon",
+      "use": "Weapon Lv.2"
+    },
+    {
+      "id": 7619,
+      "name": "Enriched Elunium",
+      "use": "compare quoted expected cost"
+    },
+    {
+      "id": 7620,
+      "name": "Enriched Oridecon",
+      "use": "compare quoted expected cost"
+    },
+    {
+      "id": 6240,
+      "name": "HD Oridecon",
+      "use": "keep; not mandatory for ordinary +9"
+    },
+    {
+      "id": 6241,
+      "name": "HD Elunium",
+      "use": "keep; not mandatory for ordinary +9"
+    },
+    {
+      "id": 6635,
+      "name": "Blacksmith Blessing",
+      "use": "reserve; do not spend automatically for ordinary +9"
+    }
+  ],
+  "normalChanceToReach": {
+    "armor": [
+      100,
+      100,
+      100,
+      100,
+      60,
+      40,
+      40,
+      20,
+      20
+    ],
+    "weapon3": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      60,
+      50,
+      20,
+      20
+    ],
+    "weapon4": [
+      100,
+      100,
+      100,
+      100,
+      60,
+      40,
+      40,
+      20,
+      20
+    ]
+  },
+  "failureTo9": "Ordinary armor and weapon Lv.1-4: retain level on failure; consume fee and material. Ethernium armor is excluded from this rule.",
+  "normalExpectedAttemptsFrom0": {
+    "armor": 20.6666666667,
+    "weapon3": 18.6666666667,
+    "weapon4": 20.6666666667
+  },
+  "sources": {
+    "guide": "https://morroc101.duckdns.org/content/refine-guide.html",
+    "shop": "https://morroc101.duckdns.org/client/data/navi_shop.txt",
+    "npc": "https://morroc101.duckdns.org/client/data/navi_npc.txt",
+    "client": "https://morroc101.duckdns.org/play/Online.js",
+    "serverRoot": "E:/morroc101-rathena",
+    "shopScripts": [
+      "npc/morroc101/weapon_armor_shops.txt",
+      "npc/morroc101/rare_headgear_shop.txt",
+      "npc/morroc101/craft_supplies.txt"
+    ],
+    "refineDb": [
+      "db/re/refine.yml",
+      "db/morroc101/refine.yml"
+    ]
+  },
+  "refiners": [
+    {
+      "map": "prt_in",
+      "x": 63,
+      "y": 60,
+      "name": "Hollgrehenn"
+    },
+    {
+      "map": "prt_in",
+      "x": 63,
+      "y": 69,
+      "name": "Dietrich",
+      "role": "smelt ores"
+    },
+    {
+      "map": "morocc",
+      "x": 154,
+      "y": 109,
+      "name": "Craft Supply Dealer",
+      "menu": "Refine ores"
+    }
+  ],
+  "steps": [
+    "Audit Kafra and merge with worn/Inventory by item instance; unknown is not empty.",
+    "Confirm NPC prices and current-job eligibility; choose the highest priced usable item per slot, one only.",
+    "Withdraw owned items and ores; buy only missing gear/materials while keeping 100000 zeny for play.",
+    "Get server quote for the exact item and next refine: material, fee, chance. Compare expected cost; no invented prices.",
+    "Refine one attempt; read result and reread Equipment/Inventory because item may return to bag. Reacquire actual index, never buy a replacement for a moved item.",
+    "Repeat until +7, materials exhausted or spending would cross reserve. Stop at +7; do not attempt +8.",
+    "Equip verified +7 pieces, confirm Equipment before selling old gear; persist outstanding requirements."
+  ],
+  "npcMaterialPrices": [
+    {
+      "id": 7619,
+      "price": 300000
+    },
+    {
+      "id": 7620,
+      "price": 300000
+    },
+    {
+      "id": 6240,
+      "price": 300000
+    },
+    {
+      "id": 6241,
+      "price": 300000
+    }
+  ],
+  "plainOresSold": false,
+  "smelt": {
+    "roughPerOre": 5,
+    "fee": 0,
+    "npc": {
+      "name": "Dietrich",
+      "map": "prt_in",
+      "x": 63,
+      "y": 69
+    },
+    "menu": [
+      "View advanced smelting ores",
+      "barter_refine_1; free 5 rough to 1 ore; verify server quote"
+    ],
+    "alternative": {
+      "name": "Christopher",
+      "map": "geffen_in",
+      "x": 110,
+      "y": 172,
+      "menu": [
+        "Purify Rough Ores",
+        "Make Oridecon / Make Elunium"
+      ]
+    }
+  },
+  "refineTables": [
+    {
+      "group": "Armor",
+      "levels": [
+        {
+          "level": 1,
+          "refines": [
+            {
+              "level": 1,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Elunium"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Elunium"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Elunium"
+                }
+              ]
+            },
+            {
+              "level": 2,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Elunium"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Elunium"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Elunium"
+                }
+              ]
+            },
+            {
+              "level": 3,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Elunium"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Elunium"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Elunium"
+                }
+              ]
+            },
+            {
+              "level": 4,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Elunium"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Elunium"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Elunium"
+                }
+              ]
+            },
+            {
+              "level": 5,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 6000,
+                  "Price": 2000,
+                  "Material": "Elunium"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 6000,
+                  "Price": 20000,
+                  "Material": "HD_Elunium",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 9000,
+                  "Price": 2000,
+                  "Material": "Enriched_Elunium"
+                }
+              ]
+            },
+            {
+              "level": 6,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 4000,
+                  "Price": 2000,
+                  "Material": "Elunium"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 4000,
+                  "Price": 20000,
+                  "Material": "HD_Elunium",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 7000,
+                  "Price": 2000,
+                  "Material": "Enriched_Elunium"
+                }
+              ]
+            },
+            {
+              "level": 7,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 4000,
+                  "Price": 2000,
+                  "Material": "Elunium"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 4000,
+                  "Price": 20000,
+                  "Material": "HD_Elunium",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 7000,
+                  "Price": 2000,
+                  "Material": "Enriched_Elunium"
+                }
+              ]
+            },
+            {
+              "level": 8,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 2000,
+                  "Price": 2000,
+                  "Material": "Elunium"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 2000,
+                  "Price": 20000,
+                  "Material": "HD_Elunium",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 4000,
+                  "Price": 2000,
+                  "Material": "Enriched_Elunium"
+                }
+              ]
+            },
+            {
+              "level": 9,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 2000,
+                  "Price": 2000,
+                  "Material": "Elunium"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 2000,
+                  "Price": 20000,
+                  "Material": "HD_Elunium",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 4000,
+                  "Price": 2000,
+                  "Material": "Enriched_Elunium"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Weapon",
+      "levels": [
+        {
+          "level": 1,
+          "refines": [
+            {
+              "level": 1,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 50,
+                  "Material": "Phracon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 2,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 50,
+                  "Material": "Phracon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 3,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 50,
+                  "Material": "Phracon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 4,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 50,
+                  "Material": "Phracon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 5,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 50,
+                  "Material": "Phracon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 6,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 50,
+                  "Material": "Phracon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 7,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 50,
+                  "Material": "Phracon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 8,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 6000,
+                  "Price": 50,
+                  "Material": "Phracon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 6000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 9000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 9,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 4000,
+                  "Price": 50,
+                  "Material": "Phracon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 4000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 7000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "refines": [
+            {
+              "level": 1,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 200,
+                  "Material": "Emveretarcon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 2,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 200,
+                  "Material": "Emveretarcon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 3,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 200,
+                  "Material": "Emveretarcon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 4,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 200,
+                  "Material": "Emveretarcon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 5,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 200,
+                  "Material": "Emveretarcon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 6,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 200,
+                  "Material": "Emveretarcon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 7,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 6000,
+                  "Price": 200,
+                  "Material": "Emveretarcon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 6000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 9000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 8,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 4000,
+                  "Price": 200,
+                  "Material": "Emveretarcon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 4000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 7000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 9,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 2000,
+                  "Price": 200,
+                  "Material": "Emveretarcon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 2000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 4000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "level": 3,
+          "refines": [
+            {
+              "level": 1,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 5000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 2,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 5000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 3,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 5000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 4,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 5000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 5,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 5000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 6,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 6000,
+                  "Price": 5000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 6000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 9000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 7,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 5000,
+                  "Price": 5000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 5000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 8000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 8,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 2000,
+                  "Price": 5000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 2000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 4000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 9,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 2000,
+                  "Price": 5000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 2000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 4000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "level": 4,
+          "refines": [
+            {
+              "level": 1,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 2,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 3,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 4,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 10000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon"
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 10000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 5,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 6000,
+                  "Price": 20000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 6000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 9000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 6,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 4000,
+                  "Price": 20000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 4000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 7000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 7,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 4000,
+                  "Price": 20000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 4000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 7000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 8,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 2000,
+                  "Price": 20000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 2000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 4000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            },
+            {
+              "level": 9,
+              "chances": [
+                {
+                  "Type": "Normal",
+                  "Rate": 2000,
+                  "Price": 20000,
+                  "Material": "Oridecon"
+                },
+                {
+                  "Type": "HD",
+                  "Rate": 2000,
+                  "Price": 20000,
+                  "Material": "HD_Oridecon",
+                  "DowngradeAmount": 1
+                },
+                {
+                  "Type": "Enriched",
+                  "Rate": 4000,
+                  "Price": 2000,
+                  "Material": "Enriched_Oridecon"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "ownerSelectedByJob": {
+    "10": {
+      "weapon": 1371,
+      "head_top": 5257,
+      "armor": 2326,
+      "garment": 2519,
+      "shoes": 2418
+    }
+  },
+  "ownerSelectionNote": "Owner approved affordable set and reserve spending for these three purchases only: Saints Robe, Morriganes Manteau, Soul Ring. Keep and refine selected set to +7; do not replace with prior expensive candidates while Blacksmith."
+}

@@ -21,11 +21,16 @@ export async function ask(state, questions, { timeoutMs = 5000 } = {}) {
     body: JSON.stringify({ model: config.laya.model, state, questions }),
     signal: AbortSignal.timeout(timeoutMs),
   });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok || body.error) {
-    throw new Error(`LAYA ${res.status}: ${body.error?.message || JSON.stringify(body)}`);
+  let body;
+  try { body = await res.json(); }
+  catch (error) { throw new Error(`LAYA ${res.status}: response body read failed (${error.name}: ${error.message})`, { cause: error }); }
+  if (!res.ok || body?.error) {
+    throw new Error(`LAYA ${res.status}: ${body?.error?.message || JSON.stringify(body)}`);
   }
-  const answers = body.answers || {};
+  if (!body?.answers || typeof body.answers !== 'object' || Array.isArray(body.answers)) {
+    throw new Error(`LAYA ${res.status}: missing or invalid answers`);
+  }
+  const answers = body.answers;
   for (const [key, q] of Object.entries(questions)) {
     if (q.type === 'noul' && answers[key]) answers[key].probability = yesProbability(answers[key]);
   }

@@ -1,6 +1,8 @@
 import { observeSellPrices } from './drop-values.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { act } from './browser.js';
+import { oresIn } from './ores.js';
+import { sellJunk } from './sell-junk.js';
 import { findNpcEntity } from './npc.js';
 import { spareGear } from './gear.js';
 import { log } from './logger.js';
@@ -155,7 +157,7 @@ export function spareSupplies(inv, me, rates = null) {
 /**
  * @param {() => number|null} getDps worst damage per second seen while fighting (potions.js tracker)
  */
-export function createErrand(page, world, travel, getDps = () => null, review = null) {
+export function createErrand(page, world, travel, getDps = () => null, review = null, storage = null) {
   const e = { active: false, stage: 'idle', shop: null, stageAt: 0, badShops: new Map(), cooldownUntil: 0, plan: null, sold: 0, bought: [], prices: loadPrices(), usage: [], prevStock: null, obsSince: 0, savedRates: loadRates(), goal: null, goalSince: 0 };
   const loadout = createPotionLoadout();
   const saleItems = (snap) => {
@@ -339,7 +341,7 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
       return null;
     }
     if (n.townReturn) e.townServiced = true;
-    Object.assign(e, { active: true, stage: 'travel', shop, plan: n, stageAt: Date.now(), sold: 0, bought: [], selection: null, cleanup: false, refilled: false, pendingBuy: null });
+    Object.assign(e, { active: true, stage: 'travel', shop, plan: n, stageAt: Date.now(), sold: 0, bought: [], selection: null, cleanup: false, refilled: false, pendingBuy: null, junkDone: false });
     e.forceSell = false;
     const goal = n.buy || n.buySp || n.buyWing || (n.reviewPotions && !n.sell) ? 'buy' : 'sell';
     const where = `${shop.name} (${shop.map}, ~${Math.round(shop.cost)} ช่อง)`;
@@ -376,7 +378,18 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     if (!e.active) return null;
     const me = snap.me;
     const shop = e.shop;
-    if (Date.now() - e.stageAt > (e.stage === 'travel' ? 15 * 60 * 1000 : e.stage === 'review' ? 180000 : STAGE_TIMEOUT_MS)) return finish(false, `timeout at ${e.stage}`);
+    if (e.stage === 'review' && Date.now() - e.stageAt > 30000) {
+      const equipmentReady = review?.equipmentReady?.(snap) !== false;
+      review?.defer?.(snap);
+      log('errand_review_deferred', { reason: equipmentReady ? 'review not ready' : 'equipment not ready' });
+      // Unreviewed items stay in the bag. A model/equipment delay is not a
+      // broken shop, and must not send the bot to a different town to retry.
+      e.plan.sell = equipmentReady && saleItems(snap).length > 0;
+      if (!e.plan.sell && !e.plan.buy && !e.plan.buySp && !e.plan.buyWing && !e.plan.reviewPotions) return finish(true, 'review deferred: items kept');
+      to(e.plan.sell ? 'talk_sell' : 'talk_buy');
+      return null;
+    }
+    if (e.stage !== 'review' && Date.now() - e.stageAt > (e.stage === 'travel' ? 15 * 60 * 1000 : e.stage === 'deposit' ? 3 * 60 * 1000 : STAGE_TIMEOUT_MS)) return finish(false, `timeout at ${e.stage}`);
 
     switch (e.stage) {
       case 'travel': {
@@ -386,19 +399,53 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
           return null;
         }
         if (travel.dest) await travel.stop();
+        to('deposit');
+        return null;
+      }
+      case 'deposit': {
+        if (storage?.active) {
+          const done = await storage.tick(snap);
+          if (done && (!done.ok || oresIn(snap).length)) return finish(false, 'ores must be stored before selling');
+          return null;
+        }
+        if (oresIn(snap).length) {
+          if (storage?.retryAt > Date.now()) return null;
+          if (!storage?.maybeStart(snap)) return finish(false, 'Kafra unavailable: ores kept, sale postponed');
+          return null;
+        }
         to('approach');
         return null;
       }
       case 'approach': {
+        // A restart or failed purchase can leave a modal open and block walking.
+        // Release it before approaching or opening another NPC conversation.
+        if (snap.shop) {
+          await act(page, snap.shop.stage === 'barter' ? 'barter_close' : 'close_shop');
+          return null;
+        }
+        if (snap.dialog && snap.dialog.state !== 'ended') {
+          await act(page, snap.dialog.state === 'next' ? 'npc_next' : 'npc_close', { naid: snap.dialog.naid });
+          return null;
+        }
         const d = Math.max(Math.abs(me.x - shop.x), Math.abs(me.y - shop.y));
         if (d > TALK_RANGE) {
           if (!me.walking) await act(page, 'walk_to', { x: shop.x, y: shop.y });
           return null;
         }
-        to('review');
+        to(e.junkDone ? 'review' : 'talk_sell');
         return null;
       }
       case 'review': {
+        // Let the inventory packets from the preceding sale settle first.
+        if (Date.now() - e.stageAt < 1500) return null;
+        if (review?.equipmentReady?.(snap) === false) return null;
+        // An unrelated appraisal or slow review must not block already approved
+        // loot. The selling stage rechecks approval against the fresh inventory.
+        if (saleItems(snap).length) {
+          e.plan.sell = true;
+          to('talk_sell');
+          return null;
+        }
         // Appraise and review all drops, including equipment, only when ready to sell.
         if (await review?.identify?.(snap)) return null;
         if (review?.observe?.(snap)) return null;
@@ -432,6 +479,17 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
       }
       case 'selling': {
         if (snap.shop?.stage !== 'sell') return null;
+        if (oresIn(snap).length) { await act(page, 'close_shop'); to('deposit'); return null; }
+        if (!e.junkDone) {
+          const result = await sellJunk(page, snap);
+          if (!result) return null;
+          log('errand_junk', result);
+          e.junkDone = true;
+          if (result.count) { e.pendingSold = result.count; to('junk_wait'); }
+          else { await act(page, 'close_shop'); to('review'); }
+          return null;
+        }
+        if (review?.equipmentReady?.(snap) === false) return null;
         const sellableIdx = new Set(snap.shop.list.map((i) => i.index));
         const items = saleItems(snap).filter((i) => sellableIdx.has(i.index)).map((i) => ({ index: i.index, count: i.count }));
         if (!items.length) {
@@ -499,9 +557,16 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
   async function onEvent(ev, snap) {
     if (!e.active || ev.type !== 'shop_result') return null;
     await act(page, 'close_shop');
+    if (ev.kind === 'sell' && e.stage === 'junk_wait') {
+      if (!ev.ok) return finish(false, `junk sell result ${ev.result}`);
+      e.sold += e.pendingSold || 0;
+      to('review');
+      return null;
+    }
     if (ev.kind === 'sell' && e.stage === 'sell_wait') {
       if (!ev.ok) return finish(false, `sell result ${ev.result}`);
       e.sold += e.pendingSold || 0;
+      if (!e.cleanup) { to('review'); return null; }
       return afterSell(snap);
     }
     if (ev.kind === 'buy' && e.stage === 'buy_wait') {

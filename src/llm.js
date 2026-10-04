@@ -16,18 +16,34 @@ export async function chat(messages, { maxTokens = 256, temperature = 0.7, json 
       messages,
       max_tokens: maxTokens,
       temperature,
+      stream: false,
       chat_template_kwargs: { enable_thinking: false },
       ...(json ? { response_format: { type: 'json_object' } } : {}),
     }),
     signal: AbortSignal.timeout(timeoutMs),
   });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok || body.error) {
-    throw new Error(`oMLX ${res.status}: ${body.error?.message || body.detail || JSON.stringify(body)}`);
+  // Body reads can time out after fetch has already received the headers.
+  // Never turn a transport failure into an apparently successful empty reply.
+  let body;
+  try {
+    body = await res.json();
+  } catch (error) {
+    throw new Error(`oMLX ${res.status}: response body read failed (${error.name}: ${error.message})`, { cause: error });
   }
-  onCompletion?.({ finishReason: body.choices?.[0]?.finish_reason, completionTokens: body.usage?.completion_tokens });
-  const text = body.choices?.[0]?.message?.content ?? '';
-  return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  if (!res.ok || body?.error) {
+    throw new Error(`oMLX ${res.status}: ${body?.error?.message || body?.detail || JSON.stringify(body)}`);
+  }
+  const choice = body?.choices?.[0];
+  onCompletion?.({ finishReason: choice?.finish_reason, completionTokens: body?.usage?.completion_tokens });
+  const content = choice?.message?.content;
+  if (typeof content !== 'string') {
+    throw new Error(`oMLX ${res.status}: missing or invalid message content`);
+  }
+  const text = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  if (!text) {
+    throw new Error(`oMLX ${res.status}: empty completion (finishReason=${choice.finish_reason ?? 'unknown'}, completionTokens=${body?.usage?.completion_tokens ?? 'unknown'})`);
+  }
+  return text;
 }
 
 /** Pull the first JSON object out of a reply, tolerating code fences or chatter around it. */

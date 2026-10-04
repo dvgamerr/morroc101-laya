@@ -1,3 +1,4 @@
+import { closePanel } from './close-panel.js';
 // Warpra board protocol and selectors verified against the server's Online.js.
 // Read advertised state; only the actual button handler may submit a warp.
 export function parseWarpraFeed(lines) {
@@ -24,9 +25,7 @@ export function parseWarpraFeed(lines) {
 const BOARD = '#Warpra:has(> .toolbar):visible';
 const opts = {timeout:1500};
 export async function closeWarpra(page) {
-  if (!await page.locator(BOARD).isVisible()) return;
-  await page.locator(BOARD + ' .leave').click(opts);
-  await page.locator(BOARD).waitFor({state:'hidden', timeout:3000});
+  await closePanel(page.locator(BOARD), page.locator(BOARD + ' .leave'), 1500);
 }
 export async function inspectWarpra(page, destination) {
   if (!await page.locator(BOARD).isVisible()) return null;

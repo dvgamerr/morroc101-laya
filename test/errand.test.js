@@ -28,7 +28,87 @@ const fakeTravel = () => {
 const me = (over = {}) => ({ map: 'field', x: 50, y: 50, baseLevel: 20, zeny: 20000, weight: 3000, maxWeight: 20000, maxHp: 500, hp: 500, walking: false, ...over });
 const snap = (over = {}) => ({ me: me(over.me), inventory: [], npcs: [], shop: null, ...over, me: me(over.me) });
 
+test('selling waits for restored equipment confirmation even after the shop opens', async () => {
+  let ready = false;
+  const loot = { index: 9, ITID: 909, type: 3, count: 40 };
+  const review = { equipmentReady: () => ready, saleItems: () => [loot] };
+  const e = createErrand({}, world, fakeTravel(), () => null, review);
+  const s = snap({ me: { map: 'town_in', x: 20, y: 30 }, inventory: [loot], npcs: [{ GID: 77, name: 'Tool Dealer', x: 20, y: 30 }] });
+  e.requestSell();
+  expect(e.maybeStart(s)).not.toBeNull();
+  await e.tick(s);
+  await e.tick(s);
+  expect(e.stage).toBe('review');
+  await e.tick(s);
+  expect(e.stage).toBe('review');
+  ready = true;
+  await e.tick(s);
+  await e.tick(s);
+  await e.tick({ ...s, shop: { naid: 77, stage: 'select' } });
+  expect(e.stage).toBe('selling');
+  const selling = { ...s, shop: { naid: 77, stage: 'sell', list: [{ index: 9, price: 3 }] } };
+  ready = false;
+  calls.length = 0;
+  await e.tick(selling);
+  expect(calls).toEqual([]);
+  expect(e.stage).toBe('selling');
+  ready = true;
+  await e.tick(selling);
+  expect(calls).toEqual([['sell', { items: [{ index: 9, count: 40 }] }]]);
+});
+
 beforeEach(() => (calls.length = 0));
+
+test('approved loot sells without waiting for unrelated appraisal or review', async () => {
+  const loot = { index: 9, ITID: 909, count: 10, type: 3 };
+  const review = { equipmentReady: () => true, saleItems: () => [loot],
+    identify: async () => { throw new Error('must not wait for appraisal'); },
+    observe: () => { throw new Error('must not wait for review'); } };
+  const e = createErrand({}, world, fakeTravel(), () => null, review);
+  const s = snap({ me: { map: 'town_in', x: 20, y: 30 }, inventory: [loot], npcs: [{ GID: 77, name: 'Tool Dealer', x: 20, y: 30 }] });
+  e.requestSell(); e.maybeStart(s);
+  await e.tick(s); await e.tick(s); await e.tick(s);
+  expect(e.stage).toBe('talk_sell');
+  await e.tick(s);
+  await e.tick({ ...s, shop: { naid: 77, stage: 'select' } });
+  await e.tick({ ...s, shop: { stage: 'sell', list: [{ index: 9, price: 3 }] } });
+  expect(calls.at(-1)).toEqual(['sell', { items: [{ index: 9, count: 10 }] }]);
+});
+
+test('review deadline keeps unapproved items and does not blacklist the shop', async () => {
+  let deferred = false;
+  const review = { equipmentReady: () => false, defer: () => { deferred = true; }, saleItems: () => [] };
+  const e = createErrand({}, world, fakeTravel(), () => null, review);
+  const s = snap({ me: { map: 'town_in', x: 20, y: 30 } });
+  e.requestSell(); e.maybeStart(s);
+  await e.tick(s); await e.tick(s);
+  const now = Date.now();
+  try {
+    setSystemTime(now + 31000);
+    const result = await e.tick(s);
+    expect(result.ok).toBe(true);
+    expect(result.note).toBe('review deferred: items kept');
+    expect(deferred).toBe(true);
+    expect(calls.some(([n]) => n === 'sell')).toBe(false);
+    setSystemTime(now + 3600000);
+    e.requestSell();
+    expect(e.maybeStart(s).shop.map).toBe('town_in');
+  } finally { setSystemTime(); }
+});
+
+test('approach releases a leftover shop and dialog before walking after restart', async () => {
+  const e = createErrand({}, world, fakeTravel(), () => null);
+  const s = snap({ me: { map: 'town_in', x: 10, y: 10 } });
+  e.requestSell();
+  expect(e.maybeStart(s)).not.toBeNull();
+  await e.tick(s);
+  await e.tick({ ...s, shop: { stage: 'buy' } });
+  expect(calls.at(-1)).toEqual(['close_shop', undefined]);
+  await e.tick({ ...s, dialog: { state: 'next', naid: 123 } });
+  expect(calls.at(-1)).toEqual(['npc_next', { naid: 123 }]);
+  await e.tick(s);
+  expect(calls.at(-1)).toEqual(['walk_to', { x: 20, y: 30 }]);
+});
 
 /** A trip starts only after potions have looked low for 3s: look twice, 3s apart. */
 function startAfterConfirm(e, s) {

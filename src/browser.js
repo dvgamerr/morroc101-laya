@@ -4,8 +4,21 @@ import { config } from './config.js';
 import { installPageAgent } from './page-agent.js';
 import { withNames } from './skilldb.js';
 import { clickGameUi, UI_ACTIONS } from './ui-click.js';
+import { log } from './logger.js';
+import { isProtectedEquipment } from './equipment-memory.js';
 
 const CDP_URL = `http://127.0.0.1:${config.game.cdpPort}`;
+
+export function observeGameErrors(page) {
+  page.on('dialog', async (dialog) => {
+    log('game_dialog', { type: dialog.type(), message: dialog.message() });
+    await dialog.accept().catch(() => {});
+  });
+  page.on('pageerror', (error) => log('game_error', { error: error.message }));
+  page.on('console', (message) => {
+    if (message.type() === 'error') log('game_error', { error: message.text() });
+  });
+}
 
 /** Reuse Chrome when available; otherwise start a detached process with the same profile. */
 export async function openGame() {
@@ -20,7 +33,7 @@ export async function openGame() {
   let page = context.pages().find((p) => p.url().startsWith(config.game.url));
   let reused = false;
   if (page) {
-    page.on('dialog', (d) => d.accept().catch(() => {}));
+    observeGameErrors(page);
     if (await page.evaluate(() => !!window.RO).catch(() => false)) {
       // Init scripts only reach new documents; put the current agent into this one by hand.
       await page.evaluate(installPageAgent);
@@ -32,7 +45,7 @@ export async function openGame() {
     }
   } else {
     page = context.pages().find((p) => p.url() === 'about:blank') || (await context.newPage());
-    page.on('dialog', (d) => d.accept().catch(() => {}));
+    observeGameErrors(page);
     await page.goto(config.game.url, { waitUntil: 'domcontentloaded' });
   }
   await page.bringToFront().catch(() => {});
@@ -75,10 +88,11 @@ function blockServiceWorker() {
   } catch {}
 }
 
-export async function waitForInGame(page, onWait) {
+export async function waitForInGame(page, onWait, reconnect) {
   for (;;) {
     const snap = await snapshot(page).catch(() => null);
-    if (snap?.inGame) return snap;
+    const recovering = reconnect ? await reconnect(snap) : false;
+    if (snap?.inGame && !recovering) return snap;
     onWait?.(snap);
     await Bun.sleep(2000);
   }
@@ -99,8 +113,22 @@ export const exploreTarget = (page, min, max, avoid) =>
 let escapeUntil = 0;
 export const holdCombatForEscape = (durationMs = 3000) => { escapeUntil = Date.now() + durationMs; };
 const INTERRUPTED_BY_ESCAPE = new Set(['attack', 'move', 'walk_to', 'skill', 'talk', 'navi_start']);
-export const act = (page, name, arg) => Date.now() < escapeUntil && INTERRUPTED_BY_ESCAPE.has(name)
+export const act = async (page, name, arg) => {
+  if (name === 'sell') {
+    const snap = await snapshot(page);
+    if (!snap?.inGame || !Array.isArray(snap.inventory) || !Array.isArray(snap.worn)) return false;
+    const worn = new Set(snap.worn.map(i => i.ITID));
+    if (!arg?.items?.length || arg.items.some(request => {
+      const item = snap.inventory.find(i => i.index === request.index);
+      return !item || worn.has(item.ITID) || isProtectedEquipment(item);
+    })) {
+      log('sale_blocked', { reason: 'protected equipment or unknown inventory item' });
+      return false;
+    }
+  }
+  return Date.now() < escapeUntil && INTERRUPTED_BY_ESCAPE.has(name)
   ? Promise.resolve(false)
   : UI_ACTIONS.has(name)
   ? clickGameUi(page, name, arg ?? {})
   : page.evaluate(([n, a]) => window.__agent.act(n, a), [name, arg ?? {}]);
+};

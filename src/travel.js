@@ -116,6 +116,8 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
       t.goTries = 0;
       t.routeRetries = 0;
       if (changed) {
+        // An earlier unconfirmed warp applies only to the map we just left.
+        t.tripNoGo = false;
         log('travel_map_changed', { map: me.map, to: t.dest });
         await refreshRoute();
         return 'traveling';
@@ -164,7 +166,8 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
         return 'traveling';
       }
       if (snap.dialog && snap.dialog.state !== 'ended') {
-        const closed = await act(page, 'npc_close', { naid: snap.dialog.naid });
+        const action = snap.dialog.state === 'next' ? 'npc_next' : 'npc_close';
+        const closed = await act(page, action, { naid: snap.dialog.naid });
         log('travel_go_dialog', { state: snap.dialog.state, closed });
         t.lastProgressAt = now;
         return 'traveling'; // Re-read the dialog before sending or counting an attempt.

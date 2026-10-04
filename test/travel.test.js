@@ -180,3 +180,27 @@ test('keeps destination across warp, stale go leg and transient lost route', asy
   expect(calls.some(([n]) => n === 'say')).toBe(false);
   expect(await t.tick(snap({map:'lhz_fild01'},null))).toBe('arrived');
 });
+
+test('advances an NPC Next prompt before trying to warp', async () => {
+  const t = createTravel({});
+  await t.start('prontera');
+  calls.length = 0;
+  const s = snap({}, { dest: 'prontera', leg: { kind: 'go', goIndex: 0, toMap: 'prontera' } });
+  s.dialog = { state: 'next', naid: 300 };
+  await t.tick(s);
+  expect(calls).toEqual([['npc_next', { naid: 300 }]]);
+});
+
+test('a map change restores @go after an unconfirmed warp on the previous map', async () => {
+  const t = createTravel({});
+  await t.start('prt_fild08');
+  const n = { dest: 'prt_fild08', leg: { kind: 'go', goIndex: 0, toMap: 'prontera' } };
+  await t.tick(snap({}, n));
+  tick(10000);
+  await t.tick(snap({}, n));
+  tick(10000);
+  await t.tick(snap({}, n));
+  expect(calls.at(-1)[1].useGo).toBe(false);
+  await t.tick(snap({ map: 'prontera' }, n));
+  expect(calls.at(-1)).toEqual(['navi_start', { map: 'prt_fild08', useGo: true }]);
+});

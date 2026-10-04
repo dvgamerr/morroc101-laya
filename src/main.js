@@ -1,4 +1,4 @@
-import { observeFarmTrip, finishFarmTrip } from './farm-profit.js';
+import { observeFarmTrip, finishFarmTrip, abortFarmTravel, settleFarmErrand } from './farm-profit.js';
 import { createEmergencyReturn } from './emergency-return.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { config } from './config.js';
@@ -22,11 +22,16 @@ import { createDialog } from './npc.js';
 import { createHealer, weaponBlocked } from './heal.js';
 import { createStorage } from './storage.js';
 import { createItemReview } from './item-review.js';
+import { createWeaponRecovery } from './weapon-recovery.js';
+import { rememberEquipped } from './equipment-memory.js';
+import { createGearUpgrade } from './gear-upgrade.js';
 import { createHotkeys } from './hotkeys.js';
 import { learn } from './lessons.js';
 import { createTrader } from './social.js';
 import { notify, setIdentity } from './notify.js';
 import * as llm from './llm.js';
+import { createReconnect } from './reconnect.js';
+import { oresIn } from './ores.js';
 
 const REPICK_EVERY_LEVELS = 3;
 const EXCLUDE_FOR_MS = 30 * 60 * 1000;
@@ -82,6 +87,7 @@ process.on('SIGINT', () => {
 });
 
 const { page, reused } = await openGame();
+const reconnect = createReconnect(page);
 log('boot', { url: config.game.url, laya: config.laya.model, llm: config.llm.model, session: reused ? 'reused' : 'new' });
 
 // A cold oMLX model takes ~40s to load; do it while the player is still logging in.
@@ -94,10 +100,13 @@ const world = await loadWorld()
   .catch((err) => (log('world_error', { error: err.message }), null));
 
 if (!reused) console.log('>> ล็อกอินและเลือกตัวละครในหน้าต่างเบราว์เซอร์ได้เลย agent จะเริ่มเมื่อเข้าแมพแล้ว');
-await waitForInGame(page, (snap) => {
+const startupSnapshot = await waitForInGame(page, (snap) => {
   if (snap && snap.ready === false) process.stdout.write('.');
-});
+}, reconnect);
 log('in_game');
+const startupEquipment = rememberEquipped(startupSnapshot);
+console.table(startupEquipment.map(i => ({ item: i.name, ITID: i.ITID, refine: i.refine || 0, slot: i.slot || 'equipped', rule: 'ห้ามขาย' })));
+log('equipment_protected', { items: startupEquipment.map(i => ({ ITID: i.ITID, name: i.name, refine: i.refine || 0 })) });
 
 const skills = createSkillBook();
 skills.setBosses(bossNames(world));
@@ -116,13 +125,15 @@ const trader = createTrader(page);
 const goState = { canGo: true, bad: new Set() };
 const travelForErrands = createTravel(page, goState, world);
 const damage = createDamageTracker();
-const itemReview = createItemReview(page);
-const errand = createErrand(page, world, travelForErrands, () => damage.p90(), itemReview);
+const weapons = createWeaponRecovery(brain.restoreWeapon, weapon => { brain.restoreWeapon = weapon; saveState(); });
+const itemReview = createItemReview(page, weapons);
+const storage = createStorage(page, world, createDialog(page), itemReview);
+const errand = createErrand(page, world, travelForErrands, () => damage.p90(), itemReview, storage);
 const jobChange = createJobChange(page, world, travelForErrands, createDialog(page));
 const healer = createHealer(page, world, createDialog(page), createTravel(page, goState, world));
-const storage = createStorage(page, world, createDialog(page), itemReview);
 const chat = createChat(page, brain);
 const travel = createTravel(page, goState, world);
+const gearUpgrade = createGearUpgrade(page, createTravel(page, goState, world), storage);
 const emergencyReturn = createEmergencyReturn(page, map => map === 'morocc' || !!world && isTown(world, map));
 const getSnap = () => snapshot(page);
 // Safety polling continues while LAYA, NPC dialogs or other actions are awaited.
@@ -263,7 +274,7 @@ function candidates(snap) {
     fromX: snap.me.x,
     fromY: snap.me.y,
     canGo: travel.canGo,
-    exclude: [...new Set([...excluded(), ...tooHard(snap.me.baseLevel), ...Object.keys(brain.farmResults || {}).filter(map => brain.farmResults[map].net <= 0 && base < brain.farmResults[map].level + HARD_MAP_LEVELS)])],
+    exclude: [...new Set([...excluded(), ...tooHard(snap.me.baseLevel), ...Object.keys(brain.farmResults || {}).filter(map => goal === 'money' && brain.farmResults[map].goal !== 'level' && brain.farmResults[map].net <= 0 && base < brain.farmResults[map].level + HARD_MAP_LEVELS)])],
     avoid: [...brain.avoidExtra],
     limit: Infinity,
   }).sort((a, b) => a.map.localeCompare(b.map));
@@ -285,7 +296,7 @@ function replan(snap, why) {
   brain.lastPlanAt = Date.now();
   const revision = brain.huntRevision || 0;
   const recent = 'actions ' + JSON.stringify(brain.counters.actions) + ', deaths ' + brain.counters.deaths + ', previous_hunt_map ' + brain.plan.hunt_map + ', farmResults ' + JSON.stringify(brain.farmResults || {});
-  const ctx = { candidates: candidates(snap), inTown: world ? isTown(world, snap.me.map) : false, signals: signals(snap), goal: committedGoal(snap), moneyTarget: currentMoneyTarget(snap) };
+  const ctx = { candidates: candidates(snap), inTown: world ? isTown(world, snap.me.map) : false, signals: signals(snap), goal: committedGoal(snap), moneyTarget: currentMoneyTarget(snap), farmResults: structuredClone(brain.farmResults || {}) };
   if (!ctx.candidates.length) {
     brain.planning = false;
     log('hunt_none', { why, level: snap.me.baseLevel });
@@ -343,7 +354,9 @@ function currentMoneyTarget(snap) {
  * Reserve is only the entry threshold; it is not added to the target.
  */
 function committedGoal(snap) {
-  const zeny = snap.me.zeny || 0;
+  if (gearUpgrade.needsMoney(snap)) return 'money';
+  const zeny = snap.me.zeny;
+  if (!Number.isFinite(zeny)) return brain.moneyMode ? 'money' : 'level';
   const t = currentMoneyTarget(snap);
   if (brain.moneyMode && zeny >= t.target) {
     brain.moneyMode = false;
@@ -416,7 +429,25 @@ function drinkShare() {
  * on us, dead). So two escapes in the window = leave this map now, not at the next potion check.
  */
 function noteEscape(snap, action) {
+  if (brain.huntPending) return;
   const huntMap = brain.plan.hunt_map;
+  if ((action === 'fly_wing' || action === 'butterfly_wing') && snap.attackers.length &&
+      huntMap && snap.me.map !== huntMap && travel.dest === huntMap && !brain.huntPending) {
+    const key = huntMap + ':' + snap.me.map;
+    const times = brain.routeEscapes?.key === key
+      ? brain.routeEscapes.times.filter(t => Date.now() - t < ESCAPE_WINDOW_MS) : [];
+    if (Date.now() - (times.at(-1) || 0) < ESCAPE_DEDUPE_MS) return;
+    times.push(Date.now());
+    brain.routeEscapes = { key, times };
+    if (times.length >= ESCAPES_TO_LEAVE) {
+      brain.routeEscapes = null;
+      const why = `หนีซ้ำระหว่างทางที่ ${snap.me.map}: ไป ${huntMap} ไม่ปลอดภัย`;
+      brain.farmTrip = abortFarmTravel(brain.farmTrip, why);
+      exclude(huntMap, why);
+      chooseHunt(snap, why);
+    }
+    return;
+  }
   if (!((action === 'fly_wing' || action === 'butterfly_wing') && snap.attackers.length && snap.me.map === huntMap)) return;
   brain.escapes = (brain.escapes || []).filter((t) => Date.now() - t < ESCAPE_WINDOW_MS);
   // One escape is seen by both the fight tick and the farm tick (and a wing press can repeat while
@@ -532,6 +563,7 @@ function endJobChange(done, snap) {
 }
 
 function endErrand(done, snap) {
+  brain.farmTrip = settleFarmErrand(brain.farmTrip, done);
   brain.profitSettleAfter = Date.now() + 3000; // Wait for a fresh purse after shop result packets.
   const what = [done.sold ? `ขายของ ${done.sold} ชิ้น` : '', done.bought.length ? `ซื้อ ${done.bought.join(', ')}` : ''].filter(Boolean).join(', ');
   const objective = done.ok ? `${what || 'ธุระเสร็จ'} — กลับไปล่าที่ ${brain.plan.hunt_map || 'แมพเดิม'}` : `ไปร้านไม่สำเร็จ (${done.note}) — กลับไปล่าก่อน`;
@@ -540,14 +572,12 @@ function endErrand(done, snap) {
 
 const triedWear = new Map(); // inventory index -> last try (the server may refuse: level, job, broken)
 let lastWearCheck = 0;
-let restoreWeapon = null;
 let recoveringWeapon = false;
 async function wearBetterGear(snap) {
   if (weaponBlocked(snap.me)) return;
   if (Date.now() - lastWearCheck < 3000) return;
   lastWearCheck = Date.now();
-  const previous = recoveringWeapon && restoreWeapon && snap.inventory.find(i => i.index === restoreWeapon.index && i.ITID === restoreWeapon.ITID && !i.equipped && !i.gear?.damaged);
-  const pick = previous ? { index: previous.index, loc: previous.gear?.loc || restoreWeapon.loc, name: previous.name, why: 'restore previously worn weapon after status removal' } : itemReview.pickEquip(snap);
+  const pick = weapons.pick(snap) || (!weapons.pending(snap) ? itemReview.pickEquip(snap) : null);
   if (!pick || Date.now() - (triedWear.get(pick.index) || 0) < 60000) return;
   triedWear.set(pick.index, Date.now());
   await act(page, 'equip', { index: pick.index, loc: pick.loc });
@@ -581,10 +611,15 @@ function sampleHuntResult(snap) {
 }
 
 async function farmTick(snap) {
+  // Capture the equipped weapon even on ticks that immediately enter combat.
+  weapons.observe(snap);
+  // Remember reaching the target even when combat or recovery returns early.
+  // Spending below target afterwards must not restart farming above the reserve.
+  const moneyObjective = committedGoal(snap);
   const overweight = snap.me.maxWeight > 0 && snap.me.weight / snap.me.maxWeight >= 0.9;
   if (overweight && world && isTown(world, snap.me.map) && !errand.active) errand.requestSell();
   if (world && !snap.me.dead && (snap.mapAgeMs ?? Infinity) >= 3000) {
-    const trip = observeFarmTrip(brain.farmTrip, snap.me, isTown(world, snap.me.map), brain.plan.hunt_map);
+    const trip = observeFarmTrip(brain.farmTrip, snap.me, isTown(world, snap.me.map), brain.plan.hunt_map, Date.now(), moneyObjective);
     if (JSON.stringify(trip) !== JSON.stringify(brain.farmTrip)) { brain.farmTrip = trip; saveState(); }
   }
   // Combat preempts planning, equipment, services and travel; survival stays first in reflex.
@@ -596,11 +631,27 @@ async function farmTick(snap) {
     brain.counters.actions[action] = (brain.counters.actions[action] || 0) + 1;
     return;
   }
+  // Map changes briefly expose empty equipment/inventory and arrival dialogs.
+  // Let those settle before services can interrupt the current hunting trip.
+  if (!snap.me.dead && (snap.mapAgeMs ?? Infinity) < 3000) return;
   if (snap.me.sitting && !snap.me.dead) { await act(page, 'stand'); return; }
 
-  const wornWeapon = snap.inventory.find(i => i.type === 5 && i.equipped);
-  if (wornWeapon) { restoreWeapon = {index:wornWeapon.index, ITID:wornWeapon.ITID, loc:wornWeapon.gear?.loc || 2}; recoveringWeapon = false; }
-  if (!snap.me.dead && (weaponBlocked(snap.me) || recoveringWeapon)) {
+  // Owner's +9 project owns its NPC/refine sequence, including intentional
+  // equipment returns to Inventory. Restore-stripped-weapon logic resumes after it.
+  if (!snap.me.dead && !weaponBlocked(snap.me) && !errand.active && !jobChange.active && !healer.active &&
+      (gearUpgrade.active || (!travel.inDialog && !storage.active && snap.me.hp / snap.me.maxHp >= 0.9))) {
+    if (await gearUpgrade.tick(snap)) {
+      // Closing an arrival dialog while idle does not start a gear project.
+      // Stopping here used to reset Warpra after every warp and send us back
+      // to Morroc instead of continuing the already checked walking route.
+      if (gearUpgrade.active && travel.dest) await travel.stop();
+      return;
+    }
+  }
+
+  const wornWeapon = snap.worn?.find(i => i.slot === 'weapon');
+  if (wornWeapon) recoveringWeapon = false;
+  if (!snap.me.dead && (weaponBlocked(snap.me) || recoveringWeapon || weapons.pending(snap))) {
     recoveringWeapon = true;
     if (travel.dest) await travel.stop();
     if (weaponBlocked(snap.me) || healer.active) {
@@ -613,12 +664,11 @@ async function farmTick(snap) {
     }
     return;
   }
-  const moneyObjective = committedGoal(snap);
   if (!errand.active && !jobChange.active && !brain.huntPending &&
       ['level', 'money'].includes(brain.plan.goal) && brain.plan.goal !== moneyObjective) {
     chooseHunt(snap, moneyObjective === 'money'
       ? (snap.me.zeny < currentMoneyTarget(snap).reserve ? 'เงินต่ำกว่าเงินสำรอง: หาเงิน' : 'หาเงินต่อจากรอบเดิมให้ถึงเป้าหมายสะสม')
-      : 'หาเงินครบเป้าหมาย: เก็บเลเวล');
+      : 'เงินสำรองเพียงพอ: กลับไปเก็บเลเวลสู่ Class 4 เลเวล 255');
   }
   errand.observe(snap, brain.plan.goal); // usage rates of potions and wings, for balanced shopping
   const hp = snap.me.maxHp ? snap.me.hp / snap.me.maxHp : 1;
@@ -633,11 +683,11 @@ async function farmTick(snap) {
     return;
   }
 
-  if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && !errand.active && !storage.active && !jobChange.active && await itemReview.identify(snap)) return;
+  if (!oresIn(snap).length && !travel.inDialog && !snap.me.dead && !snap.attackers.length && !errand.active && !storage.active && !jobChange.active && await itemReview.identify(snap)) return;
   // Wear only a current LAYA-reviewed upgrade, between fights.
   if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && !errand.active && !storage.active) await wearBetterGear(snap);
 
-  // Deposit only individually reviewed items selected by LAYA.
+  // Ores go to Kafra before the shop; other deposits still require review.
   if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && !errand.active && !jobChange.active && (storage.active || storage.maybeStart(snap))) {
     const done = await storage.tick(snap);
     if (done?.stored) notify(`📦 ฝากไอเทมเข้า Kafra storage แล้ว ${done.stored} ชิ้น`, done.note, {}, 0x9c27b0);
@@ -677,6 +727,8 @@ async function farmTick(snap) {
   if (!travel.inDialog && !errand.active) {
     const started = errand.maybeStart(snap);
     if (started) {
+      brain.farmTrip = abortFarmTravel(brain.farmTrip, 'กลับเติมเสบียง/ขายของก่อนถึงแมพล่า');
+      saveState();
       if (travel.dest) await travel.stop();
       setPlan({ ...brain.plan, goal: started.goal, objective: started.why, reason: started.why }, snap);
     }
@@ -690,13 +742,26 @@ async function farmTick(snap) {
   // Compare settled cash after town services, before departing for another hunt.
   if (Date.now() < (brain.profitSettleAfter || 0)) return;
   if (world && isTown(world, snap.me.map)) {
-    const result = finishFarmTrip(brain.farmTrip, snap.me.zeny);
+    const result = finishFarmTrip(brain.farmTrip, snap.me.zeny, Date.now(), snap.me);
     if (result) {
-      brain.farmTrip = observeFarmTrip(null, snap.me, true, brain.plan.hunt_map);
+      brain.farmTrip = observeFarmTrip(null, snap.me, true, brain.plan.hunt_map, Date.now(), moneyObjective);
       brain.farmResults ||= {};
       for (const map of result.maps) brain.farmResults[map] = { ...result, level: snap.me.baseLevel };
-      log('farm_profit', result);
+      log(result.goal === 'level' || moneyObjective === 'level' ? 'level_efficiency' : 'farm_profit', result);
       saveState();
+      if (result.routeFailure) {
+        exclude(result.huntMap, result.routeFailure);
+        if (brain.plan.hunt_map === result.huntMap && !brain.huntPending) {
+          chooseHunt(snap, `${result.routeFailure}; เงินสุทธิ ${result.net} zeny: เลือกแมพใหม่`);
+        }
+        return;
+      }
+      if (result.goal === 'level' || moneyObjective === 'level') {
+        chooseHunt(snap, 'จบรอบเก็บเลเวล: EXP เพิ่ม ' + (result.expPercent?.toFixed(2) ?? 'ไม่ทราบ') + '%; ' +
+          (result.expPercentPerMinute?.toFixed(2) ?? 'ไม่ทราบ') + '%/นาที; ใช้เงินที่สังเกตได้ ' + result.observedSpend +
+          ' zeny; ประเมิน EXP% เทียบเวลาและค่าใช้จ่ายเพื่อเลือกแมพต่อไป ไม่ตัดแมพเพราะขายของขาดทุน');
+        return;
+      }
       if (result.net <= 0) {
         brain.levelOffset = Math.max(-MAX_LEVEL_DROP, brain.levelOffset - LEVEL_DROP_PER_DEATH);
         for (const map of result.maps) exclude(map, 'กลับมาขายและเติมของแล้วเงินไม่เพิ่ม');
@@ -787,7 +852,7 @@ async function farmTick(snap) {
 /** What the agent learned and must not forget on a restart (monsters to avoid). */
 function saveState() {
   try {
-    writeFileSync(STATE_FILE, JSON.stringify({ avoidExtra: [...brain.avoidExtra], avoidAtLevel: Object.fromEntries(brain.avoidAtLevel), levelOffset: brain.levelOffset, excluded: Object.fromEntries(brain.excluded), hardMaps: Object.fromEntries(brain.hardMaps), moneyMode: brain.moneyMode, farmTrip: brain.farmTrip, farmResults: brain.farmResults, scoutDropped: [...brain.scoutDropped] }, null, 2));
+    writeFileSync(STATE_FILE, JSON.stringify({ avoidExtra: [...brain.avoidExtra], avoidAtLevel: Object.fromEntries(brain.avoidAtLevel), levelOffset: brain.levelOffset, excluded: Object.fromEntries(brain.excluded), hardMaps: Object.fromEntries(brain.hardMaps), moneyMode: brain.moneyMode, farmTrip: brain.farmTrip, farmResults: brain.farmResults, restoreWeapon: brain.restoreWeapon, scoutDropped: [...brain.scoutDropped] }, null, 2));
   } catch (err) {
     log('state_save_error', { error: err.message });
   }
@@ -808,6 +873,7 @@ function loadState() {
     brain.moneyMode = s.moneyMode ?? false;
     brain.farmTrip = s.farmTrip || null;
     brain.farmResults = s.farmResults || {};
+    brain.restoreWeapon = s.restoreWeapon || null;
     for (const [map, until] of Object.entries(s.excluded || {})) if (until > Date.now()) brain.excluded.set(map, until);
     log('state_loaded', { avoid: [...brain.avoidExtra].join(', '), levelOffset: brain.levelOffset, moneyMode: brain.moneyMode });
   } catch {}
@@ -901,6 +967,11 @@ for (;;) {
   try {
     const snapAt = Date.now();
     const snap = await snapshot(page);
+    if (await reconnect(snap)) {
+      await Bun.sleep(1000);
+      lastTickEnd = Date.now();
+      continue;
+    }
     if (Date.now() - snapAt > SLOW_TICK_MS) slowTick({ ms: Date.now() - snapAt, phase: 'snapshot', map: snap.me?.map, players: snap.players?.length });
     if (snap.me) setIdentity(snap.me);
     if (!snap.inGame) {

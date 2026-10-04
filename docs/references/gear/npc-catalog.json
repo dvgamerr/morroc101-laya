@@ -1,0 +1,6028 @@
+{
+  "at": "2026-10-03T11:54:09.530Z",
+  "job": "Blacksmith",
+  "source": "https://morroc101.duckdns.org/client/data/navi_shop.txt",
+  "items": [
+    {
+      "id": 2401,
+      "name": "Sandals",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 5\nตีบวก: ได้\nน้ำหนัก: 20",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ama_in01",
+          "x": 89,
+          "y": 28,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ayo_in01",
+          "x": 90,
+          "y": 160,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "dewata",
+          "x": 158,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "geffen_in",
+          "x": 26,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "gonryun",
+          "x": 173,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "hu_in01",
+          "x": 94,
+          "y": 313,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lou_in02",
+          "x": 121,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ma_in01",
+          "x": 67,
+          "y": 13,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "mosk_in",
+          "x": 79,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "yuno_in01",
+          "x": 112,
+          "y": 26,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 5,
+        "attack": 0,
+        "buy": 400
+      }
+    },
+    {
+      "id": 2403,
+      "name": "Shoes",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 10\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ama_in01",
+          "x": 89,
+          "y": 28,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ayo_in01",
+          "x": 90,
+          "y": 160,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "dewata",
+          "x": 158,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "gonryun",
+          "x": 173,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lhz_in02",
+          "x": 271,
+          "y": 99,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lou_in02",
+          "x": 121,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ma_in01",
+          "x": 67,
+          "y": 13,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "mosk_in",
+          "x": 79,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ra_in01",
+          "x": 175,
+          "y": 364,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ve_in",
+          "x": 374,
+          "y": 230,
+          "name": "Armor Dealer",
+          "price": 3500,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 10,
+        "attack": 0,
+        "buy": 3500
+      }
+    },
+    {
+      "id": 2405,
+      "name": "Boots",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 16\nอาชีพที่ใช้ได้: Swordman, Archer, Merchant, Thief, Knight, Blacksmith, Hunter, Assassin, Crusader, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Gunslinger, Rebellion\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "aldeba_in",
+          "x": 20,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lhz_in02",
+          "x": 271,
+          "y": 99,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ra_in01",
+          "x": 175,
+          "y": 364,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ve_in",
+          "x": 374,
+          "y": 230,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "xmas_in",
+          "x": 168,
+          "y": 104,
+          "name": "Armor Dealer",
+          "price": 18000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Archer": true,
+          "Assassin": true,
+          "BardDancer": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Gunslinger": true,
+          "Hunter": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rebellion": true,
+          "Rogue": true,
+          "StarGladiator": true,
+          "Swordman": true,
+          "Taekwon": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 16,
+        "attack": 0,
+        "buy": 18000
+      }
+    },
+    {
+      "id": 2501,
+      "name": "Hood",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 4\nตีบวก: ได้\nน้ำหนัก: 20",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ama_in01",
+          "x": 89,
+          "y": 28,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ayo_in01",
+          "x": 90,
+          "y": 160,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "dewata",
+          "x": 158,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "geffen_in",
+          "x": 26,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "gonryun",
+          "x": 173,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "hu_in01",
+          "x": 94,
+          "y": 313,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lou_in02",
+          "x": 121,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ma_in01",
+          "x": 67,
+          "y": 13,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "mosk_in",
+          "x": 79,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "nif_in",
+          "x": 37,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "yuno_in01",
+          "x": 112,
+          "y": 26,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": 1000
+      }
+    },
+    {
+      "id": 2503,
+      "name": "Muffler",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 8\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ama_in01",
+          "x": 89,
+          "y": 28,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ayo_in01",
+          "x": 90,
+          "y": 160,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "dewata",
+          "x": 158,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "gonryun",
+          "x": 173,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lhz_in02",
+          "x": 271,
+          "y": 99,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lou_in02",
+          "x": 121,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ma_in01",
+          "x": 67,
+          "y": 13,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "mosk_in",
+          "x": 79,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "nif_in",
+          "x": 37,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ra_in01",
+          "x": 175,
+          "y": 364,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ve_in",
+          "x": 374,
+          "y": 230,
+          "name": "Armor Dealer",
+          "price": 5000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 8,
+        "attack": 0,
+        "buy": 5000
+      }
+    },
+    {
+      "id": 2505,
+      "name": "Manteau",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 13\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist, Taekwon, Star Gladiator\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 32000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "aldeba_in",
+          "x": 20,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 32000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 32000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 32000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 32000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "nif_in",
+          "x": 37,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 32000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 32000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "xmas_in",
+          "x": 168,
+          "y": 104,
+          "name": "Armor Dealer",
+          "price": 32000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "StarGladiator": true,
+          "Swordman": true,
+          "Taekwon": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 13,
+        "attack": 0,
+        "buy": 32000
+      }
+    },
+    {
+      "id": 2226,
+      "name": "Cap",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 7\nอาชีพที่ใช้ได้: Swordman, Archer, Merchant, Thief, Knight, Blacksmith, Hunter, Assassin, Crusader, Rogue, Alchemist, Bard & Dancer\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 12000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 12000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 12000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "hu_in01",
+          "x": 94,
+          "y": 313,
+          "name": "Armor Dealer",
+          "price": 12000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 12000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 12000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Archer": true,
+          "Assassin": true,
+          "BardDancer": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Hunter": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 7,
+        "attack": 0,
+        "buy": 12000
+      }
+    },
+    {
+      "id": 2301,
+      "name": "Cotton Shirt",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 10\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 10,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "geffen_in",
+          "x": 26,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 10,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 10,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 10,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 10,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "yuno_in01",
+          "x": 112,
+          "y": 26,
+          "name": "Armor Dealer",
+          "price": 10,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 10,
+        "attack": 0,
+        "buy": 10
+      }
+    },
+    {
+      "id": 2303,
+      "name": "Jacket",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 15\nตีบวก: ได้\nน้ำหนัก: 20",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 200,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "geffen_in",
+          "x": 26,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 200,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 200,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 200,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 200,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 200,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "yuno_in01",
+          "x": 112,
+          "y": 26,
+          "name": "Armor Dealer",
+          "price": 200,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 15,
+        "attack": 0,
+        "buy": 200
+      }
+    },
+    {
+      "id": 2305,
+      "name": "Adventurer's Suit",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 20\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ama_in01",
+          "x": 89,
+          "y": 28,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ayo_in01",
+          "x": 90,
+          "y": 160,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "dewata",
+          "x": 158,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "geffen_in",
+          "x": 26,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "gonryun",
+          "x": 173,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lou_in02",
+          "x": 121,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ma_in01",
+          "x": 67,
+          "y": 13,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "mosk_in",
+          "x": 79,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "yuno_in01",
+          "x": 112,
+          "y": 26,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 20,
+        "attack": 0,
+        "buy": 1000
+      }
+    },
+    {
+      "id": 2321,
+      "name": "Silk Robe",
+      "description": "MDEF +10\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 20\nอาชีพที่ใช้ได้: Swordman, Magician, Acolyte, Merchant, Knight, Priest, Wizard, Blacksmith, Crusader, Monk, Sage, Alchemist, Soul Linker\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ama_in01",
+          "x": 89,
+          "y": 28,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ayo_in01",
+          "x": 90,
+          "y": 160,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "dewata",
+          "x": 158,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "geffen_in",
+          "x": 26,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "geffen_in",
+          "x": 77,
+          "y": 173,
+          "name": "Magical Item Seller",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "gonryun",
+          "x": 173,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lhz_in02",
+          "x": 271,
+          "y": 99,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lou_in02",
+          "x": 121,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ma_in01",
+          "x": 67,
+          "y": 13,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "mosk_in",
+          "x": 79,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ra_in01",
+          "x": 175,
+          "y": 364,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ve_in",
+          "x": 252,
+          "y": 313,
+          "name": "Magical Item Seller",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ve_in",
+          "x": 374,
+          "y": 230,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "yuno",
+          "x": 163,
+          "y": 187,
+          "name": "Magical Item Seller",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "yuno_in01",
+          "x": 112,
+          "y": 26,
+          "name": "Armor Dealer",
+          "price": 8000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Acolyte": true,
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Mage": true,
+          "Merchant": true,
+          "Monk": true,
+          "Priest": true,
+          "Sage": true,
+          "SoulLinker": true,
+          "Swordman": true,
+          "Wizard": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 20,
+        "attack": 0,
+        "buy": 8000
+      }
+    },
+    {
+      "id": 2328,
+      "name": "Wooden Mail",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 25\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nตีบวก: ได้\nน้ำหนัก: 100",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ama_in01",
+          "x": 89,
+          "y": 28,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ayo_in01",
+          "x": 90,
+          "y": 160,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "dewata",
+          "x": 158,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "gonryun",
+          "x": 173,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lou_in02",
+          "x": 121,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ma_in01",
+          "x": 67,
+          "y": 13,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "mosk_in",
+          "x": 79,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 5500,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 25,
+        "attack": 0,
+        "buy": 5500
+      }
+    },
+    {
+      "id": 2307,
+      "name": "Mantle",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 37\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "aldeba_in",
+          "x": 20,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "hu_in01",
+          "x": 94,
+          "y": 313,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "xmas_in",
+          "x": 168,
+          "y": 104,
+          "name": "Armor Dealer",
+          "price": 10000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 37,
+        "attack": 0,
+        "buy": 10000
+      }
+    },
+    {
+      "id": 2309,
+      "name": "Coat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 42\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 120",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "aldeba_in",
+          "x": 20,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lhz_in02",
+          "x": 271,
+          "y": 99,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "morocc_in",
+          "x": 141,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ra_in01",
+          "x": 175,
+          "y": 364,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ve_in",
+          "x": 374,
+          "y": 230,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "xmas_in",
+          "x": 168,
+          "y": 104,
+          "name": "Armor Dealer",
+          "price": 22000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 42,
+        "attack": 0,
+        "buy": 22000
+      }
+    },
+    {
+      "id": 2312,
+      "name": "Padded Armor",
+      "description": "[หากสวมใส่คู่กับ Armor Charm]\nDEF +5\nMax HP +150\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 35\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist\nตีบวก: ได้\nน้ำหนัก: 280",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 48000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "aldeba_in",
+          "x": 20,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 48000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 48000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 48000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 48000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 48000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "xmas_in",
+          "x": 168,
+          "y": 104,
+          "name": "Armor Dealer",
+          "price": 48000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 35,
+        "attack": 0,
+        "buy": 48000
+      }
+    },
+    {
+      "id": 2314,
+      "name": "Chain Mail",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 55\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist\nตีบวก: ได้\nน้ำหนัก: 330",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 180,
+          "y": 15,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "aldeba_in",
+          "x": 20,
+          "y": 60,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_fild07",
+          "x": 277,
+          "y": 85,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "cmd_in01",
+          "x": 117,
+          "y": 165,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "izlude_in",
+          "x": 70,
+          "y": 127,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lhz_in02",
+          "x": 271,
+          "y": 99,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ra_in01",
+          "x": 175,
+          "y": 364,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ve_in",
+          "x": 374,
+          "y": 230,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "xmas_in",
+          "x": 168,
+          "y": 104,
+          "name": "Armor Dealer",
+          "price": 65000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 55,
+        "attack": 0,
+        "buy": 65000
+      }
+    },
+    {
+      "id": 1351,
+      "name": "Battle Axe",
+      "description": "ประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 80\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 1\nLv. ที่ต้องการ: 3\nตีบวก: ได้\nน้ำหนัก: 150",
+      "slots": "3",
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 188,
+          "y": 21,
+          "name": "Weapon Dealer",
+          "price": 5400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ein_in01",
+          "x": 109,
+          "y": 27,
+          "name": "Two Hand Weapon Dealer",
+          "price": 5400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "nif_in",
+          "x": 37,
+          "y": 93,
+          "name": "Axe Dealer",
+          "price": 5400,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 3,
+        "weaponLevel": 1,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 80,
+        "buy": 5400
+      }
+    },
+    {
+      "id": 1354,
+      "name": "Hammer",
+      "description": "ประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 120\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 2\nLv. ที่ต้องการ: 16\nตีบวก: ได้\nน้ำหนัก: 200",
+      "slots": "2",
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 188,
+          "y": 21,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ama_in01",
+          "x": 102,
+          "y": 28,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ayo_in01",
+          "x": 90,
+          "y": 192,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "brasilis",
+          "x": 244,
+          "y": 243,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "dewata",
+          "x": 218,
+          "y": 164,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ein_in01",
+          "x": 109,
+          "y": 27,
+          "name": "Two Hand Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "gonryun",
+          "x": 174,
+          "y": 101,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "hu_in01",
+          "x": 94,
+          "y": 390,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lhz_in02",
+          "x": 276,
+          "y": 99,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lou_in02",
+          "x": 130,
+          "y": 182,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ma_in01",
+          "x": 73,
+          "y": 22,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "mosk_in",
+          "x": 31,
+          "y": 180,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "nif_in",
+          "x": 37,
+          "y": 93,
+          "name": "Axe Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ra_in01",
+          "x": 176,
+          "y": 389,
+          "name": "Weapon Dealer",
+          "price": 15500,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 16,
+        "weaponLevel": 2,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 120,
+        "buy": 15500
+      }
+    },
+    {
+      "id": 1357,
+      "name": "Buster",
+      "description": "ประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 155\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 3\nLv. ที่ต้องการ: 30\nตีบวก: ได้\nน้ำหนัก: 220",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 188,
+          "y": 21,
+          "name": "Weapon Dealer",
+          "price": 34000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ein_in01",
+          "x": 109,
+          "y": 27,
+          "name": "Two Hand Weapon Dealer",
+          "price": 34000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "nif_in",
+          "x": 37,
+          "y": 93,
+          "name": "Axe Dealer",
+          "price": 34000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 30,
+        "weaponLevel": 3,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 155,
+        "buy": 34000
+      }
+    },
+    {
+      "id": 1360,
+      "name": "Two-Handed Axe",
+      "description": "ประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 185\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 3\nLv. ที่ต้องการ: 30\nตีบวก: ได้\nน้ำหนัก: 250",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "alberta_in",
+          "x": 188,
+          "y": 21,
+          "name": "Weapon Dealer",
+          "price": 55000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ein_in01",
+          "x": 109,
+          "y": 27,
+          "name": "Two Hand Weapon Dealer",
+          "price": 55000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "nif_in",
+          "x": 37,
+          "y": 93,
+          "name": "Axe Dealer",
+          "price": 55000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 30,
+        "weaponLevel": 3,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 185,
+        "buy": 55000
+      }
+    },
+    {
+      "id": 2211,
+      "name": "Bandana",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 1\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "ama_in01",
+          "x": 89,
+          "y": 28,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ayo_in01",
+          "x": 90,
+          "y": 160,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "dewata",
+          "x": 158,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "gonryun",
+          "x": 173,
+          "y": 84,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "lou_in02",
+          "x": 121,
+          "y": 182,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "ma_in01",
+          "x": 67,
+          "y": 13,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "mosk_in",
+          "x": 79,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 400,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 2,
+        "attack": 0,
+        "buy": 400
+      }
+    },
+    {
+      "id": 5114,
+      "name": "Bucket Hat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 6\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "einbroch",
+          "x": 138,
+          "y": 66,
+          "name": "Flu Mask Dealer",
+          "price": 6000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 6,
+        "attack": 0,
+        "buy": 6000
+      }
+    },
+    {
+      "id": 2230,
+      "name": "Gemmed Sallet",
+      "description": "MDEF +3\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 8\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "geffen_in",
+          "x": 26,
+          "y": 178,
+          "name": "Armor Dealer",
+          "price": 50000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "yuno",
+          "x": 205,
+          "y": 103,
+          "name": "Mr. King's Shop",
+          "price": 50000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "yuno_in01",
+          "x": 112,
+          "y": 26,
+          "name": "Armor Dealer",
+          "price": 50000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 8,
+        "attack": 0,
+        "buy": 50000
+      }
+    },
+    {
+      "id": 2224,
+      "name": "Goggles",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 5\nอาชีพที่ใช้ได้: Swordman, Archer, Merchant, Thief, Knight, Blacksmith, Hunter, Assassin, Crusader, Rogue, Alchemist, Bard & Dancer\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "hu_in01",
+          "x": 94,
+          "y": 313,
+          "name": "Armor Dealer",
+          "price": 20,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Archer": true,
+          "Assassin": true,
+          "BardDancer": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Hunter": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 5,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 2338,
+      "name": "Wedding Dress",
+      "description": "MDEF +15\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 10\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "lhz_in02",
+          "x": 47,
+          "y": 148,
+          "name": "Wedding Shop Dealer",
+          "price": 43000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 211,
+          "y": 169,
+          "name": "Wedding Shop Dealer",
+          "price": 43000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 10,
+        "attack": 0,
+        "buy": 43000
+      }
+    },
+    {
+      "id": 2206,
+      "name": "Wedding Veil",
+      "description": "MDEF +5\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nเพศที่ใช้ได้: หญิง\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "lhz_in02",
+          "x": 47,
+          "y": 148,
+          "name": "Wedding Shop Dealer",
+          "price": 23000,
+          "priceSource": "item_db Buy; verify live shop"
+        },
+        {
+          "map": "prt_in",
+          "x": 211,
+          "y": 169,
+          "name": "Wedding Shop Dealer",
+          "price": 23000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 0,
+        "attack": 0,
+        "buy": 23000
+      }
+    },
+    {
+      "id": 2208,
+      "name": "Ribbon",
+      "description": "MDEF +3\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 1\nเพศที่ใช้ได้: หญิง\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "payon_in01",
+          "x": 7,
+          "y": 119,
+          "name": "Armor Dealer",
+          "price": 800,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 800
+      }
+    },
+    {
+      "id": 2304,
+      "name": "Jacket",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 15\nตีบวก: ได้\nน้ำหนัก: 20",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 10000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 15,
+        "attack": 0,
+        "buy": 200
+      }
+    },
+    {
+      "id": 2306,
+      "name": "Adventurer's Suit",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 20\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 20000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 20,
+        "attack": 0,
+        "buy": 1000
+      }
+    },
+    {
+      "id": 2308,
+      "name": "Mantle",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 37\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 20000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 37,
+        "attack": 0,
+        "buy": 10000
+      }
+    },
+    {
+      "id": 2310,
+      "name": "Coat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 42\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 120",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 42,
+        "attack": 0,
+        "buy": 22000
+      }
+    },
+    {
+      "id": 2311,
+      "name": "Mink Coat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 30\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 30\nตีบวก: ได้\nน้ำหนัก: 230",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 30,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 30,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 2313,
+      "name": "Padded Armor",
+      "description": "[หากสวมใส่คู่กับ Armor Charm]\nDEF +5\nMax HP +150\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 35\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist\nตีบวก: ได้\nน้ำหนัก: 280",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 35,
+        "attack": 0,
+        "buy": 48000
+      }
+    },
+    {
+      "id": 2315,
+      "name": "Chain Mail",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 55\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist\nตีบวก: ได้\nน้ำหนัก: 330",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 55,
+        "attack": 0,
+        "buy": 65000
+      }
+    },
+    {
+      "id": 2322,
+      "name": "Silk Robe",
+      "description": "MDEF +10\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 20\nอาชีพที่ใช้ได้: Swordman, Magician, Acolyte, Merchant, Knight, Priest, Wizard, Blacksmith, Crusader, Monk, Sage, Alchemist, Soul Linker\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 20000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Acolyte": true,
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Mage": true,
+          "Merchant": true,
+          "Monk": true,
+          "Priest": true,
+          "Sage": true,
+          "SoulLinker": true,
+          "Swordman": true,
+          "Wizard": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 20,
+        "attack": 0,
+        "buy": 8000
+      }
+    },
+    {
+      "id": 2326,
+      "name": "Saint's Robe",
+      "description": "MDEF +5\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 50\nอาชีพที่ใช้ได้: Acolyte, Merchant, Priest, Blacksmith, Monk, Alchemist\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 60000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Acolyte": true,
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Merchant": true,
+          "Monk": true,
+          "Priest": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 50,
+        "attack": 0,
+        "buy": 54000
+      }
+    },
+    {
+      "id": 2353,
+      "name": "Odin's Blessing",
+      "description": "[หากสวมใส่คู่กับ Stone Buckler, Magni's Cap]\nSTR +2\nDEF +5\nMDEF +5\n( ถ้า BaseClass คือ Swordman)\nDEF +6\n(สิ้นสุดหากตรงเงื่อนไข)\n[หากสวมใส่คู่กับ Valkyrja's Shield, Fricca's Circlet]\nDEF +(2-จำนวนตีบวก Left hand-จำนวนตีบวก Upper Headgear)\nMDEF +(5+จำนวนตีบวก Left hand+จำนวนตีบวก Upper Headgear)\n[หากสวมใส่คู่กับ Neo Valkyrja's Shield, Fricca's Circlet]\nDEF +(2-จำนวนตีบวก Left hand-จำนวนตีบวก Upper Headgear)\nMDEF +(5+จำนวนตีบวก Left hand+จำนวนตีบวก Upper Headgear)\n[หากสวมใส่คู่กับ Fricco's Shoes, Falcon Muffler]\nAGI +3\nMax HP +5%\nMax SP +5%\n[หากสวมใส่คู่กับ Vidar's Boots, Vali's Manteau]\nVIT +5\nอัตราการฟื้นฟู HP ปกติ +10%\nอัตราการฟื้นฟู SP ปกติ +10%\n[หากสวมใส่คู่กับ Ulle's Cap]\n( ถ้า (ตาม DEX ที่ฝึกฝน) มากกว่า 69)\nใช้ SP น้อยลง 10%\n(สิ้นสุดหากตรงเงื่อนไข)\n[หากสวมใส่คู่กับ Ulle's Cap]\n( ถ้า (ตาม DEX ที่ฝึกฝน) มากกว่า 69)\nใช้ SP น้อยลง 10%\n(สิ้นสุดหากตรงเงื่อนไข)\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 53\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 65\nตีบวก: ได้\nน้ำหนัก: 250",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 65,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 53,
+        "attack": 0,
+        "buy": 30000
+      }
+    },
+    {
+      "id": 2364,
+      "name": "Meteo Plate Armor",
+      "description": "มีโอกาส 30% ที่จะไม่เกิด Stun กับตนเอง\nมีโอกาส 30% ที่จะไม่เกิด Freeze กับตนเอง\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 85\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nClass ที่ใช้ได้: Class 1 และ 2, Trans Class 3\nLv. ที่ต้องการ: 55\nตีบวก: ได้\nน้ำหนัก: 300",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 150000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "Upper": true,
+          "All_Third": true,
+          "Fourth": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 55,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 85,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 2399,
+      "name": "Dragon Vest",
+      "description": "MDEF +3\n[หากสวมใส่คู่กับ Dragon Manteau]\nAGI +5\nFlee +15\n[หากสวมใส่คู่กับ Dragon Manteau, Helm Of Dragon]\nโดนโจมตีเบาลง 20% กับเผ่า Dragon\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 20\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nClass ที่ใช้ได้: Class 1 และ 2, Trans Class 3\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 240,
+          "name": "Armor",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Swordman": true,
+          "Mage": true,
+          "Archer": true,
+          "Acolyte": true,
+          "Merchant": true,
+          "Thief": true,
+          "Crusader": true,
+          "Knight": true,
+          "Wizard": true,
+          "Sage": true,
+          "Hunter": true,
+          "BardDancer": true,
+          "Priest": true,
+          "Monk": true,
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Assassin": true,
+          "Rogue": true
+        },
+        "classes": {
+          "Upper": true,
+          "All_Third": true,
+          "Fourth": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 20,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 2404,
+      "name": "Shoes",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 10\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 244,
+          "name": "Footgear",
+          "price": 10000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 10,
+        "attack": 0,
+        "buy": 3500
+      }
+    },
+    {
+      "id": 2406,
+      "name": "Boots",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 16\nอาชีพที่ใช้ได้: Swordman, Archer, Merchant, Thief, Knight, Blacksmith, Hunter, Assassin, Crusader, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Gunslinger, Rebellion\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 244,
+          "name": "Footgear",
+          "price": 20000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Archer": true,
+          "Assassin": true,
+          "BardDancer": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Gunslinger": true,
+          "Hunter": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rebellion": true,
+          "Rogue": true,
+          "StarGladiator": true,
+          "Swordman": true,
+          "Taekwon": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 16,
+        "attack": 0,
+        "buy": 18000
+      }
+    },
+    {
+      "id": 2409,
+      "name": "High Heels",
+      "description": "MDEF +5\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 4\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 244,
+          "name": "Footgear",
+          "price": 30000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 10,
+        "attack": 0,
+        "buy": 8500
+      }
+    },
+    {
+      "id": 2417,
+      "name": "Fricco's Shoes",
+      "description": "AGI +2\nอัตราการฟื้นฟูจาก Item Group Potion มากขึ้น 20%\n[หากสวมใส่คู่กับ Odin's Blessing, Falcon Muffler]\nAGI +3\nMax HP +5%\nMax SP +5%\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 12\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 65\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 244,
+          "name": "Footgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 65,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 12,
+        "attack": 0,
+        "buy": 30000
+      }
+    },
+    {
+      "id": 2418,
+      "name": "Vidar's Boots",
+      "description": "Max HP +9%\nMax SP +9%\n[หากสวมใส่คู่กับ Odin's Blessing, Vali's Manteau]\nVIT +5\nอัตราการฟื้นฟู HP ปกติ +10%\nอัตราการฟื้นฟู SP ปกติ +10%\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 13\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 65\nตีบวก: ได้\nน้ำหนัก: 65",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 244,
+          "name": "Footgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 65,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 13,
+        "attack": 0,
+        "buy": 30000
+      }
+    },
+    {
+      "id": 2424,
+      "name": "Tidal Shoes",
+      "description": "โดนโจมตีเบาลง 5% กับธาตุ Water\n[หากสวมใส่คู่กับ Wool Scarf]\nอัตราการฟื้นฟู HP ปกติ +5%\nMax HP +10%\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 13\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nClass ที่ใช้ได้: Class 1 และ 2, Trans Class 3\nLv. ที่ต้องการ: 55\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 244,
+          "name": "Footgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Swordman": true,
+          "Mage": true,
+          "Archer": true,
+          "Acolyte": true,
+          "Merchant": true,
+          "Thief": true,
+          "Crusader": true,
+          "Knight": true,
+          "Wizard": true,
+          "Sage": true,
+          "Hunter": true,
+          "BardDancer": true,
+          "Priest": true,
+          "Monk": true,
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Assassin": true,
+          "Rogue": true
+        },
+        "classes": {
+          "Upper": true,
+          "All_Third": true,
+          "Fourth": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 55,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 13,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 2425,
+      "name": "Black Leather Boots",
+      "description": "AGI +((หากจำนวนตีบวก มากกว่าหรือเท่ากับ 9 จะได้ 3 หรือหากไม่ตรงเงื่อนไขจะได้ 1))\n[หากสวมใส่คู่กับ Rider Insignia]\nFlee +10\n[หากสวมใส่คู่กับ Rider Insignia]\nFlee +10\n[หากสวมใส่คู่กับ Crest of the Rider]\nFlee +10\n[หากสวมใส่คู่กับ Rider Suit]\nAGI +2\nFlee +5\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Footgear\nDef: 16\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nClass ที่ใช้ได้: Class 1 และ 2, Trans Class 3\nLv. ที่ต้องการ: 55\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 147,
+          "y": 244,
+          "name": "Footgear",
+          "price": 20000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Swordman": true,
+          "Mage": true,
+          "Archer": true,
+          "Acolyte": true,
+          "Merchant": true,
+          "Thief": true,
+          "Crusader": true,
+          "Knight": true,
+          "Wizard": true,
+          "Sage": true,
+          "Hunter": true,
+          "BardDancer": true,
+          "Priest": true,
+          "Monk": true,
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Assassin": true,
+          "Rogue": true
+        },
+        "classes": {
+          "Upper": true,
+          "All_Third": true,
+          "Fourth": true
+        },
+        "locations": {
+          "Shoes": true
+        },
+        "minLevel": 55,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 16,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5013,
+      "name": "Lord Kaho's Horn",
+      "description": "MDEF +10\nSTR +5\nAGI +10\nVIT +10\nINT +5\nLUK +20\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 30\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 700000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 30,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5108,
+      "name": "Renown Detective's Cap",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 6\nตีบวก: ได้\nน้ำหนัก: 35",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 350000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 6,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5121,
+      "name": "Zealotus Mask",
+      "description": "โจมตีกายภาพแรงขึ้น 5% กับเผ่า Demi-Human\nโจมตีกายภาพแรงขึ้น 5% กับเผ่า Player\nโดนโจมตีเบาลง 5% กับเผ่า Demi-Human\nโดนโจมตีเบาลง 5% กับเผ่า Player\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 70\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 100000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 70,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5126,
+      "name": "Morpheus's Hood",
+      "description": "INT +2\n[หากสวมใส่คู่กับ Morpheus's Shawl, Morpheus's Ring, Morpheus's Bracelet]\nINT +5\nMDEF +11\nMax SP +20%\nร่ายได้โดยไม่ถูกหยุด (ใช้ไม่ได้ใน GvG)\nร่าย VCAST ช้าลง25%\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 33\nตีบวก: ได้\nน้ำหนัก: 20",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 33,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 30000
+      }
+    },
+    {
+      "id": 5140,
+      "name": "Charming Ribbon",
+      "description": "โดนโจมตีเบาลง 5% กับเผ่า Undead\nโดนโจมตีเบาลง 5% กับเผ่า Demon\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 2\nLv. ที่ต้องการ: 10\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 55000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 10,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 2,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5146,
+      "name": "Elephant Hat",
+      "description": "VIT +1\nโดนโจมตีเบาลง 7% กับเผ่า Brute\nสามารถใช้ Lv. 1 Water Ball\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 0,
+        "attack": 0,
+        "buy": null
+      }
+    },
+    {
+      "id": 5152,
+      "name": "Chinese Crown",
+      "description": "มีโอกาส 10% ที่จะไม่เกิด Stun กับตนเอง\nINT +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 2\nLv. ที่ต้องการ: 1\nตีบวก: ได้\nน้ำหนัก: 200",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 150000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 1,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 2,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5161,
+      "name": "Spiky Band",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 12\nอาชีพที่ใช้ได้: Swordman, Acolyte, Merchant, Thief, Knight, Priest, Blacksmith, Assassin, Crusader, Monk, Rogue, Alchemist, Taekwon, Star Gladiator\nLv. ที่ต้องการ: 50\nตีบวก: ได้\nน้ำหนัก: 100",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 200000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Acolyte": true,
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Monk": true,
+          "Priest": true,
+          "Rogue": true,
+          "StarGladiator": true,
+          "Swordman": true,
+          "Taekwon": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 50,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 12,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5173,
+      "name": "Magistrate Hat",
+      "description": "( ถ้า BaseClass คือ Taekwon)\nAGI +1\nอัตราการฟื้นฟู HP ปกติ +3%\n(สิ้นสุดหากตรงเงื่อนไข)\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 6\nLv. ที่ต้องการ: 60\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 60,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 6,
+        "attack": 0,
+        "buy": 30000
+      }
+    },
+    {
+      "id": 5181,
+      "name": "Helm of Darkness",
+      "description": "STR +2\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist\nLv. ที่ต้องการ: 50\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 300000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 50,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5187,
+      "name": "Twin Ribbon",
+      "description": "Max SP +30\nMDEF +3\nมีโอกาส 1% ที่จะร่าย Lv. 6 Stone Skin เมื่อโดนโจมตีกายภาพ\nมีโอกาส 12% ที่จะร่าย Lv. 6 Anti Magic ร่ายใส่ตนเอง เมื่อโดนโจมตีกายภาพ เงื่อนไข ( เวทย์มนต์ )\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 6\nLv. ที่ต้องการ: 30\nตีบวก: ได้\nน้ำหนัก: 20",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 30,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 6,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5188,
+      "name": "Wandering Minstrel Hat",
+      "description": "INT +1\nDEX +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 2\nLv. ที่ต้องการ: 50\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 50,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5192,
+      "name": "Yellow Ribbon",
+      "description": "MDEF +3\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 1\nเพศที่ใช้ได้: หญิง\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 25000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 800
+      }
+    },
+    {
+      "id": 5193,
+      "name": "Green Ribbon",
+      "description": "MDEF +3\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 1\nเพศที่ใช้ได้: หญิง\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 25000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 800
+      }
+    },
+    {
+      "id": 5194,
+      "name": "Pink Ribbon",
+      "description": "MDEF +3\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 1\nเพศที่ใช้ได้: หญิง\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 25000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 800
+      }
+    },
+    {
+      "id": 5195,
+      "name": "Red Ribbon",
+      "description": "MDEF +3\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 1\nเพศที่ใช้ได้: หญิง\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 25000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 800
+      }
+    },
+    {
+      "id": 5196,
+      "name": "Orange Ribbon",
+      "description": "MDEF +3\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 1\nเพศที่ใช้ได้: หญิง\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 25000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 800
+      }
+    },
+    {
+      "id": 5227,
+      "name": "Red Deviruchi Hat",
+      "description": "STR +1\nINT +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 4\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 64\nตีบวก: ได้\nน้ำหนัก: 80",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 65000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 64,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5228,
+      "name": "Gray Deviruchi Hat",
+      "description": "STR +1\nINT +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 4\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 64\nตีบวก: ได้\nน้ำหนัก: 80",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 65000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 64,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5229,
+      "name": "Brown Deviruchi Hat",
+      "description": "STR +1\nINT +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 4\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 64\nตีบวก: ได้\nน้ำหนัก: 80",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 65000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 64,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5230,
+      "name": "Gray Drooping Cat",
+      "description": "มีโอกาส 30% ที่จะไม่เกิด Curse กับตนเอง\nMDEF +15\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 300000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 250000
+      }
+    },
+    {
+      "id": 5231,
+      "name": "Brown Drooping Cat",
+      "description": "มีโอกาส 30% ที่จะไม่เกิด Curse กับตนเอง\nMDEF +15\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 300000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 250000
+      }
+    },
+    {
+      "id": 5232,
+      "name": "Pink Drooping Cat",
+      "description": "มีโอกาส 30% ที่จะไม่เกิด Curse กับตนเอง\nMDEF +15\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 300000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 250000
+      }
+    },
+    {
+      "id": 5233,
+      "name": "Blue Drooping Cat",
+      "description": "มีโอกาส 30% ที่จะไม่เกิด Curse กับตนเอง\nMDEF +15\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 300000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 250000
+      }
+    },
+    {
+      "id": 5234,
+      "name": "Yellow Drooping Cat",
+      "description": "มีโอกาส 30% ที่จะไม่เกิด Curse กับตนเอง\nMDEF +15\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 300000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 250000
+      }
+    },
+    {
+      "id": 5235,
+      "name": "Brown Beanie",
+      "description": "LUK +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nตีบวก: ได้\nน้ำหนัก: 35",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5236,
+      "name": "Blue Beanie",
+      "description": "LUK +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nตีบวก: ได้\nน้ำหนัก: 35",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5237,
+      "name": "Pink Beanie",
+      "description": "LUK +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nตีบวก: ได้\nน้ำหนัก: 35",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5254,
+      "name": "Deviling Hat",
+      "description": "ATK +2\nMATK +2\n( ถ้า (ตามจำนวนตีบวก) มากกว่าหรือเท่ากับ 7)\nได้รับ EXP มากขึ้น 1% กับเผ่า ทุกเผ่า\n(สิ้นสุดหากตรงเงื่อนไข)\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 6\nLv. ที่ต้องการ: 20\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 100000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 1,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 6,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5257,
+      "name": "Soul Ring",
+      "description": "MDEF +2\nมีโอกาส 2% ที่จะร่าย Lv. 1 Assumptio เมื่อโดนโจมตีกายภาพ\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 20\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 20,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5259,
+      "name": "Elephant Hat",
+      "description": "VIT +1\nมีโอกาส 1% ที่จะร่าย Lv. 3 Water Ball เมื่อโจมตีกายภาพ\nสามารถใช้ Lv. 1 Aqua Benedicta\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 6\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 6,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5271,
+      "name": "Phoenix Crown",
+      "description": "MDEF +3\nโดนโจมตีเบาลง ((ตามจำนวนตีบวก))% กับ Class Boss\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 4\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 250000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5273,
+      "name": "Happy Wig",
+      "description": "เคลื่อนที่เร็วขึ้น 25% (ใช้ค่ามากสุดเท่านั้น)\nDEF +4\nสามารถใช้ Lv. 1 Hiding\n(เมื่อถอด)\nรักษาสถานะ Hiding\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 1\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5274,
+      "name": "Shiny Wig",
+      "description": "เคลื่อนที่เร็วขึ้น 25% (ใช้ค่ามากสุดเท่านั้น)\nDEF +4\nสามารถใช้ Lv. 1 Hiding\n(เมื่อถอด)\nรักษาสถานะ Hiding\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 1\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5275,
+      "name": "Marvelous Wig",
+      "description": "เคลื่อนที่เร็วขึ้น 25% (ใช้ค่ามากสุดเท่านั้น)\nDEF +4\nสามารถใช้ Lv. 1 Hiding\n(เมื่อถอด)\nรักษาสถานะ Hiding\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 1\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5276,
+      "name": "Fantastic Wig",
+      "description": "เคลื่อนที่เร็วขึ้น 25% (ใช้ค่ามากสุดเท่านั้น)\nDEF +4\nสามารถใช้ Lv. 1 Hiding\n(เมื่อถอด)\nรักษาสถานะ Hiding\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 1\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 1,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5296,
+      "name": "Drooping Nine Tail",
+      "description": "AGI +1\nCritical +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 2\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 100000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 2,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5297,
+      "name": "Soul Wing",
+      "description": "All Stats +1\nฟื้นฟู 2 SP ทุก ๆ 10 วินาที\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 100000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5312,
+      "name": "Ayothaya King's Hat",
+      "description": "STR +1\nโจมตีกายภาพแรงขึ้น 5% กับเผ่า Demi-Human\nโจมตีกายภาพแรงขึ้น 5% กับเผ่า Player\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 5\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 65000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 5,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5319,
+      "name": "Hello Mother Hat",
+      "description": "อัตราการฟื้นฟู HP ปกติ +150%\nMax HP +(80+(80*(ตามจำนวนตีบวก)))\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 1\nตีบวก: ได้\nน้ำหนัก: 20",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 1,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5320,
+      "name": "Champion Wreath",
+      "description": "All Stats +2\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 8\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 120000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 8,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5336,
+      "name": "Guildsman Recruiter Hat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 4\nLv. ที่ต้องการ: 10\nตีบวก: ได้\nน้ำหนัก: 0",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 10,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": null
+      }
+    },
+    {
+      "id": 5337,
+      "name": "Party Recruiter Hat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 4\nLv. ที่ต้องการ: 10\nตีบวก: ได้\nน้ำหนัก: 0",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 10,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": null
+      }
+    },
+    {
+      "id": 5338,
+      "name": "BF Recruiter Hat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 4\nLv. ที่ต้องการ: 10\nตีบวก: ได้\nน้ำหนัก: 0",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 10,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": null
+      }
+    },
+    {
+      "id": 5339,
+      "name": "Friend Recruiter Hat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 4\nLv. ที่ต้องการ: 10\nตีบวก: ได้\nน้ำหนัก: 0",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 10,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": null
+      }
+    },
+    {
+      "id": 5346,
+      "name": "GF Recruiter Hat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 4\nLv. ที่ต้องการ: 10\nตีบวก: ได้\nน้ำหนัก: 0",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 10,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": null
+      }
+    },
+    {
+      "id": 5349,
+      "name": "Boy's Cap",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 10",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 150000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 3,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5373,
+      "name": "Dark Randgris Helm",
+      "description": "DEX +3\nMDEF +1\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear, Middle Headgear\nDef: 2\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Mid": true,
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 2,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 5802,
+      "name": "Upgraded Elephant Hat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 238,
+          "name": "Rare Headgear",
+          "price": 150000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 6,
+        "attack": 0,
+        "buy": null
+      }
+    },
+    {
+      "id": 2504,
+      "name": "Muffler",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 8\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 40",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 10000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 8,
+        "attack": 0,
+        "buy": 5000
+      }
+    },
+    {
+      "id": 2506,
+      "name": "Manteau",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 13\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist, Taekwon, Star Gladiator\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 40000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "StarGladiator": true,
+          "Swordman": true,
+          "Taekwon": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 13,
+        "attack": 0,
+        "buy": 32000
+      }
+    },
+    {
+      "id": 2507,
+      "name": "Ancient Cape",
+      "description": "AGI +1\n[หากสวมใส่คู่กับ Flattery Robe]\nค่าที่ 1 คือ จำนวนตีบวกArmor\nMax SP +( 10+จำนวนตีบวก Armor)%\nFlee +( 10+จำนวนตีบวก Armor)\n[หากสวมใส่คู่กับ Agenda Robe]\nร่าย VCAST เร็วขึ้น ((2*จำนวนตีบวก Armor))%\nร่ายได้โดยไม่ถูกหยุด (ใช้ไม่ได้ใน GvG)\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 9\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 40\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 82000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 40,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 9,
+        "attack": 0,
+        "buy": 82000
+      }
+    },
+    {
+      "id": 2508,
+      "name": "Ragamuffin Manteau",
+      "description": "ผ้าคลุมจะไม่มีทางชำรุด\nMDEF +10\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 4\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 56000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 4,
+        "attack": 0,
+        "buy": 56000
+      }
+    },
+    {
+      "id": 2514,
+      "name": "Pauldron",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 25\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist\nLv. ที่ต้องการ: 80\nตีบวก: ได้\nน้ำหนัก: 80",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 80,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 25,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 2518,
+      "name": "Morpheus's Shawl",
+      "description": "Max SP +10%\nMDEF +3\n[หากสวมใส่คู่กับ Morpheus's Ring, Morpheus's Bracelet, Morpheus's Hood]\nINT +5\nMDEF +11\nMax SP +20%\nร่ายได้โดยไม่ถูกหยุด (ใช้ไม่ได้ใน GvG)\nร่าย VCAST ช้าลง25%\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 8\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 33\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 60000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 33,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 8,
+        "attack": 0,
+        "buy": 30000
+      }
+    },
+    {
+      "id": 2519,
+      "name": "Morrigane's Manteau",
+      "description": "LUK +2\nPerfect Dodge +8\n[หากสวมใส่คู่กับ Morrigane's Belt, Morrigane's Pendant, Morrigane's Helm]\nSTR +2\nLUK +9\nCritical +13\nATK +18\nPerfect Dodge +13\n[หากสวมใส่คู่กับ Invective Robe]\nค่าที่ 1 คือ จำนวนตีบวกArmor\nไม่สนใจ DEF 15% กับเผ่า Demi-Human\nไม่สนใจ DEF 15% กับเผ่า Demon\nไม่สนใจ DEF 15% กับเผ่า Undead\nLUK +( 3+จำนวนตีบวก Armor)\nCritical +( 10+จำนวนตีบวก Armor)\n[หากสวมใส่คู่กับ Consultation Robe]\nค่าที่ 1 คือ จำนวนตีบวกArmor\nการป้องกันเป็นธาตุ Ghost\nAGI +(จำนวนตีบวก Armor)\nFlee +(((2*จำนวนตีบวก Armor)))\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 9\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nLv. ที่ต้องการ: 61\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 60000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 61,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 9,
+        "attack": 0,
+        "buy": 30000
+      }
+    },
+    {
+      "id": 2528,
+      "name": "Wool Scarf",
+      "description": "MDEF +4\n[หากสวมใส่คู่กับ Tidal Shoes]\nอัตราการฟื้นฟู HP ปกติ +5%\nMax HP +10%\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 11\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nClass ที่ใช้ได้: Class 1 และ 2, Trans Class 3\nLv. ที่ต้องการ: 55\nตีบวก: ได้\nน้ำหนัก: 50",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 85000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Swordman": true,
+          "Mage": true,
+          "Archer": true,
+          "Acolyte": true,
+          "Merchant": true,
+          "Thief": true,
+          "Crusader": true,
+          "Knight": true,
+          "Wizard": true,
+          "Sage": true,
+          "Hunter": true,
+          "BardDancer": true,
+          "Priest": true,
+          "Monk": true,
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Assassin": true,
+          "Rogue": true
+        },
+        "classes": {
+          "Upper": true,
+          "All_Third": true,
+          "Fourth": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 55,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 11,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 2531,
+      "name": "Ulfhedinn",
+      "description": "มีโอกาส 2% ที่จะร่าย Lv. 6 Stone Skin เมื่อโดนโจมตีกายภาพ\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 13\nอาชีพที่ใช้ได้: Swordman, Merchant, Thief, Knight, Blacksmith, Assassin, Crusader, Rogue, Alchemist\nClass ที่ใช้ได้: Class 1 และ 2, Trans Class 3\nLv. ที่ต้องการ: 70\nตีบวก: ได้\nน้ำหนัก: 70",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 10000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Alchemist": true,
+          "Assassin": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Rogue": true,
+          "Swordman": true,
+          "Thief": true
+        },
+        "classes": {
+          "Upper": true,
+          "All_Third": true,
+          "Fourth": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 70,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 13,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 2553,
+      "name": "Dragon Manteau",
+      "description": "AGI +1\nMDEF +5\n[หากสวมใส่คู่กับ Dragon Vest]\nAGI +5\nFlee +15\n[หากสวมใส่คู่กับ Dragon Vest, Helm Of Dragon]\nโดนโจมตีเบาลง 20% กับเผ่า Dragon\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Garment\nDef: 14\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nClass ที่ใช้ได้: Class 1 และ 2, Trans Class 3\nตีบวก: ได้\nน้ำหนัก: 100",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 256,
+          "name": "Garments",
+          "price": 10000
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Swordman": true,
+          "Mage": true,
+          "Archer": true,
+          "Acolyte": true,
+          "Merchant": true,
+          "Thief": true,
+          "Crusader": true,
+          "Knight": true,
+          "Wizard": true,
+          "Sage": true,
+          "Hunter": true,
+          "BardDancer": true,
+          "Priest": true,
+          "Monk": true,
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Assassin": true,
+          "Rogue": true
+        },
+        "classes": {
+          "Upper": true,
+          "All_Third": true,
+          "Fourth": true
+        },
+        "locations": {
+          "Garment": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 14,
+        "attack": 0,
+        "buy": 20
+      }
+    },
+    {
+      "id": 1352,
+      "name": "Battle Axe",
+      "description": "ประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 80\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 1\nLv. ที่ต้องการ: 3\nตีบวก: ได้\nน้ำหนัก: 150",
+      "slots": "4",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 264,
+          "name": "Axes",
+          "price": 20000
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 3,
+        "weaponLevel": 1,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 80,
+        "buy": 5400
+      }
+    },
+    {
+      "id": 1355,
+      "name": "Hammer",
+      "description": "ประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 120\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 2\nLv. ที่ต้องการ: 16\nตีบวก: ได้\nน้ำหนัก: 200",
+      "slots": "3",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 264,
+          "name": "Axes",
+          "price": 30000
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 16,
+        "weaponLevel": 2,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 120,
+        "buy": 15500
+      }
+    },
+    {
+      "id": 1358,
+      "name": "Buster",
+      "description": "ประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 155\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 3\nLv. ที่ต้องการ: 30\nตีบวก: ได้\nน้ำหนัก: 220",
+      "slots": "2",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 264,
+          "name": "Axes",
+          "price": 75000
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 30,
+        "weaponLevel": 3,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 155,
+        "buy": 34000
+      }
+    },
+    {
+      "id": 1363,
+      "name": "Bloody Axe",
+      "description": "STR +10\nเคลื่อนที่เร็วขึ้น 25% (ใช้ค่ามากสุดเท่านั้น)\nประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 170\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 4\nLv. ที่ต้องการ: 44\nตีบวก: ได้\nน้ำหนัก: 400",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 264,
+          "name": "Axes",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 44,
+        "weaponLevel": 4,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 170,
+        "buy": 20
+      }
+    },
+    {
+      "id": 1364,
+      "name": "Great Axe",
+      "description": "เมื่อร่าย Skill Mammonite จะทำให้ศัตรูกระเด็น 5 ช่อง\nมีโอกาส 15% ที่จะเกิด Stun กับศัตรูเมื่อโจมตีกายภาพ\nประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 187\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 4\nLv. ที่ต้องการ: 44\nตีบวก: ได้\nน้ำหนัก: 180",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 264,
+          "name": "Axes",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 44,
+        "weaponLevel": 4,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 187,
+        "buy": 20
+      }
+    },
+    {
+      "id": 1365,
+      "name": "Sabbath",
+      "description": "การโจมตีเป็นธาตุ Dark\nมีโอกาส 0.5% ที่จะเกิด Coma กับเผ่า Demon เมื่อโจมตี\nCritical +50 กับ RC_Undead\nประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 120\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 4\nLv. ที่ต้องการ: 44\nตีบวก: ได้\nน้ำหนัก: 230",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 264,
+          "name": "Axes",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 44,
+        "weaponLevel": 4,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 120,
+        "buy": 20
+      }
+    },
+    {
+      "id": 1366,
+      "name": "Light Epsilon",
+      "description": "การโจมตีเป็นธาตุ Holy\nสามารถใช้ Lv. 3 Heal\nโจมตีกายภาพแรงขึ้น 3% กับเผ่า Demon\nประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 180\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 4\nLv. ที่ต้องการ: 44\nตีบวก: ได้\nน้ำหนัก: 230",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 264,
+          "name": "Axes",
+          "price": 50000
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 44,
+        "weaponLevel": 4,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 180,
+        "buy": 20
+      }
+    },
+    {
+      "id": 1371,
+      "name": "Doom Slayer",
+      "description": "ASPD -40%\nใช้ SP มากขึ้น 100%\n( ถ้า (ตาม STR ที่ฝึกฝน) มากกว่าหรือเท่ากับ 95)\nATK +340\nมีโอกาส 30% ที่จะเกิด Stun กับศัตรูเมื่อโจมตีกายภาพ\nมีโอกาส 5% ที่จะทำให้ชุดเกราะศัตรูชำรุด\n(สิ้นสุดหากตรงเงื่อนไข)\nประเภท: Two-handed axes\nตำแหน่ง: Two-Handed Weapon\nAtk: 10\nระยะโจมตี: 1\nอาชีพที่ใช้ได้: Swordman, Merchant, Knight, Blacksmith, Crusader, Alchemist\nLv. อาวุธ: 4\nLv. ที่ต้องการ: 80\nตีบวก: ได้\nน้ำหนัก: 600",
+      "slots": "1",
+      "shops": [
+        {
+          "map": "prontera",
+          "x": 164,
+          "y": 264,
+          "name": "Axes",
+          "price": 100000
+        }
+      ],
+      "server": {
+        "type": "Weapon",
+        "subType": "2hAxe",
+        "jobs": {
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Crusader": true,
+          "Knight": true,
+          "Merchant": true,
+          "Swordman": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Both_Hand": true
+        },
+        "minLevel": 80,
+        "weaponLevel": 4,
+        "armorLevel": null,
+        "refineable": true,
+        "defense": 0,
+        "attack": 10,
+        "buy": 20
+      }
+    },
+    {
+      "id": 2325,
+      "name": "Saint's Robe",
+      "description": "MDEF +5\nประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Armor\nDef: 50\nอาชีพที่ใช้ได้: Acolyte, Merchant, Priest, Blacksmith, Monk, Alchemist\nตีบวก: ได้\nน้ำหนัก: 60",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prt_church",
+          "x": 108,
+          "y": 124,
+          "name": "Nun",
+          "price": 54000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "Acolyte": true,
+          "Alchemist": true,
+          "Blacksmith": true,
+          "Merchant": true,
+          "Monk": true,
+          "Priest": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Armor": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 50,
+        "attack": 0,
+        "buy": 54000
+      }
+    },
+    {
+      "id": 2220,
+      "name": "Hat",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 2\nตีบวก: ได้\nน้ำหนัก: 20",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "prt_in",
+          "x": 172,
+          "y": 132,
+          "name": "Armor Dealer",
+          "price": 1000,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 2,
+        "attack": 0,
+        "buy": 1000
+      }
+    },
+    {
+      "id": 2222,
+      "name": "Turban",
+      "description": "ประเภท: อุปกรณ์สวมใส่\nตำแหน่ง: Upper Headgear\nDef: 3\nอาชีพที่ใช้ได้: Swordman, Magician, Archer, Acolyte, Merchant, Thief, Knight, Priest, Wizard, Blacksmith, Hunter, Assassin, Crusader, Monk, Sage, Rogue, Alchemist, Bard & Dancer, Taekwon, Star Gladiator, Soul Linker, Gunslinger, Ninja, Gangsi, Death Knight, Dark Collector, Kagerou & Oboro, Rebellion, Summoner\nตีบวก: ได้\nน้ำหนัก: 30",
+      "slots": 0,
+      "shops": [
+        {
+          "map": "yuno",
+          "x": 205,
+          "y": 103,
+          "name": "Mr. King's Shop",
+          "price": 4500,
+          "priceSource": "item_db Buy; verify live shop"
+        }
+      ],
+      "server": {
+        "type": "Armor",
+        "jobs": {
+          "All": true,
+          "Novice": false,
+          "SuperNovice": false
+        },
+        "classes": {
+          "All": true
+        },
+        "locations": {
+          "Head_Top": true
+        },
+        "minLevel": 0,
+        "weaponLevel": null,
+        "armorLevel": 1,
+        "refineable": true,
+        "defense": 5,
+        "attack": 0,
+        "buy": 4500
+      }
+    }
+  ],
+  "serverSource": "E:/morroc101-rathena/db/re/item_db_equip.yml"
+}

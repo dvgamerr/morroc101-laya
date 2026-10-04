@@ -24,6 +24,12 @@ export function installPageAgent() {
   const A = {
     events: [],
     stats: { ...(prev && prev.stats) },
+    // Restarting the agent does not end an NPC conversation on the server.
+    dialog: prev?.dialog,
+    shop: prev?.shop,
+    storage: prev?.storage,
+    identify: prev?.identify,
+    refine: prev?.refine,
     // Skill list, buffs and stats arrive once at map load; keep them across a re-install.
     skills: { ...(prev && prev.skills) },
     status: { ...(prev && prev.status) },
@@ -272,7 +278,20 @@ export function installPageAgent() {
         A.identify = null;
         push({ type: 'identified', index: p.index, ok: p.result === 0 });
         break;
+      case 'PACKET_ZC_OPEN_REFINING_UI':
+        A.refine = { open: true, at: Date.now() };
+        break;
+      case 'PACKET_ZC_REFINING_MATERIAL_LIST':
+        A.refine = { ...A.refine, open: true, at: Date.now(), index: p.itemIndex, materials: (p.MaterialInfo || []).map(i => ({ ...i })) };
+        break;
+      case 'PACKET_ZC_ACK_ITEMREFINING':
+        if (A.refine) A.refine = { open: true, at: Date.now(), resultAt: Date.now(), result: p.result, resultIndex: p.itemIndex, level: p.RefiningLevel };
+        break;
       // ---- NPC shops: buy/sell choice, the lists with prices, the results
+      case 'PACKET_ZC_NPC_BARTER_MARKET_ITEMINFO':
+      case 'PACKET_ZC_NPC_EXPANDED_BARTER_MARKET_ITEMINFO':
+        A.shop = { kind: name.includes('EXPANDED') ? 'expanded_barter' : 'barter', stage: 'barter', at: Date.now(), list: (p.itemList || []).map(i => ({ ...i })) };
+        break;
       case 'PACKET_ZC_SELECT_DEALTYPE':
         A.shop = { naid: p.NAID, stage: 'select', at: Date.now() };
         break;
@@ -459,7 +478,7 @@ export function installPageAgent() {
     const RO = window.RO;
     if (!RO) return { ready: false };
     const me = RO.me();
-    if (!me || !me.playing || me.x === undefined) return { ready: true, inGame: false };
+    if (!me || !me.playing || !me.map || me.x === undefined) return { ready: true, inGame: false };
 
     const now = Date.now();
     // Hits from the map we just left (portal, @go, fly wing) are not a fight here.
@@ -538,8 +557,13 @@ export function installPageAgent() {
       navi: navi(),
       shop: A.shop || null,
       trade: A.trade ? { ...A.trade, items: [...A.trade.items] } : null,
-      storage: A.storage ? { ...A.storage } : null,
+      storage: A.storage ? { ...A.storage, items: Array.isArray(component('Storage')?.list) ? component('Storage').list.map(it => ({
+        index: it.index, ITID: it.ITID, count: it.count ?? 1, type: it.type,
+        name: (RO.DB.getItemInfo(it.ITID) || {}).identifiedDisplayName || String(it.ITID),
+        ...(it.type === 4 || it.type === 5 ? { gear: gearInfo(it) } : {}),
+      })) : null } : null,
       identify: A.identify ? { ...A.identify, indices: [...A.identify.indices] } : null,
+      refine: A.refine ? { ...A.refine } : null,
       // How long we've been on this map: the inventory reloads in pieces after a map change.
       mapAgeMs: now - (A.mapSince || now),
       dialog: A.dialog ? { ...A.dialog, lines: [...A.dialog.lines], idleMs: Date.now() - A.dialog.at } : null,
@@ -720,7 +744,12 @@ export function installPageAgent() {
         return send(PACKET.CZ.REQUEST_ACT2 || PACKET.CZ.REQUEST_ACT, { targetGID: 0, action: 3 });
       case 'skill': {
         // Same version switch as the client's own skill use.
-        if (arg.x !== undefined) return send(PACKET.CZ.USE_SKILL_TOGROUND, { SKID: arg.SKID, selectedLevel: arg.level, xPos: arg.x, yPos: arg.y });
+        if (arg.x !== undefined) {
+          const Struct = RO.PACKETVER.value >= 20190904 ? PACKET.CZ.USE_SKILL_TOGROUND3
+            : RO.PACKETVER.value >= 20180307 ? PACKET.CZ.USE_SKILL_TOGROUND2
+            : PACKET.CZ.USE_SKILL_TOGROUND;
+          return send(Struct, { SKID: arg.SKID, selectedLevel: arg.level, xPos: arg.x, yPos: arg.y });
+        }
         const Struct = RO.PACKETVER.value >= 20180307 ? PACKET.CZ.USE_SKILL2 : PACKET.CZ.USE_SKILL;
         return send(Struct, { SKID: arg.SKID, selectedLevel: arg.level, targetID: arg.targetID || RO.Session.Entity.GID });
       }
@@ -734,6 +763,22 @@ export function installPageAgent() {
           return send(PACKET.CZ.NPC_MARKET_PURCHASE, { itemList: arg.items.map((i) => ({ itemId: i.ITID, amount: i.count })) });
         }
         return send(PACKET.CZ.PC_PURCHASE_ITEMLIST, { itemList: arg.items.map((i) => ({ ITID: i.ITID, count: i.count })) });
+      case 'barter_smelt': {
+        const rough = arg.ITID === 984 ? 756 : arg.ITID === 985 ? 757 : null;
+        const offer = A.shop?.stage === 'barter' && A.shop.at === arg.quoteAt && A.shop.list.find(i => i.ITID === arg.ITID && i.index === arg.shopIndex);
+        if (!rough || !offer || !Number.isInteger(arg.count) || arg.count < 1) return false;
+        const costs = offer.currencyList || [{ ITID: offer.currencyITID, amount: offer.currencyamount }];
+        const material = inventory().find(i => i.ITID === rough && i.count >= 5*arg.count);
+        if (!material || (offer.price || 0) !== 0 || costs.length !== 1 || costs[0].ITID !== rough || costs[0].amount !== 5) return false;
+        return send(A.shop.kind === 'expanded_barter' ? PACKET.CZ.NPC_EXPANDED_BARTER_MARKET_PURCHASE : PACKET.CZ.NPC_BARTER_MARKET_PURCHASE,
+          { itemList: [{ itemId: arg.ITID, amount: arg.count, shopIndex: offer.index, invIndex: material.index }] });
+      }
+      case 'barter_close':
+        if (A.shop?.kind === 'expanded_barter') send(PACKET.CZ.NPC_EXPANDED_BARTER_MARKET_CLOSE, {});
+        else if (A.shop?.kind === 'barter') send(PACKET.CZ.NPC_BARTER_MARKET_CLOSE, {});
+        component('NpcStore')?.remove?.();
+        A.shop = null;
+        return true;
       case 'sell':
         return send(PACKET.CZ.PC_SELL_ITEMLIST, { itemList: arg.items.map((i) => ({ index: i.index, count: i.count })) });
       case 'close_shop':
@@ -753,6 +798,34 @@ export function installPageAgent() {
         return send(PACKET.CZ.REQ_ITEMIDENTIFY, { index: arg.index });
       case 'equip':
         return send(PACKET.CZ.REQ_WEAR_EQUIP, { index: arg.index, wearLocation: arg.loc });
+      case 'unequip':
+        if (!(worn() || []).some(i => i.index === arg.index && i.ITID === arg.ITID)) return false;
+        return send(PACKET.CZ.REQ_TAKEOFF_EQUIP, { index: arg.index });
+      case 'refine_select':
+        // The refine UI dereferences its live Inventory list on the reply.
+        // Equipped/cached items aren't there and cause item.ITID on null.
+        if (!A.refine?.open || !component('Inventory')?.getItemByIndex?.(arg.index) ||
+            (worn() || []).some(i => i.index === arg.index)) return false;
+        return send(PACKET.CZ.REFINING_SELECT_ITEM, { index: arg.index });
+      case 'refine_attempt': {
+        const item = [...inventory(), ...(worn() || []).map(i => ({ ...i, gear: i }))].find(i => i.index === arg.index && i.ITID === arg.ITID);
+        const material = A.refine?.materials?.find(i => i.itemId === arg.material);
+        if (!item?.gear?.identified || item.gear.damaged || item.gear.refine >= 7 || A.refine?.index !== arg.index || A.refine.at !== arg.quoteAt || !material || material.chance <= 0) return false;
+        if ((A.stats.zeny ?? RO.me()?.zeny ?? 0) - material.zeny < 100000) return false;
+        A.refine.materials = null; // one submission per server quote
+        return send(PACKET.CZ.REQ_REFINING, { index: arg.index, itemId: arg.material, blacksmithBlessing: 0 });
+      }
+      case 'refine_close':
+        send(PACKET.CZ.CLOSE_REFINING_UI, {});
+        component('Refine')?.remove?.();
+        A.refine = null;
+        return true;
+      case 'storage_get': {
+        const item = component('Storage')?.list?.find(i => i.index === arg.index && i.ITID === arg.ITID);
+        if (!A.storage?.open || !item || !Number.isInteger(arg.count) || arg.count < 1 || arg.count > (item.count ?? 1)) return false;
+        const ver = (RO.PACKETVER && (RO.PACKETVER.value ?? RO.PACKETVER)) || 0;
+        return send(ver >= 20180307 ? PACKET.CZ.MOVE_ITEM_FROM_STORE_TO_BODY2 : PACKET.CZ.MOVE_ITEM_FROM_STORE_TO_BODY, { index: arg.index, count: arg.count });
+      }
       // ---- Kafra storage (open it by talking to a Kafra; these only work while it's open).
       // Same choice as the client's StorageController.reqAddItem: the "2" packet from packetver
       // 20180307 (this server: 20211103). The old one went out and the server ignored it.

@@ -63,6 +63,39 @@ test('attaches the packet observer', () => {
   expect(typeof RO.observer).toBe('function');
 });
 
+test('refine selection waits for unequip and the live inventory item', () => {
+  const item = { index: 17, ITID: 5257, type: 4, IsIdentified: true };
+  let equipped = true, live = false;
+  RO.UIManager.getComponent = name => name === 'Equipment'
+    ? { isInEquipList: () => equipped ? item : null }
+    : name === 'Inventory' ? { list: live ? [item] : [], getItemByIndex: index => live && index === item.index ? item : null } : null;
+  RO.PACKET.CZ.REQ_TAKEOFF_EQUIP = function () { this.__name = 'unequip'; };
+  RO.PACKET.CZ.REFINING_SELECT_ITEM = function () { this.__name = 'refine_select'; };
+  window.__agent.refine = { open: true };
+  expect(window.__agent.act('refine_select', { index: 17 })).toBe(false);
+  window.__agent.act('unequip', { index: 17, ITID: 5257 });
+  expect(RO.sent.at(-1)).toMatchObject({ __name: 'unequip', index: 17 });
+  equipped = false;
+  expect(window.__agent.act('refine_select', { index: 17 })).toBe(false);
+  live = true;
+  window.__agent.act('refine_select', { index: 17 });
+  expect(RO.sent.at(-1)).toMatchObject({ __name: 'refine_select', index: 17 });
+});
+
+test('reinstall preserves the conversation that still blocks movement on the server', () => {
+  RO.observer('PACKET_ZC_SAY_DIALOG', { NAID: 300, msg: 'Welcome' });
+  RO.observer('PACKET_ZC_CLOSE_DIALOG', { NAID: 300 });
+  installPageAgent();
+  expect(window.__agent.snapshot().dialog).toMatchObject({ naid: 300, state: 'close', lines: ['Welcome'] });
+  RO.observer('PACKET_ZC_CLOSE_SCRIPT', { NAID: 300 });
+  expect(window.__agent.snapshot().dialog.state).toBe('ended');
+});
+
+test('empty map during loading is not a playable snapshot', () => {
+  RO.me = () => ({ playing: true, map: '', x: 50, y: 60 });
+  expect(window.__agent.snapshot()).toEqual({ ready: true, inGame: false });
+});
+
 test('turns chat packets into events and drops our own / NPC lines', () => {
   RO.observer('PACKET_ZC_NOTIFY_CHAT', { GID: 200, msg: 'KemRO : สวัสดี|00' });
   RO.observer('PACKET_ZC_NOTIFY_CHAT', { GID: 300, msg: 'Kafra : Welcome' });
@@ -209,7 +242,7 @@ test('tracks skills, cooldowns, failures and our own status effects', () => {
 });
 
 test('tracks base stats; raise_stat and skills go out as the client sends them', () => {
-  addStructs('STATUS_CHANGE', 'USE_SKILL2', 'USE_SKILL_TOGROUND');
+  addStructs('STATUS_CHANGE', 'USE_SKILL2', 'USE_SKILL_TOGROUND3');
   RO.observer('PACKET_ZC_STATUS', { point: 9, str: 10, agi: 5, vit: 3, Int: 1, dex: 4, luk: 1, standardStr: 2, standardAgi: 2, standardVit: 2, standardInt: 2, standardDex: 2, standardLuk: 2 });
   RO.observer('PACKET_ZC_STATUS_CHANGE_ACK', { statusID: 13, result: 1, value: 11 });
   const s = window.__agent.snapshot();
@@ -221,8 +254,23 @@ test('tracks base stats; raise_stat and skills go out as the client sends them',
   expect(RO.sent.slice(-3)).toEqual([
     { __name: 'STATUS_CHANGE', statusID: 15, changeAmount: 1 },
     { __name: 'USE_SKILL2', SKID: 5, selectedLevel: 10, targetID: 7 },
-    { __name: 'USE_SKILL_TOGROUND', SKID: 83, selectedLevel: 5, xPos: 50, yPos: 60 },
+    { __name: 'USE_SKILL_TOGROUND3', SKID: 83, selectedLevel: 5, xPos: 50, yPos: 60 },
   ]);
+});
+
+test('ground skills select the client packet at each protocol version boundary', () => {
+  addStructs('USE_SKILL_TOGROUND', 'USE_SKILL_TOGROUND2', 'USE_SKILL_TOGROUND3');
+  for (const [version, packet] of [
+    [20180306, 'USE_SKILL_TOGROUND'],
+    [20180307, 'USE_SKILL_TOGROUND2'],
+    [20190903, 'USE_SKILL_TOGROUND2'],
+    [20190904, 'USE_SKILL_TOGROUND3'],
+    [20211103, 'USE_SKILL_TOGROUND3'],
+  ]) {
+    RO.PACKETVER.value = version;
+    window.__agent.act('skill', { SKID: 110, level: 5, x: 0, y: 60 });
+    expect(RO.sent.at(-1)).toEqual({ __name: packet, SKID: 110, selectedLevel: 5, xPos: 0, yPos: 60 });
+  }
 });
 
 test('NPC shop: deal choice, price lists, results, and the packets we answer with', () => {

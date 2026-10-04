@@ -17,6 +17,7 @@ if (!existsSync(READABLE)) writeFileSync(READABLE, '﻿');
 // Failures worth a code fix. They also go to logs/incidents.jsonl, one line each, so a
 // watcher (a Claude Code session, see README) can pick them up without reading every action.
 const INCIDENTS = new Set([
+  'game_dialog', 'game_error',
   'loop_error', 'laya_error', 'planner_error', 'planner_bad_json', 'chat_error', 'notify_error',
   'travel_failed', 'errand_failed', 'errand_no_shop', 'jobchange_failed', 'jobchange_no_npc',
   'npc_laya_error', 'skills_plan_error', 'skill_upgrade_plan_error', 'world_error', 'llm_warm_error',
