@@ -153,6 +153,40 @@ test('finding the NPC: exact name near the spot; never a nameless entity (the He
     { GID: 3, name: 'Healer', x: 153, y: 97 },
   ] };
   expect(findNpcEntity(snap, { name: 'Healer', x: 153, y: 97 }).GID).toBe(3);
-  expect(findNpcEntity({ npcs: [snap.npcs[0], snap.npcs[1]] }, { name: 'Healer', x: 153, y: 97 }).GID).toBe(2); // nearest named
+  // A different NPC standing next to the spot is not the one we want (it would sell, heal or warp for the wrong reason).
+  expect(findNpcEntity({ npcs: [snap.npcs[0], snap.npcs[1]] }, { name: 'Healer', x: 153, y: 97 })).toBe(null);
+  expect(findNpcEntity({ npcs: [{ GID: 4, name: 'Kafra Employee#1', x: 150, y: 90 }] }, { name: 'Kafra Employee', x: 151, y: 90 }).GID).toBe(4);
+  expect(findNpcEntity(snap, { x: 154, y: 97 }).GID).toBe(2); // an entry without a name: the nearest named one
   expect(findNpcEntity({ npcs: [snap.npcs[0]] }, { name: 'Healer', x: 153, y: 97 })).toBe(null);
+});
+
+test('dialog: a rule answering outside the options, or LAYA naming an option we did not offer, is never sent', async () => {
+  const d = createDialog({});
+  await d.start({ GID: 9, name: 'Job Master' }, { goal: 'x', rules: () => ({ index: 7, why: 'bad' }) });
+  layaAnswer = { choice: 'option_9', confidence: 0.9 };
+  const done = await d.tick(snapWith({ naid: 9, state: 'menu', lines: ['?'], menu: ['Talk', 'Requirements'] }));
+  expect(calls.slice(-2)).toEqual([['npc_menu', { naid: 9, num: 255 }], ['npc_close', { naid: 9 }]]);
+  expect(done).toMatchObject({ ok: false });
+  for (const bad of [{ choice: 'option_3', confidence: 0.9 }, { choice: 7, confidence: 0.9 }, { choice: 'option_1', confidence: 'high' }, undefined]) {
+    calls.length = 0;
+    layaAnswer = bad;
+    const d2 = createDialog({});
+    await d2.start({ GID: 9, name: 'Job Master' }, jobChooser('Blacksmith'));
+    await d2.tick(snapWith({ naid: 9, state: 'menu', lines: ['?'], menu: ['Talk', 'Requirements'] }));
+    expect(calls.some(([n, a]) => n === 'npc_menu' && a.num !== 255)).toBe(false);
+  }
+});
+
+test('dialog: an input prompt with no confirmed answer backs out; it never types 0 or an empty text on its own', async () => {
+  const d = createDialog({});
+  await d.start({ GID: 9, name: 'Job Master' }, jobChooser('Blacksmith'));
+  const done = await d.tick(snapWith({ naid: 9, state: 'input', input: 'number', lines: ['How many?'] }));
+  expect(calls.some(([n]) => n === 'npc_input')).toBe(false);
+  expect(done).toMatchObject({ ok: false });
+  // A chooser that knows the answer still gets it through.
+  calls.length = 0;
+  const d2 = createDialog({});
+  await d2.start({ GID: 9, name: 'Job Master' }, { goal: 'x', rules: () => null, input: () => 5 });
+  await d2.tick(snapWith({ naid: 9, state: 'input', input: 'number', lines: ['How many?'] }));
+  expect(calls.at(-1)).toEqual(['npc_input', { naid: 9, value: 5 }]);
 });

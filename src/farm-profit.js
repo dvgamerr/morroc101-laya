@@ -2,14 +2,18 @@
 const expProgress = (me) => Number.isFinite(me.baseLevel) && Number.isFinite(me.baseExp) && me.baseExpNext > 0
   ? (me.baseLevel + me.baseExp / me.baseExpNext) * 100 : null;
 
+// Set when an errand interrupts the trip before the hunting map: a supply stop, not a map failure.
+export const SUPPLY_ROUTE_FAILURE = 'กลับเติมเสบียง/ขายของก่อนถึงแมพล่า';
+
 export function abortFarmTravel(trip, reason) {
   if (!trip?.startedAt || trip.maps.length || !trip.huntMap) return trip;
   return { ...trip, routeFailure: reason };
 }
 
 export function settleFarmErrand(trip, done) {
-  if (trip?.maps.length && done.ok && done.sold > 0) return { ...trip, saleSettled: true };
-  if (trip?.routeFailure !== 'กลับเติมเสบียง/ขายของก่อนถึงแมพล่า' ||
+  // The sale counts even when the purchase after it failed: the cash is already in the purse.
+  if (trip?.maps.length && done.sold > 0) return { ...trip, saleSettled: true };
+  if (trip?.routeFailure !== SUPPLY_ROUTE_FAILURE ||
       trip.maps.length || done.sold || done.bought?.length) return trip;
   const { routeFailure, ...outbound } = trip;
   return { ...outbound, returned: false };
@@ -34,8 +38,14 @@ export function observeFarmTrip(trip, me, inTown, huntMap, now = Date.now(), goa
   }
   // Include outbound travel in the elapsed time, even before reaching the hunt map.
   trip ||= fresh();
+  // A different hunting map was chosen after the old trip ended unsold, or after it was aborted
+  // for a route failure: its results (and its exclusion) must not absorb the new map's.
+  if (trip.huntMap && huntMap && trip.huntMap !== huntMap && (trip.returned || trip.routeFailure)) trip = fresh();
   // Leaving a detour without a sale continues the same cash-to-cash trip.
-  if (trip.returned && !trip.saleSettled && !trip.routeFailure && trip.huntMap === huntMap) trip = { ...trip, returned: false };
+  // `detour` marks that reopening: the hunt map is in `maps`, but we are far from it in a town and
+  // must travel the normal way (not walking-only) until we are back on it.
+  if (trip.returned && !trip.saleSettled && !trip.routeFailure && trip.huntMap === huntMap) trip = { ...trip, returned: false, detour: !!trip.maps.length };
+  if (trip.detour && me.map === huntMap) trip = { ...trip, detour: false };
   if (!trip.returned) trip = { ...trip, startedAt: trip.startedAt ?? now,
     huntMap: trip.huntMap ?? huntMap,
     routeMaps: [...new Set([...(trip.routeMaps || []), me.map])] };

@@ -299,15 +299,11 @@ test('NPC dialog: text, Next, menu (colour codes stripped), Close, and the answe
   expect(window.__agent.snapshot().dialog).toMatchObject({ naid: 42, state: 'next', lines: ['[Job Master]'] });
   RO.observer('PACKET_ZC_MENU_LIST', { NAID: 42, msg: '^0055FFBlacksmith^000000:Alchemist:Cancel' });
   expect(window.__agent.snapshot().dialog).toMatchObject({ state: 'menu', menu: ['Blacksmith', 'Alchemist', 'Cancel'] });
-  window.__agent.act('npc_next', { naid: 42 });
-  window.__agent.act('npc_menu', { naid: 42, num: 1 });
   window.__agent.act('upgrade_skill', { SKID: 42 });
   RO.observer('PACKET_ZC_CLOSE_DIALOG', { NAID: 42 });
   expect(window.__agent.snapshot().dialog.state).toBe('close');
   window.__agent.act('npc_close', { naid: 42 });
-  expect(RO.sent.slice(-4)).toEqual([
-    { __name: 'REQ_NEXT_SCRIPT', NAID: 42 },
-    { __name: 'CHOOSE_MENU', NAID: 42, num: 1 },
+  expect(RO.sent.slice(-2)).toEqual([
     { __name: 'UPGRADE_SKILLLEVEL', SKID: 42 },
     { __name: 'CLOSE_DIALOG', NAID: 42 },
   ]);
@@ -405,4 +401,58 @@ test('skill damage on us counts as a hit from that monster (plants and shooters 
   RO.observer('PACKET_ZC_NOTIFY_SKILL2', { SKID: 90, AID: 4242, targetID: myGID, damage: 500 });
   RO.observer('PACKET_ZC_NOTIFY_SKILL2', { SKID: 90, AID: myGID, targetID: 4242, damage: 900 }); // ours on it: not a hit on us
   expect(window.__agent.hits.map((h) => [h.from, h.damage])).toEqual([[4242, 500]]);
+});
+
+test('next/menu/input/identify exist only as real UI clicks (ui-click.js), never as packets here', () => {
+  for (const name of ['npc_next', 'npc_menu', 'npc_input', 'identify']) {
+    expect(() => window.__agent.act(name, { naid: 42, num: 1 })).toThrow('unknown action');
+  }
+});
+
+test('storage_close sends CZ_CLOSE_STORE and an NPC close without naid sends nothing', () => {
+  addStructs('CLOSE_STORE', 'CLOSE_DIALOG');
+  RO.observer('PACKET_ZC_STORE_NORMAL_ITEMLIST', { curCount: 1, maxCount: 300 });
+  window.__agent.act('storage_close');
+  expect(RO.sent.at(-1)).toEqual({ __name: 'CLOSE_STORE' });
+  expect(window.__agent.snapshot().storage).toBe(null);
+  const before = RO.sent.length;
+  window.__agent.act('npc_close', {});
+  expect(RO.sent.length).toBe(before);
+});
+
+test('query ignores server broadcasts and runs one query at a time', async () => {
+  let n = 0;
+  RO.say = () => {
+    const id = ++n;
+    setTimeout(() => {
+      RO.observer('PACKET_ZC_BROADCAST', { msg: 'Server announcement ' + id });
+      RO.observer('PACKET_ZC_NOTIFY_PLAYERCHAT', { msg: 'reply ' + id });
+    }, 5);
+  };
+  const [a, b] = await Promise.all([window.__agent.query('@a', 80), window.__agent.query('@b', 80)]);
+  expect(a).toEqual(['reply 1']);
+  expect(b).toEqual(['reply 2']);
+});
+
+test('reinstall keeps an open trade so it can still be cancelled', () => {
+  RO.observer('PACKET_ZC_REQ_EXCHANGE_ITEM', { name: 'Someone' });
+  installPageAgent();
+  expect(window.__agent.snapshot().trade).toMatchObject({ stage: 'requested', from: 'Someone' });
+});
+
+test('actions that address items by index use the live inventory, not the blink cache', () => {
+  const inv = { list: [{ index: 3, ITID: 756, count: 10, type: 3 }] };
+  RO.UIManager.getComponent = (name) => { if (name === 'Inventory') return inv; throw new Error('nope'); };
+  window.__agent.snapshot(); // fills the cache
+  inv.list = [];
+  expect(window.__agent.snapshot().inventory.length).toBe(1); // blink: the snapshot may trust the cache
+  const A = window.__agent;
+  A.shop = { kind: 'barter', stage: 'barter', at: 5, list: [{ ITID: 984, index: 0, price: 0, currencyITID: 756, currencyamount: 5 }] };
+  addStructs('NPC_BARTER_MARKET_PURCHASE');
+  expect(A.act('barter_smelt', { ITID: 984, shopIndex: 0, quoteAt: 5, count: 1 })).toBe(false);
+});
+
+test('send-type actions report true so callers can tell a sent action from a refused one', () => {
+  expect(window.__agent.act('pickup', { GID: 50 })).toBe(true);
+  expect(window.__agent.act('say', { text: 'hi' })).toBe(true);
 });

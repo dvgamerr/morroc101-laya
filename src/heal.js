@@ -1,6 +1,5 @@
 import { act } from './browser.js';
 import { log } from './logger.js';
-import { learn } from './lessons.js';
 import { findNpcs, isTown, travelCosts } from './world.js';
 import { FORBIDDEN, findNpcEntity } from './npc.js';
 
@@ -56,7 +55,6 @@ export function createHealer(page, world, dialog, travel = null) {
 
   function finish(ok, note) {
     log(ok ? 'heal_done' : 'heal_failed', { note });
-    if (!ok && h.npc) learn(`Healer ที่ ${h.npc.map} รักษาไม่สำเร็จ (${note}) — ยังไม่ทราบสาเหตุ`);
     h.cooldownUntil = Date.now() + RETRY_AFTER_MS;
     if (!ok && h.npc) h.skipUntil.set(h.npc.map, Date.now() + BAD_HEALER_MS);
     Object.assign(h, { active: false, stage: 'idle' });

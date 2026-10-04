@@ -12,8 +12,8 @@ const source = main.slice(start, end);
 function fixture(active = false) {
   const calls = [];
   const context = {
-    weapons: { observe() {} }, committedGoal: () => 'money', world: null,
-    brain: { counters: { actions: {} }, drinks: [] },
+    weapons: { observe() {}, pending: () => false }, committedGoal: () => 'money', world: {}, isTown: () => true, observeFarmTrip: (t) => t, saveState() {},
+    brain: { plan: {}, counters: { actions: {} }, drinks: [] },
     weaponBlocked: () => false,
     errand: { active: false }, jobChange: { active: false }, healer: { active: false },
     storage: { active: false },
@@ -21,6 +21,7 @@ function fixture(active = false) {
     travel: { dest: 'yuno_fild08', inDialog: false, stop: async () => { calls.push('stop'); } },
     reflex: async () => { calls.push('combat'); return { action: 'keep_fighting' }; },
     noteEscape() {},
+    recoveringWeapon: false, recoveringSince: 0, RECOVERY_LATCH_MS: 120000, walkFallbackMap: null,
   };
   const farmTick = runInNewContext(source + '\nfarmTick;', context);
   const snap = {

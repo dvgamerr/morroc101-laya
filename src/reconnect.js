@@ -1,5 +1,10 @@
 import { log } from './logger.js';
 
+// Retries back off (a server that is down or a wrong password must not be hammered every few
+// seconds) and a recovery that drags on is reported as an incident instead of failing silently.
+const MAX_BACKOFF_MS = 2 * 60 * 1000;
+const STUCK_REPORT_MS = 5 * 60 * 1000;
+
 // Use the client's visible controls; standing still alone is not a disconnect.
 export function createReconnect(page) {
   let character = '';
@@ -8,22 +13,35 @@ export function createReconnect(page) {
   let recovering = false;
   let blocked = false;
   let lastState = '';
+  let attempts = 0;
+  let blockedSince = 0;
+  let lastStuckReport = 0;
+  // Delay before the next click: base, 2x, 4x ... capped. Reset once we are back in the game.
+  const backoff = (base) => Math.min(MAX_BACKOFF_MS, base * 2 ** Math.min(attempts++, 6));
   async function beginRecovery() {
     if (!recovering) await page.evaluate(() => {
       window.__agentReconnectEntity = window.RO?.Session?.Entity;
     });
     recovering = blocked = true;
+    blockedSince ||= Date.now();
   }
   const report = (state, detail = {}) => {
-    if (state === lastState) return;
-    lastState = state;
+    const key = state + (detail.error ?? '');
+    if (key === lastState) return;
+    lastState = key;
     log('game_reconnect', { state, ...detail });
   };
+  function reportStuck(now) {
+    if (!blockedSince || now - blockedSince < STUCK_REPORT_MS || now - lastStuckReport < STUCK_REPORT_MS) return;
+    lastStuckReport = now;
+    log('game_reconnect_failed', { state: lastState, attempts, minutes: Math.round((now - blockedSince) / 60000), character });
+  }
 
   return async function reconnect(snap) {
     const now = Date.now();
     if (now < nextCheck) return blocked;
     nextCheck = now + 1000;
+    reportStuck(now);
     try {
       const popup = page.locator('#win_popup:visible').filter({
         has: page.locator('.text', { hasText: /disconnect|connection (?:lost|closed)|failed to connect|server closed/i }),
@@ -33,9 +51,9 @@ export function createReconnect(page) {
         await beginRecovery();
         const ok = popup.locator('button[data-background="btn_ok.bmp"]:visible');
         if (await ok.count() === 1 && now >= nextAction) {
-          nextAction = now + 5000;
+          nextAction = now + backoff(5000);
           await ok.click({ timeout: 1200 });
-          report('disconnect_ok', { character });
+          report('disconnect_ok', { character, attempts });
         } else report('waiting_for_client');
         return true;
       }
@@ -53,9 +71,9 @@ export function createReconnect(page) {
         }
         const connect = login.locator('button.connect:visible');
         if (await connect.isEnabled()) {
-          nextAction = now + 10000;
+          nextAction = now + backoff(10000);
           await connect.click({ timeout: 1200 });
-          report('login_submitted');
+          report('login_submitted', { attempts });
         }
         return true;
       }
@@ -86,9 +104,9 @@ export function createReconnect(page) {
         }
         const ok = panel.locator('ui-button.ok:visible');
         if (await ok.count() === 1) {
-          nextAction = now + 10000;
+          nextAction = now + backoff(10000);
           await ok.click({ timeout: 1200 });
-          report('character_selected', { character });
+          report('character_selected', { character, attempts });
         }
         return true;
       }
@@ -103,11 +121,15 @@ export function createReconnect(page) {
       }
       if (recovering) report('in_game', { character: snap.me?.name });
       recovering = blocked = false;
+      attempts = 0;
+      blockedSince = 0;
       if (snap?.inGame && snap.me?.name) character = snap.me.name;
       return false;
     } catch (error) {
-      // Reloads destroy the execution context while reconnecting.
+      // Reloads destroy the execution context while reconnecting, so a failed check is retried;
+      // but it keeps the bot blocked, so it is recorded (and escalated by reportStuck).
       blocked = true;
+      blockedSince ||= Date.now();
       report('retry', { error: error.message });
       return true;
     }

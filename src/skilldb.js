@@ -28,6 +28,11 @@ export const AEGIS = {
   2270: 'NC_INFRAREDSCAN', 2271: 'NC_ANALYZE', 2272: 'NC_MAGNETICFIELD', 2273: 'NC_NEUTRALBARRIER', 2274: 'NC_STEALTHFIELD',
   2275: 'NC_REPAIR', 2276: 'NC_TRAININGAXE', 2277: 'NC_RESEARCHFE', 2278: 'NC_AXEBOOMERANG', 2279: 'NC_POWERSWING',
   2280: 'NC_AXETORNADO', 2281: 'NC_SILVERSNIPER', 2282: 'NC_MAGICDECOY', 2283: 'NC_DISJOINT',
+  // Meister (4th). Ids from the game client's own SkillConst table (roBrowser bundle found in the cached
+  // service worker, .browser-profile/Default/Service Worker/CacheStorage), not from rAthena.
+  5295: 'MT_AXE_STOMP', 5296: 'MT_RUSH_QUAKE', 5297: 'MT_M_MACHINE', 5298: 'MT_A_MACHINE', 5299: 'MT_D_MACHINE',
+  5300: 'MT_TWOAXEDEF', 5301: 'MT_ABR_M', 6002: 'MT_SPARK_BLASTER', 6003: 'MT_TRIPLE_LASER', 6004: 'MT_MIGHTY_SMASH',
+  6506: 'MT_RUSH_STRIKE', 6507: 'MT_POWERFUL_SWING', 6508: 'MT_ENERGY_CANNONADE',
   // Common buffs from other classes (party/scrolls)
   29: 'AL_INCAGI', 34: 'AL_BLESSING', 33: 'AL_ANGELUS',
 };

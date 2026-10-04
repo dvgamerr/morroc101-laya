@@ -1,4 +1,4 @@
-import { observeFarmTrip, finishFarmTrip, abortFarmTravel, settleFarmErrand } from './farm-profit.js';
+import { observeFarmTrip, finishFarmTrip, abortFarmTravel, settleFarmErrand, SUPPLY_ROUTE_FAILURE } from './farm-profit.js';
 import { createEmergencyReturn } from './emergency-return.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { config } from './config.js';
@@ -35,7 +35,6 @@ import { oresIn } from './ores.js';
 
 const REPICK_EVERY_LEVELS = 3;
 const EXCLUDE_FOR_MS = 30 * 60 * 1000;
-const DEATHS_TO_ABANDON_MAP = 2;
 const STAT_GAP_MS = 400;
 const SIGNAL_REPLAN_GAP_MS = 60000;
 const FIGHT_TICK_MS = 120;
@@ -45,7 +44,6 @@ const LOW_FLIP_CONFIRM_MS = 5000;
 const LEVEL_DROP_PER_DEATH = 5;
 const DRINK_WINDOW_MS = 120000;
 const DRINK_SHARE_TO_LEAVE = 0.4; // 40% of the time drinking = not really fighting
-const MAP_CHOICE_WINDOW_MS = 30000;
 const MAX_LEVEL_DROP = 30;
 const ESCAPE_WINDOW_MS = 5 * 60 * 1000;
 const ESCAPE_DEDUPE_MS = 10000;
@@ -57,28 +55,58 @@ const MAX_LEVEL_ABOVE = 5;
 const STATE_FILE = 'logs/agent-state.json';
 const STATE_TH = { stun: 'มึน', freeze: 'แข็ง', sleep: 'หลับ', stone: 'กลายเป็นหิน', imprison: 'ถูกขัง', silence: 'ใบ้' };
 
-const brain = {
-  plan: { ...DEFAULT_PLAN },
-  // farm (default) | follow a player | wait in place — set by chat
-  mode: { kind: 'farm' },
-  planning: false,
-  lastPlanAt: 0,
-  huntLevel: 0,
-  excluded: new Map(), // map -> until (maps we couldn't reach or kept dying on)
-  hardMaps: new Map(), // map -> {dps, level}: hit harder than potions keep up with, at that base level
-  disablers: new Map(), // monster name -> [timestamps] it stunned/froze/slept us
-  avoidAtLevel: new Map(), // monster -> Base Level at the failed encounter
-  avoidExtra: new Set(), // monsters learned to be not worth fighting (kept across plans)
-  // Hunt this many levels below/above our own: lowered by deaths, eased back by clean level-ups.
-  // The character's gear decides what it can farm, not just its level.
-  levelOffset: 0,
-  moneyMode: false, // enter below reserve, then farm up to errand.moneyTarget
-  mapChoiceOpenUntil: 0, // planner may change the hunting map only before this
-  scoutDropped: new Set(), // @where/@mobsearch found useless on this account
-  drinks: [], // timestamps of potions drunk (for drinkShare)
-  deathsOn: new Map(), // map -> [timestamps]
-  counters: { deaths: 0, actions: {} },
-};
+/**
+ * Every field the agent keeps between ticks, declared once. (P) = saved to STATE_FILE by saveState()
+ * and restored by loadState(); (T) = transient, rebuilt from the live game after a restart.
+ */
+function createBrain() {
+  return {
+    // --- persisted (P) ---
+    avoidExtra: new Set(), // (P) monsters learned to be not worth fighting (kept across plans)
+    avoidAtLevel: new Map(), // (P) monster -> Base Level at the failed encounter
+    // Hunt this many levels below/above our own: lowered by deaths, eased back by clean level-ups.
+    // The character's gear decides what it can farm, not just its level.
+    levelOffset: 0, // (P)
+    excluded: new Map(), // (P) map -> until (maps we couldn't reach or kept dying on)
+    hardMaps: new Map(), // (P) map -> {dps, level}: hit harder than potions keep up with, at that base level
+    moneyMode: false, // (P) enter below reserve, then farm up to errand.moneyTarget
+    farmTrip: null, // (P) current farm-profit trip accounting (farm-profit.js)
+    farmResults: {}, // (P) map -> last settled trip result
+    restoreWeapon: null, // (P) weapon to put back after it was stripped (weapon-recovery.js)
+    scoutDropped: new Set(), // (P) @where/@mobsearch found useless on this account
+
+    // --- transient (T) ---
+    plan: { ...DEFAULT_PLAN }, // (T) the planner's current plan (re-planned after a restart)
+    mode: { kind: 'farm' }, // (T) farm (default) | follow a player | wait in place — set by chat
+    announced: false, // (T) the first plan was already sent to Discord
+    planning: false, // (T) a planner request is in flight
+    queuedPlan: null, // (T) {snap, why}: a replan asked for while one was in flight
+    lastPlanAt: 0, // (T)
+    huntLevel: 0, // (T) base level when the hunting map was picked (REPICK_EVERY_LEVELS)
+    huntPending: false, // (T) a new hunting map is being chosen: don't travel/farm meanwhile
+    huntWhy: undefined, // (T) reason of the pending choice
+    huntRevision: 0, // (T) bumped per chooseHunt; stale planner answers are dropped
+    signalKeys: undefined, // (T) last seen goal signals (checkSignals)
+    lowOnPotions: false, // (T) confirmed "out of potions" state
+    lowFlipSince: undefined, // (T) since when lowOnPotions disagrees with the live read
+    profitSettleAfter: 0, // (T) wait until this time for a fresh purse after shop packets
+    disablers: new Map(), // (T) monster name -> [timestamps] it stunned/froze/slept us
+    drinks: [], // (T) timestamps of potions drunk (for drinkShare)
+    deathsOn: new Map(), // (T) map -> [timestamps]
+    diedSinceLevelUp: false, // (T)
+    escapes: [], // (T) wing escapes on the hunting map (noteEscape)
+    routeEscapes: null, // (T) {key, times}: wing escapes on the way to the hunting map
+    climbedTo: null, // (T) {from, at}: a climbed-to map is on probation
+    easyChecks: 0, // (T) consecutive "too easy" potion checks
+    fighting: false, // (T) set each tick by the reflex result
+    notInGameLogged: false, // (T)
+    counters: { deaths: 0, actions: {} }, // (T)
+  };
+}
+const brain = createBrain();
+
+// A forgotten promise (planner follow-up, notification) must not take the agent down or vanish silently.
+process.on('unhandledRejection', (err) => log('unhandled_rejection', { error: String(err?.message ?? err) }));
 
 // Ctrl+C stops the agent only. The browser is its own process and keeps the session.
 process.on('SIGINT', () => {
@@ -119,10 +147,10 @@ const scout = createScout(page, {
     saveState();
   },
 });
-const reflex = createReflex(page, brain, scout, skills, hotkeys, world, () => snapshot(page));
+const reflex = createReflex(page, brain, scout, skills, hotkeys, world, () => getSnap());
 const trader = createTrader(page);
 // One @go state for every traveller (hunting, shopping, job change).
-const goState = { canGo: true, bad: new Set() };
+const goState = { canGo: true };
 const travelForErrands = createTravel(page, goState, world);
 const damage = createDamageTracker();
 const weapons = createWeaponRecovery(brain.restoreWeapon, weapon => { brain.restoreWeapon = weapon; saveState(); });
@@ -134,15 +162,32 @@ const healer = createHealer(page, world, createDialog(page), createTravel(page, 
 const chat = createChat(page, brain);
 const travel = createTravel(page, goState, world);
 const gearUpgrade = createGearUpgrade(page, createTravel(page, goState, world), storage);
-const emergencyReturn = createEmergencyReturn(page, map => map === 'morocc' || !!world && isTown(world, map));
-const getSnap = () => snapshot(page);
+const emergencyReturn = createEmergencyReturn(page, map => map === 'morocc' || !!world && isTown(world, map), () => goState.canGo);
+// One snapshot serves everyone: the emergency timer, the main loop and helpers share a reading that is
+// younger than maxAgeMs (and join one already in flight) instead of each hitting the page every 150ms.
+const SNAP_REUSE_MS = 60;
+let snapCache = null; // {snap, at}: `at` is when the read started
+let snapInflight = null; // {promise, at}
+function getSnap(maxAgeMs = 0) {
+  const now = Date.now();
+  if (maxAgeMs > 0) {
+    if (snapCache && now - snapCache.at < maxAgeMs) return Promise.resolve(snapCache.snap);
+    if (snapInflight && now - snapInflight.at < maxAgeMs) return snapInflight.promise;
+  }
+  const entry = { at: now };
+  entry.promise = snapshot(page)
+    .then((snap) => { if (!snapCache || snapCache.at <= entry.at) snapCache = { snap, at: entry.at }; return snap; })
+    .finally(() => { if (snapInflight === entry) snapInflight = null; });
+  snapInflight = entry;
+  return entry.promise;
+}
 // Safety polling continues while LAYA, NPC dialogs or other actions are awaited.
 let checkingEmergency = false;
 const emergencyTimer = setInterval(async () => {
   if (checkingEmergency) return;
   checkingEmergency = true;
   try {
-    const live = await getSnap();
+    const live = await getSnap(SNAP_REUSE_MS * 2);
     if (live?.inGame) await emergencyReturn(live);
   } catch (err) {
     log('emergency_check_error', { error: err.message });
@@ -241,10 +286,17 @@ function refreshCombatMemory(snap) {
     brain.plan.avoid_monsters = (brain.plan.avoid_monsters || []).filter(name => !released.includes(name));
     brain.huntLevel = 0;
     brain.lastPlanAt = 0;
-    brain.mapChoiceOpenUntil = Date.now() + MAP_CHOICE_WINDOW_MS;
     saveState();
     log('combat_memory_recheck', { level, released });
   }
+}
+
+/**
+ * A setback (death, escapes, losing map) takes a full step down from the level we were actually
+ * hunting at: a +5 earned by climbing must not absorb the penalty.
+ */
+function dropLevelOffset(by = LEVEL_DROP_PER_DEATH) {
+  brain.levelOffset = Math.max(-MAX_LEVEL_DROP, Math.min(0, brain.levelOffset) - by);
 }
 
 function excluded() {
@@ -265,7 +317,7 @@ function candidates(snap) {
   // Compare EXP for leveling and drop value / low damage for money.
   const goal = committedGoal(snap);
   const base = snap.me.baseLevel || 1;
-  const level = Math.max(1, base + Math.min(0, brain.levelOffset));
+  const level = Math.max(1, base + brain.levelOffset);
   return pickHuntingGrounds(world, {
     level,
     goal,
@@ -296,7 +348,15 @@ function replan(snap, why) {
   brain.lastPlanAt = Date.now();
   const revision = brain.huntRevision || 0;
   const recent = 'actions ' + JSON.stringify(brain.counters.actions) + ', deaths ' + brain.counters.deaths + ', previous_hunt_map ' + brain.plan.hunt_map + ', farmResults ' + JSON.stringify(brain.farmResults || {});
-  const ctx = { candidates: candidates(snap), inTown: world ? isTown(world, snap.me.map) : false, signals: signals(snap), goal: committedGoal(snap), moneyTarget: currentMoneyTarget(snap), farmResults: structuredClone(brain.farmResults || {}) };
+  let ctx;
+  try {
+    // brain.planning is only cleared by the promise chain below: a throw here must not leave it set.
+    ctx = { candidates: candidates(snap), inTown: world ? isTown(world, snap.me.map) : false, signals: signals(snap), goal: committedGoal(snap), moneyTarget: errand.moneyTarget(snap), farmResults: structuredClone(brain.farmResults || {}) };
+  } catch (err) {
+    brain.planning = false;
+    log('planner_error', { error: err.message });
+    return;
+  }
   if (!ctx.candidates.length) {
     brain.planning = false;
     log('hunt_none', { why, level: snap.me.baseLevel });
@@ -314,7 +374,9 @@ function replan(snap, why) {
       }
       const eligible = candidates(fresh);
       const goal = committedGoal(fresh);
-      if (fresh.me.map !== snap.me.map || goal !== ctx.goal || !ctx.candidates.some(c => c.map === next.hunt_map) || !eligible.some(c => c.map === next.hunt_map)) {
+      // Eligibility is re-checked from where we stand now, so walking to another map (an errand
+      // across several maps) while the planner thinks does not throw its answer away.
+      if (goal !== ctx.goal || !ctx.candidates.some(c => c.map === next.hunt_map) || !eligible.some(c => c.map === next.hunt_map)) {
         log('planner_map_rejected', { map: next.hunt_map, reason: 'context changed or map no longer eligible' });
         brain.queuedPlan = { snap: fresh, why: 'ข้อมูลเปลี่ยน: เลือกแมพใหม่' };
         return;
@@ -332,31 +394,37 @@ function replan(snap, why) {
       const queued = brain.queuedPlan;
       brain.queuedPlan = null;
       if (queued) {
-        const fresh = await getSnap().catch(() => null);
-        if (fresh?.inGame && fresh.me) replan(fresh, queued.why);
+        try {
+          const fresh = await getSnap().catch(() => null);
+          if (fresh?.inGame && fresh.me) replan(fresh, queued.why);
+        } catch (err) {
+          log('planner_error', { error: err.message });
+        }
       }
     });
 }
 
-let moneyGoal = { at: 0, t: null };
+let lastMoneyTarget = null;
 /** The money goal (errand.moneyTarget), worked out from the current bag; logged when it moves. */
 function currentMoneyTarget(snap) {
-
   const t = errand.moneyTarget(snap);
-  const prev = moneyGoal.t;
+  const prev = lastMoneyTarget;
   if (!prev || Math.abs(t.target - prev.target) > prev.target * 0.1) log('money_target', { zeny: snap.me.zeny, ...t });
-  moneyGoal = { at: Date.now(), t };
+  lastMoneyTarget = t;
   return t;
 }
+
+/** The current goal. A pure read: money mode only flips in updateMoneyMode(), once per tick. */
+const committedGoal = (snap) => (gearUpgrade.needsMoney(snap) || brain.moneyMode ? 'money' : 'level');
 
 /**
  * Enter money mode below reserve, continue until cash covers six levelling trips, then level.
  * Reserve is only the entry threshold; it is not added to the target.
  */
-function committedGoal(snap) {
-  if (gearUpgrade.needsMoney(snap)) return 'money';
+function updateMoneyMode(snap) {
+  if (gearUpgrade.needsMoney(snap)) return;
   const zeny = snap.me.zeny;
-  if (!Number.isFinite(zeny)) return brain.moneyMode ? 'money' : 'level';
+  if (!Number.isFinite(zeny)) return;
   const t = currentMoneyTarget(snap);
   if (brain.moneyMode && zeny >= t.target) {
     brain.moneyMode = false;
@@ -369,8 +437,6 @@ function committedGoal(snap) {
     log('money_goal_resume', { zeny, resume: t.resume, target: t.target, tripCost: t.tripCost, trip: t.trip });
     notify(`💸 เงินเหลือ ${zeny.toLocaleString()} zeny`, `ต่ำกว่าเงินสำรอง ${t.reserve.toLocaleString()} zeny ไปหาเงินจนถึง ${t.target.toLocaleString()} zeny`, {}, 0xff9800);
   }
-  if (brain.moneyMode) return 'money';
-  return 'level';
 }
 
 function chooseHunt(snap, why) {
@@ -456,7 +522,7 @@ function noteEscape(snap, action) {
   brain.escapes.push(Date.now());
   if (brain.escapes.length < ESCAPES_TO_LEAVE) return;
   brain.escapes = [];
-  brain.levelOffset = Math.max(-MAX_LEVEL_DROP, brain.levelOffset - LEVEL_UP_WHEN_EASY);
+  dropLevelOffset();
   brain.hardMaps.set(huntMap, { dps: Math.round(damage.p90() ?? 0), level: snap.me.baseLevel || 1, escapes: true });
   saveState();
   log('level_offset', { offset: brain.levelOffset, why: `หนีด้วยปีกซ้ำที่ ${huntMap}: มอนรุมเยอะเกิน` });
@@ -471,7 +537,9 @@ function tooManyEscapes() {
   return brain.escapes.length >= ESCAPES_TO_LEAVE;
 }
 
-function checkOutpaced(snap) {
+// Runs every tick, including fight ticks: the loop `continue`s out of fights before checkOutpaced,
+// and samples are only taken while attackers are present.
+function sampleDamage(snap) {
   const huntMap = brain.plan.hunt_map;
   if (snap.me.map !== huntMap) return;
   if (damageMap !== huntMap) {
@@ -481,6 +549,11 @@ function checkOutpaced(snap) {
     brain.easyChecks = 0;
   }
   damage.sample(snap);
+}
+
+function checkOutpaced(snap) {
+  const huntMap = brain.plan.hunt_map;
+  if (snap.me.map !== huntMap) return;
   if (Date.now() - lastOutpacedCheck < 60000) return;
   lastOutpacedCheck = Date.now();
   // Hardly ever hit (not even 20 samples) after a few minutes here: that IS easy — count it as 0
@@ -512,7 +585,7 @@ function checkOutpaced(snap) {
   // don't wait to be drinking 40% of the time (a +3 climb once met 327 HP/s and died in a minute).
   if (brain.climbedTo && brain.climbedTo.from !== huntMap && carried < need) {
     brain.climbedTo = null;
-    brain.levelOffset -= LEVEL_UP_WHEN_EASY;
+    brain.levelOffset = Math.max(-MAX_LEVEL_DROP, brain.levelOffset - LEVEL_UP_WHEN_EASY); // undo the climb
     brain.hardMaps.set(huntMap, { dps: Math.round(dps), level: snap.me.baseLevel || 1 });
     learn('ที่ ' + huntMap + ' รับดาเมจสูงหลังย้ายแมพ ยังสู้ไม่ไหว', { level: snap.me.baseLevel });
     saveState();
@@ -540,7 +613,7 @@ function checkOutpaced(snap) {
   if (escaping) log('potion_check_escapes', { map: huntMap, escapes: brain.escapes.length });
   brain.escapes = [];
   // Nothing we can buy keeps up and we're mostly drinking: too strong for us. Hunt weaker ones.
-  brain.levelOffset = Math.max(-MAX_LEVEL_DROP, brain.levelOffset - LEVEL_DROP_PER_DEATH);
+  dropLevelOffset();
   saveState();
   log('level_offset', { offset: brain.levelOffset, why: `ยาไม่ทันดาเมจที่ ${huntMap}` });
   learn(`ที่ ${huntMap} ศัตรูตี ${Math.round(dps)} HP/วิ ยาที่ซื้อได้ฟื้นไม่ทัน (ต้อง ${Math.round(need)}) — อย่าล่าแมพนี้จนกว่าจะแข็งแรงขึ้น`, { level: snap.me.baseLevel });
@@ -554,12 +627,15 @@ function endJobChange(done, snap) {
   if (done.ok) {
     notify(`🎓 เปลี่ยนอาชีพสำเร็จ: ${done.from} → ${done.now}`, `ต่อไปตามสาย: ${config.classPath.join(' → ')}`, {}, 0x4caf50);
     // New job, new skills and build weights: re-plan skills and pick a hunting ground again.
+    // (A rebirth drops Base Level to 1: the old map would be far too hard.)
     brain.huntLevel = 0;
+    brain.levelOffset = 0;
   } else {
     const said = (done.transcript || []).map((t) => (t.npc ? t.npc.join(' ') : t.menu ? `[เมนู] ${t.menu.join(' / ')} → ${t.chose}` : '')).join('\n').slice(-900);
     notify(`⚠️ เปลี่ยนอาชีพไม่สำเร็จ: ${done.from} → ${done.to}`, `${done.note} (ลองใหม่ใน 30 นาที)`, { 'NPC พูดว่า': said || '-' }, 0xff9800);
   }
   setPlan({ ...brain.plan, goal: committedGoal(snap), objective: done.ok ? `เป็น ${done.now} แล้ว กลับไปเก็บเลเวล` : `เปลี่ยนอาชีพไม่สำเร็จ (${done.note}) กลับไปเก็บเลเวลก่อน`, reason: done.note }, snap);
+  if (done.ok) chooseHunt(snap, `เปลี่ยนอาชีพเป็น ${done.now} แล้ว: เลือกแมพล่าใหม่`);
 }
 
 function endErrand(done, snap) {
@@ -570,9 +646,12 @@ function endErrand(done, snap) {
   setPlan({ ...brain.plan, goal: committedGoal(snap), objective, reason: done.note }, snap);
 }
 
+let walkFallbackMap = null; // hunting map whose walking-only return found no route
 const triedWear = new Map(); // inventory index -> last try (the server may refuse: level, job, broken)
 let lastWearCheck = 0;
 let recoveringWeapon = false;
+let recoveringSince = 0;
+const RECOVERY_LATCH_MS = 2 * 60 * 1000; // a weapon that never reappears must not hold the bot forever
 async function wearBetterGear(snap) {
   if (weaponBlocked(snap.me)) return;
   if (Date.now() - lastWearCheck < 3000) return;
@@ -593,7 +672,8 @@ function sampleHuntResult(snap) {
   const now = Date.now();
   if (!active) { huntSample = null; return; }
   const key = me.map + ':' + me.baseLevel;
-  if (!huntSample || huntSample.key !== key || now - huntSample.at > 10000 || me.baseExp < huntSample.exp) {
+  // Called on fight ticks too, so a long fight is not a gap; a stall of a minute still restarts the sample.
+  if (!huntSample || huntSample.key !== key || now - huntSample.at > 60000 || me.baseExp < huntSample.exp) {
     huntSample = {key, at:now, exp:me.baseExp, gained:0, seconds:0, minHp:100};
     return;
   }
@@ -623,13 +703,38 @@ async function farmTick(snap) {
     if (JSON.stringify(trip) !== JSON.stringify(brain.farmTrip)) { brain.farmTrip = trip; saveState(); }
   }
   // Combat preempts planning, equipment, services and travel; survival stays first in reflex.
+  // On the way somewhere, only fight back — except monsters we avoid (plants that shoot and stone
+  // us): fighting back held us a minute in range of Parasites instead of taking the @go out, and
+  // the stone that followed was fatal. Those keep travelling.
+  const huntMap = brain.plan.hunt_map;
+  const away = !!huntMap && snap.me.map !== huntMap;
+  const avoid = new Set(brain.plan.avoid_monsters || []);
+  const onlyAvoided = away && snap.attackers.length > 0 && snap.attackers.every((g) => { const m = snap.monsters.find((x) => x.GID === g); return m && avoid.has(m.name); });
+  const hp = snap.me.maxHp ? snap.me.hp / snap.me.maxHp : 1;
+  // Walking-only is a first attempt: when it finds no route (see below) the normal route takes over.
+  const walkingReturn = !!world && !isTown(world, snap.me.map) && !brain.farmTrip?.returned && !brain.farmTrip?.detour &&
+    !!brain.farmTrip?.maps.includes(huntMap) && walkFallbackMap !== huntMap;
   if (!snap.me.dead && (snap.attackers.length || snap.unseenAttackers)) {
-    brain.fighting = true;
-    const { action, drank } = await reflex(snap, { defendOnly: true, inTown: !!world && isTown(world, snap.me.map) });
-    noteEscape(snap, action);
-    if (drank) brain.drinks.push(Date.now());
-    brain.counters.actions[action] = (brain.counters.actions[action] || 0) + 1;
-    return;
+    // Leaving a map with @go at hand: the warp is the escape. Fighting back on the way kept us on
+    // mjolnir_04 winging from pack to pack. Below 25% HP the emergency rules still take over.
+    // Only when the next step really is the @go: walking away with a pack behind us is no escape.
+    if (!brain.huntPending && away && travel.canGo && hp >= 0.25 && snap.attackers.length && !onlyAvoided) {
+      if (travel.dest !== huntMap) await travel.start(huntMap, { walking: walkingReturn });
+      // The route's first step is only known once travel has planned it: plan now, even mid-fight.
+      if (travel.legKind === null) await travel.tick(snap);
+      if (travel.legKind === 'go') {
+        await travel.tick(snap);
+        return;
+      }
+    }
+    if (!(onlyAvoided && hp >= 0.4)) {
+      brain.fighting = true;
+      const { action, drank } = await reflex(snap, { defendOnly: away || brain.huntPending, inTown: !!world && isTown(world, snap.me.map) });
+      noteEscape(snap, action);
+      if (drank) brain.drinks.push(Date.now());
+      brain.counters.actions[action] = (brain.counters.actions[action] || 0) + 1;
+      return;
+    }
   }
   // Map changes briefly expose empty equipment/inventory and arrival dialogs.
   // Let those settle before services can interrupt the current hunting trip.
@@ -650,8 +755,9 @@ async function farmTick(snap) {
   }
 
   const wornWeapon = snap.worn?.find(i => i.slot === 'weapon');
-  if (wornWeapon) recoveringWeapon = false;
+  if (wornWeapon || (recoveringWeapon && Date.now() - recoveringSince > RECOVERY_LATCH_MS && !weaponBlocked(snap.me) && !weapons.pending(snap))) recoveringWeapon = false;
   if (!snap.me.dead && (weaponBlocked(snap.me) || recoveringWeapon || weapons.pending(snap))) {
+    if (!recoveringWeapon) recoveringSince = Date.now();
     recoveringWeapon = true;
     if (travel.dest) await travel.stop();
     if (weaponBlocked(snap.me) || healer.active) {
@@ -671,13 +777,9 @@ async function farmTick(snap) {
       : 'เงินสำรองเพียงพอ: กลับไปเก็บเลเวลสู่ Class 4 เลเวล 255');
   }
   errand.observe(snap, brain.plan.goal, { hunting: !brain.huntPending && snap.me.map === brain.plan.hunt_map });
-  const hp = snap.me.maxHp ? snap.me.hp / snap.me.maxHp : 1;
-  const huntMap = brain.plan.hunt_map;
   // The live map is authoritative, including after restarting in the hunting ground.
+  if (huntMap && snap.me.map === huntMap) walkFallbackMap = null;
   if (huntMap && snap.me.map === huntMap && travel.dest) await travel.stop();
-  const away = !!huntMap && snap.me.map !== huntMap;
-  const walkingReturn = !!world && !isTown(world, snap.me.map) && !brain.farmTrip?.returned &&
-    !!brain.farmTrip?.maps.includes(huntMap);
 
   // In town and hurt (e.g. just respawned): the Healer NPC is free, potions aren't.
   if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && (healer.active || (world && isTown(world, snap.me.map) && healer.maybeStart(snap)))) {
@@ -696,23 +798,7 @@ async function farmTick(snap) {
     return;
   }
 
-  // Survival first, wherever we are. On the way somewhere, only fight back — except monsters we
-  // avoid (plants that shoot and stone us): fighting back held us a minute in range of Parasites
-  // instead of taking the @go out, and the stone that followed was fatal. Keep travelling.
-  const avoid = new Set(brain.plan.avoid_monsters || []);
-  const onlyAvoided = away && snap.attackers.length > 0 && snap.attackers.every((g) => { const m = snap.monsters.find((x) => x.GID === g); return m && avoid.has(m.name); });
-  // Leaving a map with @go at hand: the warp is the escape. Fighting back on the way kept us on
-  // mjolnir_04 winging from pack to pack. Below 25% HP the emergency rules still take over.
-  // Only when the next step really is the @go: walking away with a pack behind us is no escape.
-  if (!brain.huntPending && away && travel.canGo && hp >= 0.25 && !snap.me.dead && snap.attackers.length && !onlyAvoided) {
-    if (travel.dest !== huntMap) await travel.start(huntMap, { walking: walkingReturn });
-    // The route's first step is only known once travel has planned it: plan now, even mid-fight.
-    if (travel.legKind === null) await travel.tick(snap);
-    if (travel.legKind === 'go') {
-      await travel.tick(snap);
-      return;
-    }
-  }
+  // Combat with attackers was handled above; this covers death and low HP with no attacker in sight.
   if (snap.me.dead || (snap.attackers.length && !(onlyAvoided && hp >= 0.4)) || (hp < 0.4 && stockHp(snap.inventory, snap.me) > 0 && !errand.active && !(world && isTown(world, snap.me.map)))) {
     const inTown = !!world && isTown(world, snap.me.map);
     const { action, drank } = await reflex(snap, { defendOnly: away || brain.huntPending, inTown });
@@ -745,13 +831,14 @@ async function farmTick(snap) {
   // Compare settled cash after town services, before departing for another hunt.
   if (Date.now() < (brain.profitSettleAfter || 0)) return;
   if (world && isTown(world, snap.me.map)) {
-    const result = finishFarmTrip(brain.farmTrip, snap.me.zeny, Date.now(), snap.me, true);
+    // Levelling trips are judged by EXP, not by a sale; only money trips need cash settled first.
+    const result = finishFarmTrip(brain.farmTrip, snap.me.zeny, Date.now(), snap.me, (brain.farmTrip?.goal || 'money') !== 'level');
     if (result) {
       brain.farmTrip = observeFarmTrip(null, snap.me, true, brain.plan.hunt_map, Date.now(), moneyObjective);
-      brain.farmResults ||= {};
-      for (const map of result.maps) brain.farmResults[map] = { ...result, level: snap.me.baseLevel };
+        for (const map of result.maps) brain.farmResults[map] = { ...result, level: snap.me.baseLevel };
       log(result.goal === 'level' || moneyObjective === 'level' ? 'level_efficiency' : 'farm_profit', result);
       saveState();
+      if (result.routeFailure === SUPPLY_ROUTE_FAILURE) return; // a supply stop says nothing about the map
       if (result.routeFailure) {
         exclude(result.huntMap, result.routeFailure);
         if (brain.plan.hunt_map === result.huntMap && !brain.huntPending) {
@@ -766,7 +853,7 @@ async function farmTick(snap) {
         return;
       }
       if (result.net <= 0) {
-        brain.levelOffset = Math.max(-MAX_LEVEL_DROP, brain.levelOffset - LEVEL_DROP_PER_DEATH);
+        dropLevelOffset();
         for (const map of result.maps) exclude(map, 'กลับมาขายและเติมของแล้วเงินไม่เพิ่ม');
         chooseHunt(snap, 'รอบฟาร์มเงินไม่เพิ่ม (' + result.net + ' zeny): ลดระดับและเปลี่ยนแมพ');
         return;
@@ -833,6 +920,13 @@ async function farmTick(snap) {
       await travel.start(huntMap, { walking });
     }
     const travelResult = await travel.tick(snap);
+    if (travelResult === 'failed' && walkingReturn) {
+      // No walking route: retry with Warpra/@go before blaming the hunting map.
+      walkFallbackMap = huntMap;
+      log('hunt_return_route', { from: snap.me.map, to: huntMap, mode: 'fallback' });
+      await travel.stop();
+      return;
+    }
     if (travelResult === 'failed') {
       exclude(huntMap, 'เดินทางไปไม่ได้');
       chooseHunt(snap, `ไป ${huntMap} ไม่ได้`);
@@ -843,6 +937,7 @@ async function farmTick(snap) {
   if (travel.dest) await travel.stop();
   const { action, stuck, drank } = await reflex(snap);
   noteEscape(snap, action);
+  if (drank) brain.drinks.push(Date.now());
   brain.fighting = action === 'attack_monster' || action === 'keep_fighting';
   brain.counters.actions[action] = (brain.counters.actions[action] || 0) + 1;
   if (stuck) {
@@ -859,29 +954,49 @@ async function farmTick(snap) {
 /** What the agent learned and must not forget on a restart (monsters to avoid). */
 function saveState() {
   try {
-    writeFileSync(STATE_FILE, JSON.stringify({ avoidExtra: [...brain.avoidExtra], avoidAtLevel: Object.fromEntries(brain.avoidAtLevel), levelOffset: brain.levelOffset, excluded: Object.fromEntries(brain.excluded), hardMaps: Object.fromEntries(brain.hardMaps), moneyMode: brain.moneyMode, farmTrip: brain.farmTrip, farmResults: brain.farmResults, restoreWeapon: brain.restoreWeapon, scoutDropped: [...brain.scoutDropped] }, null, 2));
+    writeFileSync(STATE_FILE, JSON.stringify(serializeState(brain), null, 2));
   } catch (err) {
     log('state_save_error', { error: err.message });
   }
 }
 
+/** The (P) fields of createBrain(), as plain JSON. */
+function serializeState(b) {
+  return {
+    avoidExtra: [...b.avoidExtra],
+    avoidAtLevel: Object.fromEntries(b.avoidAtLevel),
+    levelOffset: b.levelOffset,
+    excluded: Object.fromEntries(b.excluded),
+    hardMaps: Object.fromEntries(b.hardMaps),
+    moneyMode: b.moneyMode,
+    farmTrip: b.farmTrip,
+    farmResults: b.farmResults,
+    restoreWeapon: b.restoreWeapon,
+    scoutDropped: [...b.scoutDropped],
+  };
+}
+
+/** Inverse of serializeState: fills the (P) fields of `b` from saved JSON, tolerating missing/old keys. */
+function restoreState(b, s, now = Date.now()) {
+  for (const [name, level] of Object.entries(s.avoidAtLevel || {})) b.avoidAtLevel.set(name, Number(level));
+  for (const name of s.avoidExtra || []) {
+    // Legacy bans have no encounter level; do not turn them into permanent bans.
+    if (!b.avoidAtLevel.has(name)) b.avoidAtLevel.set(name, 0);
+    if (b.avoidAtLevel.get(name) > 0) b.avoidExtra.add(name);
+  }
+  b.levelOffset = Number(s.levelOffset) || 0;
+  for (const cmd of s.scoutDropped || []) b.scoutDropped.add(cmd);
+  for (const [map, h] of Object.entries(s.hardMaps || {})) b.hardMaps.set(map, h);
+  b.moneyMode = s.moneyMode ?? false;
+  b.farmTrip = s.farmTrip || null;
+  b.farmResults = s.farmResults || {};
+  b.restoreWeapon = s.restoreWeapon || null;
+  for (const [map, until] of Object.entries(s.excluded || {})) if (until > now) b.excluded.set(map, until);
+}
+
 function loadState() {
   try {
-    const s = JSON.parse(readFileSync(STATE_FILE, 'utf8'));
-    for (const [name, level] of Object.entries(s.avoidAtLevel || {})) brain.avoidAtLevel.set(name, Number(level));
-    for (const name of s.avoidExtra || []) {
-      // Legacy bans have no encounter level; do not turn them into permanent bans.
-      if (!brain.avoidAtLevel.has(name)) brain.avoidAtLevel.set(name, 0);
-      if (brain.avoidAtLevel.get(name) > 0) brain.avoidExtra.add(name);
-    }
-    brain.levelOffset = Number(s.levelOffset) || 0;
-    for (const cmd of s.scoutDropped || []) brain.scoutDropped.add(cmd);
-    for (const [map, h] of Object.entries(s.hardMaps || {})) brain.hardMaps.set(map, h);
-    brain.moneyMode = s.moneyMode ?? false;
-    brain.farmTrip = s.farmTrip || null;
-    brain.farmResults = s.farmResults || {};
-    brain.restoreWeapon = s.restoreWeapon || null;
-    for (const [map, until] of Object.entries(s.excluded || {})) if (until > Date.now()) brain.excluded.set(map, until);
+    restoreState(brain, JSON.parse(readFileSync(STATE_FILE, 'utf8')));
     log('state_loaded', { avoid: [...brain.avoidExtra].join(', '), levelOffset: brain.levelOffset, moneyMode: brain.moneyMode });
   } catch {}
 }
@@ -921,37 +1036,30 @@ function onDisabled(ev, snap) {
 
 function onDeath(snap) {
   brain.counters.deaths++;
+  brain.diedSinceLevelUp = true;
   const map = snap.me.map;
   const killers = [...new Set((snap.monsters || []).filter((m) => snap.attackers.includes(m.GID)).map((m) => m.name))];
-  learn(`ตายที่ ${map}${killers.length ? ` โดน ${killers.join(', ')} รุม` : ''} (Base ${snap.me.baseLevel}, ระดับมอน ${brain.levelOffset})`, { level: snap.me.baseLevel });
-  if (map === brain.plan.hunt_map) {
-    // Died where we chose to hunt: that level of monster is too much for this character now.
-    brain.levelOffset = Math.max(-MAX_LEVEL_DROP, brain.levelOffset - LEVEL_DROP_PER_DEATH);
-    brain.levelsSinceDeath = 0;
-    saveState();
-    log('level_offset', { offset: brain.levelOffset, why: `ตายที่ ${map}` });
-    // Remembered past the 30-minute exclusion: until we're HARD_MAP_LEVELS stronger (it once sent
-    // us straight back to ein_fild08 forty minutes after dying there).
-    brain.hardMaps.set(map, { dps: Math.round(damage.p90() ?? 0), level: snap.me.baseLevel || 1, died: true });
-    exclude(map, 'ตายที่นี่: มอนแรงเกินตัว');
-    chooseHunt(snap, `ตายที่ ${map}: ลดระดับมอนเป็น เลเวลตัวเอง ${brain.levelOffset}`);
-    return;
-  }
+  // Every death counts, on the hunting map or not (recentDeaths feeds the 'deaths' signal).
   const recent = (brain.deathsOn.get(map) || []).filter((t) => Date.now() - t < EXCLUDE_FOR_MS);
   recent.push(Date.now());
   brain.deathsOn.set(map, recent);
   log('died', { map, timesHere: recent.length });
   // Killed (partly) by monsters we already avoid: they come to us here, so this map is out.
   const byAvoided = (snap.monsters || []).some((m) => snap.attackers.includes(m.GID) && brain.avoidExtra.has(m.name));
-  if (byAvoided && map === brain.plan.hunt_map) {
-    exclude(map, 'มอนที่เลิกตีตามมาตีเรา');
-    chooseHunt(snap, `ตายเพราะมอนที่เลิกตีแล้วที่ ${map}`);
-  } else if (recent.length >= DEATHS_TO_ABANDON_MAP && map === brain.plan.hunt_map) {
-    exclude(map, `ตาย ${recent.length} ครั้ง`);
-    chooseHunt(snap, `ตายที่ ${map} บ่อย`);
-  } else {
-    replan(snap, 'ตัวละครตาย');
+  learn(`ตายที่ ${map}${killers.length ? ` โดน ${killers.join(', ')} รุม` : ''} (Base ${snap.me.baseLevel}, ระดับมอน ${brain.levelOffset})`, { level: snap.me.baseLevel });
+  if (map === brain.plan.hunt_map) {
+    // Died where we chose to hunt: that level of monster is too much for this character now.
+    dropLevelOffset();
+    saveState();
+    log('level_offset', { offset: brain.levelOffset, why: `ตายที่ ${map}` });
+    // Remembered past the 30-minute exclusion: until we're HARD_MAP_LEVELS stronger (it once sent
+    // us straight back to ein_fild08 forty minutes after dying there).
+    brain.hardMaps.set(map, { dps: Math.round(damage.p90() ?? 0), level: snap.me.baseLevel || 1, died: true });
+    exclude(map, byAvoided ? 'มอนที่เลิกตีตามมาตีเรา' : 'ตายที่นี่: มอนแรงเกินตัว');
+    chooseHunt(snap, `ตายที่ ${map}: ลดระดับมอนเป็น เลเวลตัวเอง ${brain.levelOffset}`);
+    return;
   }
+  replan(snap, 'ตัวละครตาย');
 }
 
 let notInGameSince = 0;
@@ -973,7 +1081,7 @@ for (;;) {
   brain.fighting = false; // set again by this tick's reflex if we are still in a fight
   try {
     const snapAt = Date.now();
-    const snap = await snapshot(page);
+    const snap = await getSnap(SNAP_REUSE_MS);
     if (await reconnect(snap)) {
       await Bun.sleep(1000);
       lastTickEnd = Date.now();
@@ -993,6 +1101,7 @@ for (;;) {
     }
     if (await emergencyReturn(snap)) {
       await Bun.sleep(100);
+      lastTickEnd = Date.now();
       continue;
     }
     notInGameSince = 0;
@@ -1012,11 +1121,14 @@ for (;;) {
       if (ev.type === 'chat') chat.push(ev, getSnap);
       else if (ev.type === 'level_up') {
         log('level_up', { kind: ev.kind, level: ev.level });
-        // A clean base level (no death since) earns back one level of difficulty.
-        if (ev.kind === 'base' && brain.levelOffset < 0) {
-          brain.levelOffset += 1;
-          saveState();
-          log('level_offset', { offset: brain.levelOffset, why: 'เลเวลขึ้นโดยไม่ตาย' });
+        // A clean base level (no death since the last one) earns back one level of difficulty.
+        if (ev.kind === 'base') {
+          if (brain.levelOffset < 0 && !brain.diedSinceLevelUp) {
+            brain.levelOffset += 1;
+            saveState();
+            log('level_offset', { offset: brain.levelOffset, why: 'เลเวลขึ้นโดยไม่ตาย' });
+          }
+          brain.diedSinceLevelUp = false;
         }
       }
       else if (ev.type === 'died') onDeath(snap);
@@ -1028,7 +1140,13 @@ for (;;) {
       }
     }
 
-    if (!snap.me.dead && (snap.attackers.length || snap.unseenAttackers)) {
+    updateMoneyMode(snap);
+    sampleDamage(snap);
+    sampleHuntResult(snap);
+    const underAttack = !snap.me.dead && (snap.attackers.length || snap.unseenAttackers);
+    // The server forbids items, skills and attacks while a trade is open: drop it before fighting.
+    if (snap.trade && underAttack) await trader.tick(snap, { underAttack: true });
+    if (underAttack) {
       await farmTick(snap);
       await Bun.sleep(Math.max(0, FIGHT_TICK_MS - (Date.now() - started)));
       lastTickEnd = Date.now();
@@ -1040,12 +1158,12 @@ for (;;) {
     if (snap.trade) {
       await trader.tick(snap);
       await Bun.sleep(config.tickMs);
+      lastTickEnd = Date.now();
       continue;
     }
     const hp = snap.me.maxHp ? snap.me.hp / snap.me.maxHp : 1;
     const safe = !snap.attackers.length && hp >= 0.4 && !snap.me.dead;
 
-    sampleHuntResult(snap);
     refreshCombatMemory(snap);
     checkSignals(snap);
     checkOutpaced(snap);

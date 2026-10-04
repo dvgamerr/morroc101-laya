@@ -27,3 +27,19 @@ test('tests never write the real MEMORY.md', () => {
   const after = existsSync('MEMORY.md') ? readFileSync('MEMORY.md', 'utf8') : null;
   expect(after).toBe(before);
 });
+
+test('the same lesson at another level is deduped, not repeated with a new Base note', () => {
+  process.env.LESSONS_FILE = 'logs/test-memory2.md';
+  try {
+    rmSync('logs/test-memory2.md', { force: true });
+    learn('ที่ gef_fild08 ต้องใช้ปีกหนีซ้ำ', { level: 50 });
+    learn('ที่ gef_fild08 ต้องใช้ปีกหนีซ้ำ', { level: 55 });
+    const text = readFileSync('logs/test-memory2.md', 'utf8');
+    expect(text.match(/gef_fild08/g).length).toBe(1);
+    expect(text).toContain('(×2)');
+    expect(text).toContain('[Base 55; retry Base 60]');
+  } finally {
+    rmSync('logs/test-memory2.md', { force: true });
+    delete process.env.LESSONS_FILE;
+  }
+});

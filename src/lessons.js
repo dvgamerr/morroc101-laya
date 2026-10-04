@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { writeFileAtomic } from './atomic-write.js';
 
 /**
  * Gameplay evidence in MEMORY.md: combat risk, farming results and confirmed game rules.
@@ -10,6 +11,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 const file = () => process.env.LESSONS_FILE || 'MEMORY.md';
 const HEADER = '# MEMORY — บทเรียนที่ agent เจอ\n\nเก็บเฉพาะข้อมูลที่ช่วยตัดสินใจเล่นเกม เช่น ความเสี่ยงมอน ผลฟาร์ม และกติกาที่ทราบจริง ไม่เก็บข้อผิดพลาดระบบชั่วคราวหรือยอดเงินไม่พอซื้อของ\n\n';
 const LINE = /^- \[(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\] (.*?)(?: \(×(\d+)\))?$/;
+// Level note appended by learn(); it changes with every encounter, so it is not part of a lesson's identity.
+const LEVEL_NOTE = / \[Base \d+; retry Base \d+\]$/;
+const core = text => text.replace(LEVEL_NOTE, '');
 const transient = text => /^ไปร้าน.*(?:ไม่สำเร็จ|เงินไม่พอซื้อยา)/.test(text)
   || /timeout|LAYA\s+\d{3}|ยังไม่ทราบสาเหตุ/i.test(text);
 
@@ -30,7 +34,7 @@ function ownerPolicy() {
 
 function write(items) {
   const body = items.map((i) => `- [${i.at}] ${i.text}${i.count > 1 ? ` (×${i.count})` : ''}`).join('\n');
-  writeFileSync(file(), HEADER + (ownerPolicy() ? ownerPolicy() + '\n\n' : '') + body + '\n');
+  writeFileAtomic(file(), HEADER + (ownerPolicy() ? ownerPolicy() + '\n\n' : '') + body + '\n');
 }
 
 const stamp = () => new Date().toISOString().slice(0, 16).replace('T', ' ');
@@ -41,10 +45,11 @@ export function learn(text, context = {}) {
   if (Number.isInteger(context.level) && context.level > 0) text += ' [Base ' + context.level + '; retry Base ' + (context.level + 5) + ']';
   if (process.env.NODE_ENV === 'test' && !process.env.LESSONS_FILE) return;
   const items = read();
-  const same = items.find((i) => i.text === text);
+  const same = items.find((i) => core(i.text) === core(text));
   if (same) {
     same.count += 1;
     same.at = stamp();
+    same.text = text; // keep the latest level note
   } else {
     items.push({ at: stamp(), text, count: 1 });
   }

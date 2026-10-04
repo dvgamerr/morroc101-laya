@@ -1,9 +1,13 @@
 // Headless check that the Config.local.js override really brings up window.RO
 // and that the page agent attached its packet observer. Does not log in.
 import { chromium } from 'playwright';
-import { config } from './config.js';
-import { installPageAgent } from './page-agent.js';
-import { forceDevelopmentMode } from './browser.js';
+
+// This check never calls LAYA or the LLM, but config.js throws when their keys are missing.
+process.env.LAYA_API_KEY ||= 'check-browser';
+process.env.OMLX_API_KEY ||= 'check-browser';
+const { config } = await import('./config.js');
+const { installPageAgent } = await import('./page-agent.js');
+const { forceDevelopmentMode } = await import('./browser.js');
 
 const channel = config.game.browserChannel === 'chromium' ? undefined : config.game.browserChannel;
 const browser = await chromium.launch({ channel, headless: true });

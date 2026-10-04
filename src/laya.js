@@ -32,10 +32,19 @@ export async function ask(state, questions, { timeoutMs = 5000 } = {}) {
   }
   const answers = body.answers;
   for (const [key, q] of Object.entries(questions)) {
+    // An answer that isn't an object (a bare string, null) is no answer: callers read fields off it.
+    if (key in answers && (answers[key] === null || typeof answers[key] !== 'object' || Array.isArray(answers[key]))) {
+      delete answers[key];
+      continue;
+    }
     if (q.type === 'noul' && answers[key]) answers[key].probability = yesProbability(answers[key]);
+    // A choice must be one of the options we offered, never a made-up key.
+    if (q.type === 'choice' && answers[key] && !validChoice(answers[key].choice, q.criteria)) answers[key] = { ...answers[key], choice: null, invalidChoice: answers[key].choice };
   }
   return answers;
 }
+
+const validChoice = (choice, criteria) => typeof choice === 'string' && !!criteria && typeof criteria === 'object' && Object.hasOwn(criteria, choice);
 
 function yesProbability(answer) {
   // The hosted API returns P(true) as `noul`.

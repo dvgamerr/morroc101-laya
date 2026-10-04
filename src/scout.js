@@ -6,7 +6,8 @@ import { log } from './logger.js';
 // coordinates wins and is used from then on.
 const COMMANDS = ['@where', '@mobsearch'];
 const QUERY_GAP_MS = 15000;
-const MISSES_TO_DROP = 2;
+const MISSES_TO_DROP = 3;
+const REFUSED = /unknown command|not (?:a )?(?:valid|recognized)|no such command|permission|not allowed|don't have|cannot use/i;
 
 /**
  * Pull "x, y" coordinates out of a server reply. Lines naming another map are
@@ -35,32 +36,38 @@ export function parseLocations(lines, currentMap) {
  */
 export function createScout(page, known = {}) {
   const dropped = new Set(known.dropped || []);
-  const s = { commands: COMMANDS.filter((c) => !dropped.has(c)), misses: {}, lastAt: 0, working: null };
+  const s = { commands: COMMANDS.filter((c) => !dropped.has(c)), misses: {}, lastAt: 0, working: null, turn: 0 };
 
-  /** Where are monsters with these names on this map? [{x, y, name}] nearest first, or []. */
+  /**
+   * Where are monsters with these names on this map? [{x, y, name}] nearest first, or [].
+   * One query per call (each waits up to ~1.5s for the reply, and the reflex waits on this): the
+   * names and commands are tried in turn over successive calls.
+   */
   async function locate(snap, names) {
     const now = Date.now();
     if (!names.length || !s.commands.length || now - s.lastAt < QUERY_GAP_MS) return [];
     s.lastAt = now;
     const me = snap.me;
-    for (const cmd of s.working ? [s.working] : s.commands) {
-      for (const name of names.slice(0, 2)) {
-        const lines = await query(page, `${cmd} ${name}`).catch(() => []);
-        const spots = parseLocations(lines, me.map).map((p) => ({ ...p, name }));
-        log('scout', { cmd, name, found: spots.length, reply: lines.slice(0, 3).join(' | ').slice(0, 200) });
-        if (spots.length) {
-          s.working = cmd;
-          return spots.sort((a, b) => Math.hypot(a.x - me.x, a.y - me.y) - Math.hypot(b.x - me.x, b.y - me.y));
-        }
-      }
-      if (!s.working) {
-        s.misses[cmd] = (s.misses[cmd] || 0) + 1;
-        // Answered nothing usable twice: this command isn't for us here.
-        if (s.misses[cmd] >= MISSES_TO_DROP) {
-          s.commands = s.commands.filter((c) => c !== cmd);
-          log('scout_drop_command', { cmd });
-          known.onDrop?.(cmd);
-        }
+    const pool = names.slice(0, 2);
+    const cmd = s.working || s.commands[Math.floor(s.turn / pool.length) % s.commands.length];
+    const name = pool[s.turn % pool.length];
+    s.turn++;
+    const lines = await Promise.resolve().then(() => query(page, `${cmd} ${name}`)).catch(() => []);
+    const spots = parseLocations(lines, me.map).map((p) => ({ ...p, name }));
+    log('scout', { cmd, name, found: spots.length, reply: lines.slice(0, 3).join(' | ').slice(0, 200) });
+    if (spots.length) {
+      s.working = cmd;
+      s.misses[cmd] = 0;
+      return spots.sort((a, b) => Math.hypot(a.x - me.x, a.y - me.y) - Math.hypot(b.x - me.x, b.y - me.y));
+    }
+    // "Nobody of that name here" is a real answer, not a broken command. Only a command that gets no
+    // reply at all, or is refused, is dropped (and dropped for good: it is remembered across runs).
+    if (!s.working && (!lines.length || REFUSED.test(lines.join(' ')))) {
+      s.misses[cmd] = (s.misses[cmd] || 0) + 1;
+      if (s.misses[cmd] >= MISSES_TO_DROP) {
+        s.commands = s.commands.filter((c) => c !== cmd);
+        log('scout_drop_command', { cmd });
+        known.onDrop?.(cmd);
       }
     }
     return [];

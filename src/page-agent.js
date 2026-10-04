@@ -14,6 +14,20 @@ export function installPageAgent() {
   const prev = window.__agent;
 
   const TYPE = { PC: 0, ITEM: 2, MOB: 5, NPC: 6, ITEM2: 11 };
+  // Packet structs change with the protocol version; the client switches on these same values.
+  const PACKETVER_USE_V2 = 20180307; // USE_ITEM2 / USE_SKILL2 / TOGROUND2 / storage "2"
+  const PACKETVER_SHORTCUT2 = 20190522;
+  const PACKETVER_TOGROUND3 = 20190904;
+  const packetVer = () => {
+    const v = window.RO?.PACKETVER;
+    return Number(v && (v.value ?? v)) || 0;
+  };
+  // Oridecon/Elunium from rough ore at the barter NPC (5 rough per refined ore).
+  const ROUGH_FOR_ORE = { 984: 756, 985: 757 };
+  const ROUGH_PER_ORE = 5;
+  // Refining must not spend the money the bot needs for potions and trips.
+  const REFINE_ZENY_RESERVE = 100000;
+  const DIALOG_LINES_MAX = 40;
   // ZC_PAR_CHANGE / ZC_LONGPAR_CHANGE varID -> name (StatusProperty in the client)
   const STAT = {
     1: 'baseExp', 2: 'jobExp', 9: 'statusPoints', 11: 'baseLevel', 12: 'skillPoints',
@@ -26,6 +40,7 @@ export function installPageAgent() {
     stats: { ...(prev && prev.stats) },
     // Restarting the agent does not end an NPC conversation on the server.
     dialog: prev?.dialog,
+    trade: prev?.trade,
     shop: prev?.shop,
     storage: prev?.storage,
     identify: prev?.identify,
@@ -64,6 +79,7 @@ export function installPageAgent() {
       A.dialog = { naid, lines: [], state: 'text', menu: null, input: null, at: Date.now() };
     }
     A.dialog.at = Date.now();
+    if (A.dialog.lines.length > DIALOG_LINES_MAX) A.dialog.lines.splice(0, A.dialog.lines.length - DIALOG_LINES_MAX);
     return A.dialog;
   };
   // ZC_SKILLINFO type is the skill's target kind: 1 enemy, 2 ground, 4 self, 16 ally (bit flags).
@@ -362,7 +378,7 @@ export function installPageAgent() {
         // @command replies come back as our own chat line (clif_displaymessage) or a
         // system message; keep the recent ones so query() can read them.
         if (typeof p.msg === 'string' && /PLAYERCHAT|MSG|BROADCAST/.test(name)) {
-          A.selfLines.push({ t: Date.now(), text: clean(p.msg) });
+          A.selfLines.push({ t: Date.now(), text: clean(p.msg), broadcast: /BROADCAST/.test(name) });
           if (A.selfLines.length > 100) A.selfLines.shift();
         }
     }
@@ -441,7 +457,8 @@ export function installPageAgent() {
   }
 
   const INVENTORY_BLINK_MS = 5 * 60 * 1000;
-  function inventory() {
+  // live: actions that address an item by index must see the real list, never the blink cache.
+  function inventory({ live = false } = {}) {
     const RO = window.RO;
     const inv = component('Inventory');
     let list = (inv && inv.list) || [];
@@ -454,13 +471,16 @@ export function installPageAgent() {
       // emptied with it — the cache read 0 items 0.7s after it was taken.
       A.lastInv = list.map((it) => ({ ...it }));
       A.lastInvAt = Date.now();
-    } else if (A.lastInv && Date.now() - A.lastInvAt < INVENTORY_BLINK_MS) {
+    } else if (!live && A.lastInv && Date.now() - A.lastInvAt < INVENTORY_BLINK_MS) {
       list = A.lastInv;
     }
-    return list.map((it) => ({
+    return list.map((it) => {
+      // One lookup per item (it used to be up to five).
+      const info = RO.DB.getItemInfo(it.ITID) || {};
+      return {
       index: it.index,
       ITID: it.ITID,
-      name: (RO.DB.getItemInfo(it.ITID) || {}).identifiedDisplayName || String(it.ITID),
+      name: info.identifiedDisplayName || String(it.ITID),
       // Gear doesn't stack and carries no count: one piece.
       count: it.count ?? 1,
       type: it.type,
@@ -468,10 +488,11 @@ export function installPageAgent() {
       // can be compounded into — it once made every loose card look "worn" (never stored).
       equipped: !!it.WearState && it.type !== 6,
       keep: keepReason(it),
-      ...((RO.DB.getItemInfo(it.ITID) || {}).identifiedDescriptionName ? { description: String(RO.DB.getItemInfo(it.ITID).identifiedDescriptionName).replace(/\^[0-9a-fA-F]{6}/g, '') } : {}),
-      ...((RO.DB.getItemInfo(it.ITID) || {}).weight > 0 ? { weight: RO.DB.getItemInfo(it.ITID).weight } : {}),
+      ...(info.identifiedDescriptionName ? { description: String(info.identifiedDescriptionName).replace(/\^[0-9a-fA-F]{6}/g, '') } : {}),
+      ...(info.weight > 0 ? { weight: info.weight } : {}),
       ...(it.type === 4 || it.type === 5 ? { gear: gearInfo(it) } : {}),
-    }));
+      };
+    });
   }
 
   A.snapshot = () => {
@@ -591,11 +612,19 @@ export function installPageAgent() {
    * Send an @command and collect what the server says back within `waitMs`.
    * Replies arrive as our own chat lines, so anything after the send is the answer.
    */
-  A.query = async (command, waitMs = 1500) => {
-    const since = Date.now();
-    window.RO.say(command);
-    await new Promise((r) => setTimeout(r, waitMs));
-    return A.selfLines.filter((l) => l.t >= since && !l.text.includes(command)).map((l) => l.text);
+  // Queries run one at a time (an overlapping query would read the other's reply), and server
+  // broadcasts are not replies to a command.
+  let queryChain = Promise.resolve();
+  A.query = (command, waitMs = 1500) => {
+    const run = async () => {
+      const since = Date.now();
+      window.RO.say(command);
+      await new Promise((r) => setTimeout(r, waitMs));
+      return A.selfLines.filter((l) => l.t >= since && !l.broadcast && !l.text.includes(command)).map((l) => l.text);
+    };
+    const result = queryChain.then(run, run);
+    queryChain = result.catch(() => {});
+    return result;
   };
 
   // ---- Walking on the map grid -------------------------------------------------
@@ -707,6 +736,7 @@ export function installPageAgent() {
     const pkt = new Struct();
     Object.assign(pkt, fields);
     window.RO.Network.sendPacket(pkt);
+    return true;
   };
 
   A.act = (name, arg = {}) => {
@@ -725,7 +755,8 @@ export function installPageAgent() {
         return wp;
       }
       case 'stop_auto':
-        return RO.AutoCombat.stop();
+        RO.AutoCombat.stop();
+        return true;
       case 'pickup':
         return send(PACKET.CZ.ITEM_PICKUP, { ITAID: arg.GID });
       case 'use_item': {
@@ -734,7 +765,7 @@ export function installPageAgent() {
         if (!item) return false;
         // Straight packet, not inv.useItem(): that one equips/refines when handed gear.
         // Same version switch as the client's own onUseItem.
-        const Struct = RO.PACKETVER.value >= 20180307 ? PACKET.CZ.USE_ITEM2 : PACKET.CZ.USE_ITEM;
+        const Struct = packetVer() >= PACKETVER_USE_V2 ? PACKET.CZ.USE_ITEM2 : PACKET.CZ.USE_ITEM;
         send(Struct, { index: item.index, AID: RO.Session.Entity.GID });
         return true;
       }
@@ -745,12 +776,12 @@ export function installPageAgent() {
       case 'skill': {
         // Same version switch as the client's own skill use.
         if (arg.x !== undefined) {
-          const Struct = RO.PACKETVER.value >= 20190904 ? PACKET.CZ.USE_SKILL_TOGROUND3
-            : RO.PACKETVER.value >= 20180307 ? PACKET.CZ.USE_SKILL_TOGROUND2
+          const Struct = packetVer() >= PACKETVER_TOGROUND3 ? PACKET.CZ.USE_SKILL_TOGROUND3
+            : packetVer() >= PACKETVER_USE_V2 ? PACKET.CZ.USE_SKILL_TOGROUND2
             : PACKET.CZ.USE_SKILL_TOGROUND;
           return send(Struct, { SKID: arg.SKID, selectedLevel: arg.level, xPos: arg.x, yPos: arg.y });
         }
-        const Struct = RO.PACKETVER.value >= 20180307 ? PACKET.CZ.USE_SKILL2 : PACKET.CZ.USE_SKILL;
+        const Struct = packetVer() >= PACKETVER_USE_V2 ? PACKET.CZ.USE_SKILL2 : PACKET.CZ.USE_SKILL;
         return send(Struct, { SKID: arg.SKID, selectedLevel: arg.level, targetID: arg.targetID || RO.Session.Entity.GID });
       }
       case 'talk':
@@ -764,12 +795,12 @@ export function installPageAgent() {
         }
         return send(PACKET.CZ.PC_PURCHASE_ITEMLIST, { itemList: arg.items.map((i) => ({ ITID: i.ITID, count: i.count })) });
       case 'barter_smelt': {
-        const rough = arg.ITID === 984 ? 756 : arg.ITID === 985 ? 757 : null;
+        const rough = ROUGH_FOR_ORE[arg.ITID] ?? null;
         const offer = A.shop?.stage === 'barter' && A.shop.at === arg.quoteAt && A.shop.list.find(i => i.ITID === arg.ITID && i.index === arg.shopIndex);
         if (!rough || !offer || !Number.isInteger(arg.count) || arg.count < 1) return false;
         const costs = offer.currencyList || [{ ITID: offer.currencyITID, amount: offer.currencyamount }];
-        const material = inventory().find(i => i.ITID === rough && i.count >= 5*arg.count);
-        if (!material || (offer.price || 0) !== 0 || costs.length !== 1 || costs[0].ITID !== rough || costs[0].amount !== 5) return false;
+        const material = inventory({ live: true }).find(i => i.ITID === rough && i.count >= ROUGH_PER_ORE * arg.count);
+        if (!material || (offer.price || 0) !== 0 || costs.length !== 1 || costs[0].ITID !== rough || costs[0].amount !== ROUGH_PER_ORE) return false;
         return send(A.shop.kind === 'expanded_barter' ? PACKET.CZ.NPC_EXPANDED_BARTER_MARKET_PURCHASE : PACKET.CZ.NPC_BARTER_MARKET_PURCHASE,
           { itemList: [{ itemId: arg.ITID, amount: arg.count, shopIndex: offer.index, invIndex: material.index }] });
       }
@@ -792,10 +823,6 @@ export function installPageAgent() {
         A.shop = null;
         return true;
       // ---- wear a piece of gear from the bag in the slot(s) it goes to
-      case 'identify':
-        if (!A.identify?.indices.includes(arg.index)) return false;
-        A.identify = null;
-        return send(PACKET.CZ.REQ_ITEMIDENTIFY, { index: arg.index });
       case 'equip':
         return send(PACKET.CZ.REQ_WEAR_EQUIP, { index: arg.index, wearLocation: arg.loc });
       case 'unequip':
@@ -808,10 +835,10 @@ export function installPageAgent() {
             (worn() || []).some(i => i.index === arg.index)) return false;
         return send(PACKET.CZ.REFINING_SELECT_ITEM, { index: arg.index });
       case 'refine_attempt': {
-        const item = [...inventory(), ...(worn() || []).map(i => ({ ...i, gear: i }))].find(i => i.index === arg.index && i.ITID === arg.ITID);
+        const item = [...inventory({ live: true }), ...(worn() || []).map(i => ({ ...i, gear: i }))].find(i => i.index === arg.index && i.ITID === arg.ITID);
         const material = A.refine?.materials?.find(i => i.itemId === arg.material);
         if (!item?.gear?.identified || item.gear.damaged || item.gear.refine >= 7 || A.refine?.index !== arg.index || A.refine.at !== arg.quoteAt || !material || material.chance <= 0) return false;
-        if ((A.stats.zeny ?? RO.me()?.zeny ?? 0) - material.zeny < 100000) return false;
+        if ((A.stats.zeny ?? RO.me()?.zeny ?? 0) - material.zeny < REFINE_ZENY_RESERVE) return false;
         A.refine.materials = null; // one submission per server quote
         return send(PACKET.CZ.REQ_REFINING, { index: arg.index, itemId: arg.material, blacksmithBlessing: 0 });
       }
@@ -823,15 +850,13 @@ export function installPageAgent() {
       case 'storage_get': {
         const item = component('Storage')?.list?.find(i => i.index === arg.index && i.ITID === arg.ITID);
         if (!A.storage?.open || !item || !Number.isInteger(arg.count) || arg.count < 1 || arg.count > (item.count ?? 1)) return false;
-        const ver = (RO.PACKETVER && (RO.PACKETVER.value ?? RO.PACKETVER)) || 0;
-        return send(ver >= 20180307 ? PACKET.CZ.MOVE_ITEM_FROM_STORE_TO_BODY2 : PACKET.CZ.MOVE_ITEM_FROM_STORE_TO_BODY, { index: arg.index, count: arg.count });
+        return send(packetVer() >= PACKETVER_USE_V2 ? PACKET.CZ.MOVE_ITEM_FROM_STORE_TO_BODY2 : PACKET.CZ.MOVE_ITEM_FROM_STORE_TO_BODY, { index: arg.index, count: arg.count });
       }
       // ---- Kafra storage (open it by talking to a Kafra; these only work while it's open).
       // Same choice as the client's StorageController.reqAddItem: the "2" packet from packetver
       // 20180307 (this server: 20211103). The old one went out and the server ignored it.
       case 'storage_put': {
-        const ver = (RO.PACKETVER && (RO.PACKETVER.value ?? RO.PACKETVER)) || 0;
-        const Struct = ver >= 20180307 && PACKET.CZ.MOVE_ITEM_FROM_BODY_TO_STORE2 ? PACKET.CZ.MOVE_ITEM_FROM_BODY_TO_STORE2 : PACKET.CZ.MOVE_ITEM_FROM_BODY_TO_STORE;
+        const Struct = packetVer() >= PACKETVER_USE_V2 && PACKET.CZ.MOVE_ITEM_FROM_BODY_TO_STORE2 ? PACKET.CZ.MOVE_ITEM_FROM_BODY_TO_STORE2 : PACKET.CZ.MOVE_ITEM_FROM_BODY_TO_STORE;
         return send(Struct, { index: arg.index, Index: arg.index, count: arg.count });
       }
       case 'storage_close': {
@@ -841,18 +866,12 @@ export function installPageAgent() {
         if (c && c.__active && c.remove) c.remove();
         return true;
       }
-      // ---- NPC dialog answers (what the client's NpcBox/NpcMenu buttons send)
-      case 'npc_next':
-        return send(PACKET.CZ.REQ_NEXT_SCRIPT, { NAID: arg.naid });
-      case 'npc_menu': // 1-based option, 255 = cancel
-        if (A.dialog) A.dialog.state = 'text';
-        return send(PACKET.CZ.CHOOSE_MENU, { NAID: arg.naid, num: arg.num });
-      case 'npc_input':
-        if (A.dialog) A.dialog.state = 'text';
-        if (typeof arg.value === 'number') return send(PACKET.CZ.INPUT_EDITDLG, { NAID: arg.naid, value: arg.value });
-        return send(PACKET.CZ.INPUT_EDITDLGSTR, { NAID: arg.naid, msg: String(arg.value) });
+      // ---- Closing NPC/shop/storage windows. ui-click.js clicks the client's own buttons; these
+      // are its fallback when no window is on screen, because the server only lets go of the
+      // NPC session (walking, @go, warps) when it gets the close packet. Next/menu/input answers
+      // exist only as real clicks in ui-click.js.
       case 'npc_close':
-        send(PACKET.CZ.CLOSE_DIALOG, { NAID: arg.naid });
+        if (arg.naid !== undefined) send(PACKET.CZ.CLOSE_DIALOG, { NAID: arg.naid });
         if (A.dialog) A.dialog.state = 'ended';
         for (const name of ['NpcBox', 'NpcMenu']) {
           const c = component(name);
@@ -863,7 +882,7 @@ export function installPageAgent() {
         // Show it on the bar and save it on the server, as a drag-and-drop would.
         const bar = component('ShortCut');
         if (bar && bar.addElement) bar.addElement(arg.index, arg.isSkill, arg.ID, arg.count);
-        const Struct = RO.PACKETVER.value >= 20190522 ? PACKET.CZ.SHORTCUT_KEY_CHANGE2 : PACKET.CZ.SHORTCUT_KEY_CHANGE1;
+        const Struct = packetVer() >= PACKETVER_SHORTCUT2 ? PACKET.CZ.SHORTCUT_KEY_CHANGE2 : PACKET.CZ.SHORTCUT_KEY_CHANGE1;
         send(Struct, { Index: arg.index, ShortCutKey: { isSkill: arg.isSkill ? 1 : 0, ID: arg.ID, count: arg.count } });
         return true;
       }
@@ -902,9 +921,11 @@ export function installPageAgent() {
         RO.NaviRoute.setDestination({ map: arg.map, x: 0, y: 0, name: arg.map });
         return true;
       case 'navi_clear':
-        return RO.NaviRoute.clear();
+        RO.NaviRoute.clear();
+        return true;
       case 'say':
-        return RO.say(arg.text);
+        RO.say(arg.text);
+        return true;
       case 'party':
         return send(PACKET.CZ.REQUEST_CHAT_PARTY, { msg: `${myName()} : ${arg.text}` });
       case 'guild':

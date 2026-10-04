@@ -2,9 +2,10 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { POTIONS, SP_POTIONS, healRange, spRange, stockHp, stockSp } from './potions.js';
 import * as laya from './laya.js';
 import { log } from './logger.js';
+import { POCKET_MONEY, LOW_REFILLS, TARGET_REFILLS, SP_STOCK_REFILLS, SP_LOW_REFILLS, SPEND_SHARE, EMERGENCY_SPEND_SHARE, WEIGHT_SHARE, EMERGENCY_WEIGHT_SHARE, EMERGENCY_HP_REFILLS, EMERGENCY_SP_REFILLS, HP_TRIP_MINUTES, SP_TRIP_MINUTES } from './supply.js';
 
-export const SP_STOCK_REFILLS = 8;
-export const SP_LOW_REFILLS = 2;
+export { SP_STOCK_REFILLS, SP_LOW_REFILLS };
+const SP_SPLIT = 0.6; // share of money and room kept for the HP item while SP is still short
 const FILE = 'logs/potion-selection.json';
 const known = [...POTIONS, ...SP_POTIONS,
   { ITID: 518, name: 'Honey', weight: 100 }, { ITID: 526, name: 'Royal Jelly', weight: 150 },
@@ -21,6 +22,12 @@ const valid = (s) => s && (s.hp != null || s.sp != null) &&
   (s.sp == null || (Number.isInteger(s.sp) && spRange(s.sp))) &&
   (s.hp === s.sp || (!spRange(s.hp) && !healRange(s.sp)));
 
+/**
+ * An item we only hold (no shop offer or not affordable) counts as a loadout candidate when it is a real
+ * stock: one Honey picked up off a monster must not become "the loadout" and get the Red Potions sold.
+ */
+const worthCarrying = (snap, p) => p.count > 0 && (p.price > 0 || (p.hp || 0) * p.count >= (snap.me.maxHp || 0) || (p.sp || 0) * p.count >= (snap.me.maxSp || 0));
+
 /** One HP + one SP type, or exactly one dual-purpose type. LAYA picks the loadout. */
 export function createPotionLoadout() {
   let selection = null;
@@ -35,7 +42,7 @@ export function createPotionLoadout() {
       const k = known.find((i) => i.ITID === ITID);
       const offer = list.find((i) => i.ITID === ITID && i.price > 0 && (i.stock == null || i.stock > 0));
       return { ITID, name: item?.name || k?.name || String(ITID), hp: stockHp([{ ITID, count: 1 }], snap.me), sp: stockSp([{ ITID, count: 1 }]), weight: k?.weight ?? item?.weight, count: countOf(snap, ITID), price: offer?.price ?? null, stock: offer?.stock ?? null };
-    }).filter((p) => (p.hp || p.sp) && (p.count > 0 || (p.price > 0 && p.price <= Math.max(0, snap.me.zeny - 1000))) && p.weight > 0);
+    }).filter((p) => (p.hp || p.sp) && (worthCarrying(snap, p) || (p.price > 0 && p.price <= Math.max(0, snap.me.zeny - POCKET_MONEY))) && p.weight > 0);
   }
   async function choose(snap, list, dps, rates) {
     const potions = options(snap, list);
@@ -77,6 +84,12 @@ export function createPotionLoadout() {
   }
   function surplus(snap, chosen = selection) {
     if (!ready(snap, chosen)) return [];
+    // The weaker bottles are drunk too (reflex): they only go once the selected ones cover the stock we aim for
+    // by themselves, never as soon as one replacement bottle is in the bag.
+    const have = (id) => id == null ? 0 : stockHp([{ ITID: id, count: countOf(snap, id) }], snap.me);
+    const haveSp = (id) => id == null ? 0 : stockSp([{ ITID: id, count: countOf(snap, id) }]);
+    if (chosen.hp != null && have(chosen.hp) < (snap.me.maxHp || 0) * TARGET_REFILLS) return [];
+    if (chosen.sp != null && snap.me.maxSp > 0 && haveSp(chosen.sp) < snap.me.maxSp * SP_STOCK_REFILLS) return [];
     const hp = stockHp([{ ITID: chosen.hp, count: 1 }], snap.me);
     const sp = stockSp([{ ITID: chosen.sp, count: 1 }]);
     const strength = i => ({ hp: stockHp([{ ITID: i.ITID, count: 1 }], snap.me), sp: stockSp([{ ITID: i.ITID, count: 1 }]) });
@@ -92,19 +105,19 @@ export function createPotionLoadout() {
   function purchase(snap, list, rates, chosen = selection, reservedZeny = 0, emergency = false) {
     if (!valid(chosen)) return [];
     const catalog = options(snap, list);
-    let budget = Math.max(0, Math.min(snap.me.zeny - 1000, snap.me.zeny * (emergency ? 0.25 : 0.6)) - reservedZeny);
-    let room = snap.me.maxWeight ? Math.max(0, snap.me.maxWeight * 0.45 - snap.me.weight) : 0;
+    let budget = Math.max(0, Math.min(snap.me.zeny - POCKET_MONEY, snap.me.zeny * (emergency ? EMERGENCY_SPEND_SHARE : SPEND_SHARE)) - reservedZeny);
+    let room = snap.me.maxWeight ? Math.max(0, snap.me.maxWeight * (emergency ? EMERGENCY_WEIGHT_SHARE : WEIGHT_SHARE) - snap.me.weight) : 0;
     const out = [];
     for (const id of new Set([chosen.hp, chosen.sp])) {
       const p = catalog.find((p) => p.ITID === id && p.price > 0);
       if (!p) continue;
-      const hpTarget = emergency ? (snap.me.maxHp || 0) * 4 : Math.max((rates?.hp || 0) * 20, (snap.me.maxHp || 0) * 15);
-      const spTarget = emergency ? (snap.me.maxSp || 0) * 2 : Math.max((rates?.sp || 0) * 30, (snap.me.maxSp || 0) * SP_STOCK_REFILLS);
+      const hpTarget = emergency ? (snap.me.maxHp || 0) * EMERGENCY_HP_REFILLS : Math.max((rates?.hp || 0) * HP_TRIP_MINUTES, (snap.me.maxHp || 0) * TARGET_REFILLS);
+      const spTarget = emergency ? (snap.me.maxSp || 0) * EMERGENCY_SP_REFILLS : Math.max((rates?.sp || 0) * SP_TRIP_MINUTES, (snap.me.maxSp || 0) * SP_STOCK_REFILLS);
       const target = Math.max(id === chosen.hp ? Math.ceil(hpTarget / p.hp) : 0, id === chosen.sp ? Math.ceil(spTarget / p.sp) : 0);
       const spItem = catalog.find(p => p.ITID === chosen.sp && p.price > 0);
       const reserveSp = id === chosen.hp && chosen.hp !== chosen.sp && spItem && spItem.count * spItem.sp < spTarget;
-      const spend = reserveSp ? budget * 0.6 : budget;
-      const weightRoom = reserveSp ? room * 0.6 : room;
+      const spend = reserveSp ? budget * SP_SPLIT : budget;
+      const weightRoom = reserveSp ? room * SP_SPLIT : room;
       const count = Math.max(0, Math.floor(Math.min(target - p.count, spend / p.price, weightRoom / p.weight, p.stock ?? Infinity)));
       if (!count) continue;
       out.push({ ITID: id, name: p.name, count, weight: p.weight });

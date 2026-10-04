@@ -10,6 +10,10 @@ const AUTO_NOTE = {
   false: '\n⚠️ agent ยังทำเรื่องนี้เองไม่ได้ ต้องให้เจ้าของทำ — ระหว่างนี้จะเล่นต่อตามปกติ',
 };
 
+const MAX_QUEUE = 50;
+const MAX_429_RETRIES = 5;
+const MAX_TITLE = 256; // Discord embed limits
+const MAX_DESCRIPTION = 4096;
 const MIN_GAP_MS = 3000; // Discord allows ~30/min per webhook; we send far fewer, but never in bursts.
 
 const queue = [];
@@ -24,7 +28,7 @@ let sender = 'Morroc101 AI';
 export function setIdentity(me) {
   if (!me || !me.name) return;
   // Discord: 1-80 chars, and the word "discord" isn't allowed in a webhook name.
-  sender = `${me.name} Lv.${me.baseLevel ?? '?'}/${me.jobLevel ?? '?'}`.replace(/discord/gi, 'd1scord').slice(0, 80);
+  sender = `${me.name} Lv.${me.baseLevel ?? '?'}/${me.jobLevel ?? '?'}`.replace(/discord/gi, 'd1scord').replace(/clyde/gi, 'cl1de').slice(0, 80);
 }
 
 /**
@@ -33,10 +37,11 @@ export function setIdentity(me) {
  */
 export function notify(title, description, fields = {}, color = 0xe8b84b) {
   if (!config.discordWebhook) return;
+  if (queue.length >= MAX_QUEUE) queue.shift(); // a dead webhook must not grow memory
   queue.push({
     username: sender,
-    title,
-    description,
+    title: String(title ?? '').slice(0, MAX_TITLE),
+    description: String(description ?? '').slice(0, MAX_DESCRIPTION),
     color,
     fields: Object.entries(fields)
       .filter(([, v]) => v !== undefined && v !== null && v !== '')
@@ -53,7 +58,7 @@ async function pump() {
     while (queue.length) {
       const wait = lastSentAt + MIN_GAP_MS - Date.now();
       if (wait > 0) await Bun.sleep(wait);
-      const { username, ...embed } = queue.shift();
+      const { username, tries = 0, ...embed } = queue.shift();
       lastSentAt = Date.now();
       try {
         const res = await fetch(config.discordWebhook, {
@@ -65,7 +70,8 @@ async function pump() {
         if (res.status === 429) {
           // Rate limited: put it back and wait what Discord asks.
           const body = await res.json().catch(() => ({}));
-          queue.unshift({ username, ...embed });
+          if (tries < MAX_429_RETRIES) queue.unshift({ username, tries: tries + 1, ...embed });
+          else log('notify_error', { status: 429, title: embed.title, error: 'gave up after retries' });
           await Bun.sleep(Math.ceil((body.retry_after || 2) * 1000));
         } else if (!res.ok) {
           log('notify_error', { status: res.status, title: embed.title });

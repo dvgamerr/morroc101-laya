@@ -1,10 +1,26 @@
 import { config } from './config.js';
 
+// The bearer key travels with every request: warn once when it would cross a network in clear text.
+let warnedInsecure = false;
+function warnIfInsecure() {
+  if (warnedInsecure) return;
+  warnedInsecure = true;
+  try {
+    const { protocol, hostname } = new URL(config.llm.baseUrl);
+    if (protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(hostname)) {
+      console.warn(`[llm] OMLX_BASE_URL uses plain HTTP to ${hostname}: the API key is sent unencrypted. Use https:// or a local/VPN-only endpoint.`);
+    }
+  } catch {
+    console.warn('[llm] OMLX_BASE_URL is not a valid URL');
+  }
+}
+
 /**
  * Chat completion against oMLX (OpenAI-compatible).
  * Thinking is turned off: replies must be fast and short, and the planner asks for JSON.
  */
 export async function chat(messages, { maxTokens = 256, temperature = 0.7, json = false, timeoutMs = 60000, onCompletion } = {}) {
+  warnIfInsecure();
   const res = await fetch(`${config.llm.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {

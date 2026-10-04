@@ -1,4 +1,4 @@
-import { config } from './config.js';
+import { config, ZENY_RESERVE } from './config.js';
 import { stockHp } from './potions.js';
 import { jobReference, jobLevelEligible } from './job-reference.js';
 import { gearObjective } from './gear-goal.js';
@@ -105,8 +105,8 @@ export function nextJob(me, path = config.classPath) {
 // Potion stock in full HP bars it can refill (potions.js stockHp), same rule as errand.js.
 const LOW_REFILLS = 4;
 
-/** Zeny to keep back for potions and travel; grows with level. */
-export const zenyReserve = () => 100000; // Owner: one fixed reserve in signals and spending rules.
+/** Zeny to keep back for potions and travel. Owner: one fixed reserve (config.ZENY_RESERVE), not level-based. */
+export const zenyReserve = () => ZENY_RESERVE;
 
 /**
  * What the code can see that needs a goal, strongest first. Each signal names
@@ -120,7 +120,7 @@ export function detectSignals(snap, { recentDeaths = 0 } = {}) {
   const weightPct = me.maxWeight ? Math.round((me.weight / me.maxWeight) * 100) : 0;
   const stock = Math.round(stockHp(inv, me));
   const lowStock = stock < (me.maxHp || 0) * LOW_REFILLS;
-  const reserve = zenyReserve(me.baseLevel);
+  const reserve = zenyReserve();
 
   if (recentDeaths >= 2) out.push({ key: 'deaths', goal: 'rest', text: `ตาย ${recentDeaths} ครั้งใน 30 นาที` });
   if (weightPct >= 80) out.push({ key: 'weight', goal: 'sell', text: `น้ำหนัก ${weightPct}%` });
@@ -137,6 +137,6 @@ export function detectSignals(snap, { recentDeaths = 0 } = {}) {
   const next = nextJob(me);
   if (ready && next) out.push({ key: 'job', goal: 'job_change', text: `${ready} → ตามสายไป ${next}` });
   if (me.skillPoints > 0) out.push({ key: 'skill', goal: 'build', text: `skill point เหลือ ${me.skillPoints}` });
-  if (gearObjective(snap, jobInfo(me.jobId).name).status !== 'complete') out.push({ key: 'gear7', goal: 'gear', text: 'เป้าหมายเจ้าของ: อุปกรณ์ NPC ที่ใส่ได้ +7 / ขวานสองมือ / ตรวจ Kafra ก่อนซื้ออย่างละ 1 ชิ้น' });
+  if (gearObjective(snap, jobInfo(me.jobId).name).status === 'pending') out.push({ key: 'gear7', goal: 'gear', text: 'เป้าหมายเจ้าของ: อุปกรณ์ NPC ที่ใส่ได้ +7 / ขวานสองมือ / ตรวจ Kafra ก่อนซื้ออย่างละ 1 ชิ้น' });
   return out;
 }

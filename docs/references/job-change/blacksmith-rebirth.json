@@ -9,13 +9,19 @@
   ],
   "steps": [
     "Blacksmith Base 99 Job 50 → จุติเป็น High Novice แล้วเริ่มเก็บเลเวลใหม่",
-    "ก่อนทำตามเควสทางการ ต้องตรวจเงื่อนไข NPC ของเซิร์ฟจริง",
-    "แนวทาง Revo-Classic: ใช้ stat/skill point หมด ถอดอุปกรณ์ น้ำหนักและของในตัว/รถเข็นเป็นศูนย์ ไม่มีรถเข็น/สัตว์ติดตาม และเงิน 1,285,000 zeny ตามคู่มือนี้เท่านั้น",
-    "Metheus Sylphe → Book of Ymir → Heart of Ymir → Valkyrie",
-    "ห้ามเอาค่าธรรมเนียมหรือเงื่อนไข classic ไปใช้กับ Job Master โดยถือว่ายืนยันแล้ว"
+    "คุยกับ Job Master (prontera 153,193) เลือก Rebirth แล้วยืนยัน ไม่มีเควสและไม่เสียค่าธรรมเนียม",
+    "ก่อนคุย: ใช้ skill point หมด และถอด cart / เหยี่ยว / Peco / mount ออก (NPC จะปฏิเสธถ้าไม่ทำ)"
   ],
+  "requirements": {
+    "confirmed": true,
+    "noCart": true,
+    "noMount": true,
+    "skillPoints": 0,
+    "baseLevel": 99,
+    "jobLevel": 50
+  },
   "sources": [
-    "https://99porings.com/revo-classic/transcendent/high-novice"
+    "E:morroc101-rathena\npccustomjobmaster.txt (Req_Rebirth 99/50, Check_Riding, Check_SkillPoints; ไม่มีเควส/zeny/น้ำหนัก)"
   ],
-  "server": "โครงการใช้ Job Master จาก world directory; ยังไม่ยืนยันเงื่อนไขเฉพาะเซิร์ฟทั้งหมดจาก NPC. รายละเอียดเควสทางการเป็นข้อมูลอ้างอิง ไม่ใช่คำสั่งให้บอททำเควสหรือทิ้งของอัตโนมัติ."
+  "server": "Job Master ของเซิร์ฟ (rAthena npc/custom/jobmaster.txt) เปลี่ยนอาชีพ/จุติได้โดยตรง ไม่ต้องทำเควส Metheus→Valkyrie ซึ่งเป็นของ classic และใช้ไม่ได้กับเซิร์ฟนี้"
 }

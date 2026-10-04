@@ -6,7 +6,6 @@ import { FORBIDDEN, findNpcEntity } from './npc.js';
 import { readGearStorage, recordGearStorage } from './gear-goal.js';
 import { oresIn } from './ores.js';
 
-const CARD = 6;
 const KAFRA = /^kafra( employee| service| staff)?$/i;
 const TALK_RANGE = 3;
 const WALK_TIMEOUT_MS = 60000;
@@ -15,6 +14,7 @@ const PUT_GAP_MS = 400;
 const VERIFY_MS = 4000;
 const RETRY_AFTER_MS = 2 * 60 * 1000;
 const GONE_CONFIRM_MS = 1500;
+const UNSTORABLE_RETRY_MS = 30 * 60 * 1000; // an item that wouldn't go in (full, no-storage) isn't offered again for this long
 
 /** Menu chooser for a Kafra: "Use Storage" (or "yes" to its confirmation); never anything forbidden. */
 export const storageChooser = {
@@ -26,15 +26,14 @@ export const storageChooser = {
   },
 };
 
-/** Cards in the bag that aren't slotted into gear. */
-export const cardsIn = (inv) => (inv || []).filter((i) => i.type === CARD && i.count > 0 && !i.equipped);
-
 /**
  * Deposit ores as requested by the owner; other items require LAYA review.
  */
 export function createStorage(page, world, dialog, review = null) {
-  const s = { active: false, stage: 'idle', npc: null, startedAt: 0, stageAt: 0, cooldownUntil: 0, lastPutAt: 0, stored: 0 };
-  const selected = (snap) => [...new Map([...oresIn(snap), ...(review?.storageItems(snap) || [])].map(i => [i.index, i])).values()].filter((i) => !s.active || s.selected?.get(i.index) === i.ITID);
+  const s = { active: false, stage: 'idle', npc: null, startedAt: 0, stageAt: 0, cooldownUntil: 0, lastPutAt: 0, stored: 0, unstorable: new Map() };
+  const selected = (snap) => [...new Map([...oresIn(snap), ...(review?.storageItems(snap) || [])].map(i => [i.index, i])).values()]
+    .filter((i) => (s.unstorable.get(i.ITID) || 0) <= Date.now())
+    .filter((i) => !s.active || s.selected?.get(i.index) === i.ITID);
 
   function kafraHere(map) {
     return (world?.npcs || []).filter((n) => n.map === map && KAFRA.test(n.name));
@@ -176,6 +175,8 @@ export function createStorage(page, world, dialog, review = null) {
         const c = cards.find((k) => (s.tries.get(k.index) || 0) < 2);
         if (!c) {
           if (Date.now() - s.lastPutAt < VERIFY_MS) return null;
+          // Remember what wouldn't go in, so the next visit (and its Kafra fee) isn't spent on it again.
+          for (const k of cards) s.unstorable.set(k.ITID, Date.now() + UNSTORABLE_RETRY_MS);
           return finish(s.stored > 0, `not stored: ${cards.map((k) => k.name).join(', ')}`, snap);
         }
         s.tries.set(c.index, (s.tries.get(c.index) || 0) + 1);

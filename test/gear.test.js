@@ -51,16 +51,3 @@ test('refined / carded / signed gear (client junk rules) is never sold; unknown 
   expect(sell.has(13)).toBe(true);
   expect(sell.has(15)).toBe(false);
 });
-
-test('wear: a stripped weapon goes back on first; better pieces replace worse; never unidentified, other jobs or over-level', async () => {
-  const { gearToWear } = await import('../src/gear.js');
-  const axe = g(9, 5, { loc: 34, kind: 'Two-handed axes', atk: 185, jobs: 'Merchant, Blacksmith', identified: true }, { name: 'Two-Handed Axe' });
-  const nut = g(3, 4, { loc: 256, def: 8, jobs: '', identified: false }, { name: 'Nut Shell' });
-  const helm = g(5, 4, { loc: 256, def: 9, jobs: '', identified: true, reqLv: 99 }, { name: 'Big Helm' });
-  const boots = g(6, 4, { loc: 64, def: 20, jobs: '', identified: true }, { name: 'Better Boots' });
-  const wornNoWeapon = [{ name: 'Cap', loc: 256, def: 7 }, { name: 'Boots', loc: 64, def: 16 }];
-  expect(gearToWear([nut, helm, boots, axe], wornNoWeapon, 87, PATH)).toMatchObject({ index: 9, loc: 34, why: 'empty slot' });
-  const withAxe = [...wornNoWeapon, { name: 'Two-Handed Axe', loc: 34, atk: 185 }];
-  expect(gearToWear([nut, helm, boots, axe], withAxe, 87, PATH)).toMatchObject({ index: 6, why: 'better than Boots' });
-  expect(gearToWear([nut, helm], withAxe, 87, PATH)).toBe(null); // unidentified / level 99
-});

@@ -38,6 +38,9 @@ const snap = ({ me, ...over } = {}) => ({
   me: { name: 'Bot', x: 100, y: 100, hp: 100, maxHp: 100, sp: 50, maxSp: 50, weight: 10, maxWeight: 100, map: 'prt_fild08', ...me },
 });
 
+// Two monsters bunched together: a group, so damage skills skip the normal-attack trial.
+const group = [{ GID: 7, name: 'Poring', x: 103, y: 100, dist: 3 }, { GID: 8, name: 'Poring', x: 104, y: 100, dist: 4 }];
+
 let brain;
 beforeEach(() => {
   calls.length = 0;
@@ -192,7 +195,7 @@ test('a long fight followed by one explore is not "stuck" (it used to abandon go
   setSystemTime();
 });
 
-test('combat: buff first, then skills always; a plain hit only to finish a nearly-dead monster', async () => {
+test('combat: buff first, then skills at once on a group; a lone monster gets normal hits first', async () => {
   const casts = [];
   const skills = {
     ensurePlan() {},
@@ -204,12 +207,13 @@ test('combat: buff first, then skills always; a plain hit only to finish a nearl
   layaChoice = 'attack_monster';
   await tick({ ...snap(), buffDown: true });
   expect(casts).toEqual(['BUFF']);
-  await tick(snap({ attackers: [7] }));
+  await tick(snap({ attackers: [7, 8], monsters: group }));
   expect(casts).toEqual(['BUFF', 'SKILL']);
   calls.length = 0;
-  await tick(snap({ attackers: [7], monsters: [{ GID: 7, name: 'Poring', x: 101, y: 100, dist: 1, hp: 5, maxHp: 100 }] }));
-  expect(casts).toEqual(['BUFF', 'SKILL']); // 5% HP left: no skill wasted
-  expect(calls.filter(([n]) => n === 'attack').length).toBeLessThanOrEqual(1);
+  const lone = createReflex({}, brain, null, skills);
+  await lone(snap({ attackers: [7] })); // one on us: the three-second normal-attack trial comes first
+  expect(casts).toEqual(['BUFF', 'SKILL']);
+  expect(calls.filter(([n]) => n === 'attack').length).toBe(1);
 });
 
 test('a coin-flip LAYA answer falls back to the obvious move; no potion offered above 75% HP', async () => {
@@ -236,10 +240,10 @@ test('under attack: drink at 60%, not 45%', async () => {
   expect(r.action).toBe('use_hp_potion');
 });
 
-test('out of combat below 70%: sit (free) instead of starting a fight; potion only with a monster close', async () => {
+test('out of combat below 70%: no sitting, wait for supplies instead of starting a fight; potion only with a monster close', async () => {
   const tick = createReflex({}, brain);
   const far = await tick(snap({ me: { hp: 50 }, monsters: [{ GID: 7, name: 'Poring', x: 110, y: 100, dist: 10 }], inventory: [] }));
-  expect(far.action).toBe('rest'); // no potions at all: sit
+  expect(far.action).toBe('wait'); // no potions at all: wait for a supply trip
   const close = await tick(snap({ me: { hp: 50 } })); // Poring at dist 3
   expect(close.action).toBe('use_hp_potion');
 });
@@ -252,10 +256,10 @@ test('a monster sitting in a pack is skipped while a lone one is available', asy
   expect(calls.at(-1)).toEqual(['attack', { GID: 7 }]);
 });
 
-test('in town (e.g. after respawning) the reflex never drinks out of combat: it sits', async () => {
+test('in town (e.g. after respawning) the reflex never drinks out of combat: it waits for the town services', async () => {
   const tick = createReflex({}, brain);
   const r = await tick(snap({ me: { hp: 1 }, monsters: [], inventory: [{ index: 2, ITID: 504, count: 99, type: 0 }] }), { inTown: true });
-  expect(r.action).toBe('rest');
+  expect(r.action).toBe('wait');
 });
 
 test('mobbed with no wing: drink before running (running while being hit just dies tired)', async () => {
@@ -275,7 +279,7 @@ test('a failed skill makes the next move one step aside before casting again (un
   };
   const tick = createReflex({}, brain, null, skills);
   layaChoice = 'attack_monster';
-  await tick(snap());
+  await tick(snap({ monsters: group }));
   expect(calls.some(([n, a]) => n === 'walk_to' && a.step === 1)).toBe(true);
   expect(skills.book.needStep).toBe(false);
 });
@@ -318,13 +322,13 @@ test('a normal attack is running and a skill is ready: step one cell to cancel t
   };
   const tick = createReflex({}, brain, null, skills);
   layaChoice = 'attack_monster';
-  await tick(snap()); // no skill ready: plain attack
+  await tick(snap({ monsters: group })); // no skill ready: plain attack
   expect(calls.at(-1)).toEqual(['attack', { GID: 7 }]);
   ready = true;
-  await tick(snap());
+  await tick(snap({ monsters: group }));
   expect(calls.at(-1)[0]).toBe('walk_to'); // cancel the attack first
   expect(calls.at(-1)[1].step).toBe(1);
-  await tick(snap());
+  await tick(snap({ monsters: group }));
   expect(calls.at(-1)).toMatchObject(['skill', { SKID: 5 }]); // now the skill goes out
 });
 
@@ -339,14 +343,14 @@ test('between casts (skill on cooldown) it waits for the next skill instead of s
   };
   const tick = createReflex({}, brain, null, skills);
   layaChoice = 'attack_monster';
-  await tick(snap());
+  await tick(snap({ monsters: group }));
   expect(calls.at(-1)).toMatchObject(['skill', { SKID: 5 }]);
   ready = false; // global gap / cooldown
   const before = calls.length;
-  await tick(snap());
+  await tick(snap({ monsters: group }));
   expect(calls.slice(before).some(([n]) => n === 'attack' || n === 'walk_to')).toBe(false);
   ready = true;
-  await tick(snap());
+  await tick(snap({ monsters: group }));
   expect(calls.at(-1)).toMatchObject(['skill', { SKID: 5 }]); // straight out, no cancel step needed
 });
 
@@ -360,7 +364,7 @@ test('a skill is ready but the monster is out of its reach: walk up to it, no sw
   };
   const tick = createReflex({}, brain, null, skills);
   layaChoice = 'attack_monster';
-  await tick(snap()); // Poring at dist 3
+  await tick(snap({ monsters: group })); // Poring at dist 3
   expect(calls.at(-1)).toEqual(['walk_to', { x: 103, y: 100 }]);
   expect(calls.some(([n]) => n === 'attack')).toBe(false);
 });
@@ -494,12 +498,12 @@ test('a fight going badly: wing out to a safe spot (2 on us under 50%, or under 
   expect((await c(snap({ me: { hp: 55 }, attackers: [7], monsters: two.slice(0, 1), inventory: inv }))).action).toBe('use_hp_potion'); // 1v1 at 55%: drink, keep fighting
 });
 
-test('splash skill waiting for a group: tag another monster nearby so it follows, then the splash can go out', async () => {
+test('a lone monster is never pulled toward a splash: the second one is left alone, no skill goes out', async () => {
   const skills = {
     book: {},
     ensurePlan() {},
     pickBuff: () => null,
-    pickAttack: () => null, // Cart Revolution waits: only one on us
+    pickAttack: () => null, // Cart Revolution waits: only one in its splash
     noteCast() {},
   };
   const tick = createReflex({}, brain, null, skills);
@@ -510,7 +514,87 @@ test('splash skill waiting for a group: tag another monster nearby so it follows
   await tick(snap({ me, monsters: [a] })); // engage the first
   calls.length = 0;
   await tick(snap({ me, attackers: [7], monsters: [a, b] }));
-  expect(calls).toContainEqual(['attack', { GID: 8 }]); // pulled the second one
+  expect(calls).not.toContainEqual(['attack', { GID: 8 }]);
+  expect(calls.some(([n]) => n === 'skill')).toBe(false);
+});
+
+test('after the single-target trial a splash skill still needs 2+ in its splash (no Cart Revolution on a lone monster)', async () => {
+  const seen = [];
+  const skills = { book: {}, ensurePlan() {}, pickBuff: () => null, pickAttack: (...a) => (seen.push(a), null), noteCast() {} };
+  const tick = createReflex({}, brain, null, skills);
+  const a = { GID: 7, name: 'Poring', x: 101, y: 100, dist: 1 };
+  const t0 = Date.now();
+  setSystemTime(t0);
+  layaChoice = 'attack_monster';
+  await tick(snap({ monsters: [a] }));
+  setSystemTime(t0 + 3500);
+  await tick(snap({ monsters: [a] }));
+  setSystemTime();
+  expect(seen.length).toBeGreaterThan(0);
+  expect(seen.every((args) => !args[5])).toBe(true); // afterNormalTrial is never forced on
+});
+
+test('a wing that does not move us (noteleport map) is not pressed again every tick: the potion is drunk instead', async () => {
+  const inv = [{ index: 2, ITID: 501, count: 30, type: 0 }, { index: 4, ITID: 601, count: 5, type: 2 }];
+  const monsters = pack(3);
+  const attackers = monsters.map((m) => m.GID);
+  const tick = createReflex({}, brain);
+  const t0 = Date.now();
+  setSystemTime(t0);
+  const first = await tick(snap({ me: { hp: 30 }, monsters, attackers, inventory: inv }));
+  expect(first.action).toBe('fly_wing');
+  setSystemTime(t0 + 150);
+  const again = await tick(snap({ me: { hp: 30 }, monsters, attackers, inventory: inv })); // still judging the first wing
+  expect(again.action).toBe('use_hp_potion');
+  setSystemTime(t0 + 2000);
+  const later = await tick(snap({ me: { hp: 30 }, monsters, attackers, inventory: inv })); // same cell: wings do nothing here
+  expect(later.action).toBe('use_hp_potion');
+  expect(logged.some(([k]) => k === 'wing_no_effect')).toBe(true);
+  setSystemTime();
+});
+
+test('drinking while hit steps away from the monsters, never towards them', async () => {
+  const tick = createReflex({}, brain);
+  const t0 = Date.now();
+  for (let i = 0; i < 16; i++) {
+    setSystemTime(t0 + i * 1000);
+    await tick(snap({ me: { hp: 30 }, attackers: [7], monsters: [{ GID: 7, name: 'Poring', x: 98, y: 100, dist: 2 }] }));
+  }
+  setSystemTime();
+  const steps = calls.filter(([n]) => n === 'walk_to');
+  expect(steps.length).toBeGreaterThan(8);
+  expect(steps.every(([, a]) => a.x >= 100)).toBe(true); // the monster is to the west
+});
+
+test('an unknown healing-type item (Yggdrasil Berry) is not drunk when the potions run out', async () => {
+  const tick = createReflex({}, brain);
+  const r = await tick(snap({ me: { hp: 30 }, attackers: [7], inventory: [{ index: 3, ITID: 607, name: 'Yggdrasil Berry', count: 5, type: 0 }] }));
+  expect(r.action).not.toBe('use_hp_potion');
+  expect(calls.some(([n]) => n === 'use_item')).toBe(false);
+});
+
+test('Maximize Power is switched off when there is nothing to fight (it only drains SP)', async () => {
+  let off = 0;
+  const skills = { book: {}, ensurePlan() {}, pickBuff: () => null, pickToggle: () => null, pickToggleOff: () => (off++, { id: 114, level: 5, name: 'BS_MAXIMIZE', toggle: true }), noteCast() {} };
+  const tick = createReflex({}, brain, null, skills);
+  const t0 = Date.now();
+  setSystemTime(t0);
+  await tick(snap({ monsters: [], inventory: [] }));
+  expect(off).toBe(0); // just lost sight of the last monster
+  setSystemTime(t0 + 4000);
+  const r = await tick(snap({ monsters: [], inventory: [] }));
+  setSystemTime();
+  expect(r.action).toBe('buff');
+  expect(calls.at(-1)).toMatchObject(['skill', { SKID: 114 }]);
+});
+
+test('a fight starting while LAYA is still thinking hands the tick back to the fight rules', async () => {
+  layaGate = new Promise(() => {}); // LAYA never answers
+  const fight = snap({ attackers: [7], me: { hp: 50 } });
+  const tick = createReflex({}, brain, null, null, null, null, async () => fight);
+  // Something on the ground and an empty field: the rules leave it to LAYA.
+  const r = await tick(snap({ monsters: [], inventory: [], me: { hp: 90 }, items: [{ GID: 1, dist: 5, x: 105, y: 100 }] }));
+  expect(r.action).toBe('use_hp_potion');
 });
 
 test('no pulling where it already hurts (the ein_fild08 death), and two at most without a wing', async () => {

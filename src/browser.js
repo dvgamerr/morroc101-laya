@@ -67,11 +67,24 @@ async function cdpReady() {
  */
 export async function forceDevelopmentMode(context) {
   await context.route('**/Config.local.js*', async (route) => {
-    let body = '';
+    let res;
+    let body;
     try {
-      const res = await route.fetch();
+      res = await route.fetch();
       body = await res.text();
-    } catch {}
+    } catch (error) {
+      // Never hand the client a Config.local.js without its own settings: it would boot in
+      // production mode with no window.RO and the bot would wait for a game that cannot be driven.
+      log('game_config_failed', { error: error.message });
+      await route.abort('failed').catch(() => {});
+      return;
+    }
+    if (!res.ok()) {
+      // An error page is not JavaScript; appending to it breaks the client. Pass it through as is.
+      log('game_config_failed', { status: res.status() });
+      await route.fulfill({ response: res, body }).catch(() => {});
+      return;
+    }
     body += '\n;window.ROConfigLocal = Object.assign(window.ROConfigLocal || {}, { development: true });\n';
     await route.fulfill({ status: 200, contentType: 'application/javascript', body });
   });
@@ -88,11 +101,16 @@ function blockServiceWorker() {
   } catch {}
 }
 
-export async function waitForInGame(page, onWait, reconnect) {
+// Logging in by hand the first time can take a while; waiting forever hides a broken client.
+const IN_GAME_TIMEOUT_MS = 30 * 60 * 1000;
+
+export async function waitForInGame(page, onWait, reconnect, { timeoutMs = IN_GAME_TIMEOUT_MS } = {}) {
+  const deadline = Date.now() + timeoutMs;
   for (;;) {
     const snap = await snapshot(page).catch(() => null);
     const recovering = reconnect ? await reconnect(snap) : false;
     if (snap?.inGame && !recovering) return snap;
+    if (Date.now() >= deadline) throw new Error(`not in game after ${Math.round(timeoutMs / 1000)}s (ready=${snap?.ready ?? 'no snapshot'}, recovering=${recovering})`);
     onWait?.(snap);
     await Bun.sleep(2000);
   }
@@ -116,15 +134,20 @@ const INTERRUPTED_BY_ESCAPE = new Set(['attack', 'move', 'walk_to', 'skill', 'ta
 export const act = async (page, name, arg) => {
   if (name === 'sell') {
     const snap = await snapshot(page);
-    if (!snap?.inGame || !Array.isArray(snap.inventory) || !Array.isArray(snap.worn)) return false;
+    // Say why: callers only see false, and a sale that silently never happens looks like a stuck shop.
+    const blocked = (reason) => {
+      log('sale_blocked', { reason });
+      return false;
+    };
+    if (!snap?.inGame) return blocked('not in game');
+    if (!Array.isArray(snap.inventory)) return blocked('inventory unreadable');
+    if (!Array.isArray(snap.worn)) return blocked('worn equipment unreadable (Equipment window not ready)');
     const worn = new Set(snap.worn.map(i => i.ITID));
-    if (!arg?.items?.length || arg.items.some(request => {
+    if (!arg?.items?.length) return blocked('no items to sell');
+    if (arg.items.some(request => {
       const item = snap.inventory.find(i => i.index === request.index);
       return !item || worn.has(item.ITID) || isProtectedEquipment(item);
-    })) {
-      log('sale_blocked', { reason: 'protected equipment or unknown inventory item' });
-      return false;
-    }
+    })) return blocked('protected equipment or unknown inventory item');
   }
   return Date.now() < escapeUntil && INTERRUPTED_BY_ESCAPE.has(name)
   ? Promise.resolve(false)

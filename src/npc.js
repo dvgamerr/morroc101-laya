@@ -17,13 +17,19 @@ const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9ก-๙]+/g, '');
 
 /**
  * The NPC entity standing for a directory entry ({name, x, y}): same name near the
- * spot first, else the nearest *named* NPC within reach. Nameless entities (hidden
- * script NPCs, effects) are never picked — talking to one gets no answer.
+ * spot (exact first, then one name containing the other, nearest first). A different
+ * NPC standing close by is never taken for it — talking to the wrong one buys, sells
+ * or warps for the wrong reason. Nameless entities (hidden script NPCs, effects) are
+ * never picked either. An entry with no name at all falls back to the nearest named NPC.
  */
 export function findNpcEntity(snap, want, radius = 3) {
   const named = (snap.npcs || []).filter((n) => n.name && Math.max(Math.abs(n.x - want.x), Math.abs(n.y - want.y)) <= radius);
   const d = (n) => Math.max(Math.abs(n.x - want.x), Math.abs(n.y - want.y));
-  return named.find((n) => norm(n.name) === norm(want.name)) || named.sort((a, b) => d(a) - d(b))[0] || null;
+  if (!want.name) return named.sort((a, b) => d(a) - d(b))[0] || null;
+  const wanted = norm(want.name);
+  return named.find((n) => norm(n.name) === wanted)
+    || named.filter((n) => norm(n.name).includes(wanted) || wanted.includes(norm(n.name))).sort((a, b) => d(a) - d(b))[0]
+    || null;
 }
 
 /**
@@ -95,7 +101,8 @@ export function createDialog(page) {
 
   async function choose(options, lines) {
     const rule = d.chooser.rules(options, lines);
-    if (rule) return { num: rule.index + 1, why: rule.why };
+    // A rule's answer must be one of the options on screen; anything else is ignored, never sent.
+    if (rule && Number.isInteger(rule.index) && rule.index >= 0 && rule.index < options.length) return { num: rule.index + 1, why: rule.why };
     if (d.chooser.allowLaya === false) return { num: CANCEL, why: 'no reference match' };
     // Nothing obvious: let LAYA pick among the safe options for the goal, or back out.
     const safe = options.map((o, i) => ({ o, i })).filter(({ o }) => o && !FORBIDDEN.test(o));
@@ -107,8 +114,12 @@ export function createDialog(page) {
         'Pick the NPC menu option that moves toward the goal.',
         criteria,
       );
-      const num = Number(String(answer.choice).replace('option_', ''));
-      if ((answer.confidence ?? 0) >= 0.5 && num > 0) return { num, why: `LAYA ${Math.round(answer.confidence * 100)}%` };
+      // Only an option we offered counts (not a made-up key, and never a forbidden or out-of-range number).
+      const key = typeof answer?.choice === 'string' ? answer.choice : null;
+      const offered = key !== null && Object.hasOwn(criteria, key);
+      const num = offered ? Number(key.replace('option_', '')) : 0;
+      const confidence = Number(answer?.confidence);
+      if (offered && Number.isInteger(num) && num >= 1 && num <= options.length && confidence >= 0.5) return { num, why: `LAYA ${Math.round(confidence * 100)}%` };
     } catch (err) {
       log('npc_laya_error', { error: err.message });
     }
@@ -178,7 +189,14 @@ export function createDialog(page) {
         return null;
       }
       case 'input': {
-        const value = d.chooser.input ? d.chooser.input(dlg.lines, dlg.input) : dlg.input === 'number' ? 0 : '';
+        // No chooser for the input: never type 0 or an empty text on our own (docs/FLOW.md). Back out.
+        const value = d.chooser.input ? d.chooser.input(dlg.lines, dlg.input) : null;
+        const valid = dlg.input === 'number' ? Number.isFinite(value) && value >= 0 : typeof value === 'string';
+        if (!valid) {
+          d.transcript.push({ input: dlg.input, value: null, why: 'no confirmed answer for this input' });
+          await releaseNpc(d.naid);
+          return finish(false, 'input prompt without a confirmed answer');
+        }
         d.transcript.push({ input: dlg.input, value });
         if (!await clickDialog('npc_input', { naid: d.naid, value })) return null;
         return null;

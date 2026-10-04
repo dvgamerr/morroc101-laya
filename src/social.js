@@ -9,10 +9,14 @@ const TRADE_TIMEOUT_MS = 60000;
  * There is no code path here (or in page-agent) that adds our items or zeny.
  */
 export function createTrader(page) {
-  const t = { lockedAt: 0, okSent: false, openedAt: 0 };
+  const t = { lockedAt: 0, okSent: false, openedAt: 0, cancelAt: 0 };
 
-  /** @returns {{ok, from, zeny, items}|null} when a trade finishes. */
-  async function tick(snap) {
+  /**
+   * @param {{underAttack?: boolean}} [opts] underAttack: monsters are hitting us. The server forbids
+   *   items, skills and attacks while a trade is open, so a trade left open (even by someone else)
+   *   would leave us defenceless: cancel it at once.
+   * @returns {{ok, from, zeny, items}|null} when a trade finishes. */
+  async function tick(snap, { underAttack = false } = {}) {
     const tr = snap.trade;
     if (!tr) {
       t.lockedAt = 0;
@@ -20,6 +24,14 @@ export function createTrader(page) {
       return null;
     }
     const now = Date.now();
+    if (underAttack) {
+      if (now - t.cancelAt > 1000) {
+        t.cancelAt = now;
+        await act(page, 'trade_cancel');
+        log('trade_cancel', { from: tr.from, why: 'under attack' });
+      }
+      return null;
+    }
     if (tr.stage === 'requested') {
       t.openedAt = now;
       await act(page, 'trade_accept');

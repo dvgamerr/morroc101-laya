@@ -59,3 +59,24 @@ test('a confirmed replacement becomes the remembered weapon', () => {
   const item = { ...loose, ...next };
   expect(weapons.pick({ worn: [], inventory: [loose, item] })).toMatchObject({ index: 20, loc: 2 });
 });
+
+test('gives up on a weapon that never comes back instead of blocking everything forever', () => {
+  let t = 0;
+  const saved = [];
+  const weapons = createWeaponRecovery(axe, w => saved.push(w), () => t);
+  expect(weapons.pending({ worn: [], inventory: [] })).toBe(true);
+  t = 61000;
+  expect(weapons.pending({ worn: [], inventory: [] })).toBe(false);
+  expect(saved.at(-1)).toBeNull();
+  expect(weapons.ready({ worn: [], inventory: [] })).toBe(true);
+});
+
+test('keeps trying while a restorable copy is in the bag', () => {
+  let t = 0;
+  const weapons = createWeaponRecovery(axe, () => {}, () => t);
+  weapons.pending(stripped);
+  t = 120000;
+  expect(weapons.pending(stripped)).toBe(true);
+  t = 11 * 60000;
+  expect(weapons.pending(stripped)).toBe(false);
+});

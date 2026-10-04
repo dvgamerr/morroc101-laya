@@ -1,6 +1,7 @@
 import { act } from './browser.js';
 import { log } from './logger.js';
 import { healRange } from './potions.js';
+import { SP_ITEMS, FLY_WING, BUTTERFLY_WING } from './item-ids.js';
 
 // The shortcut bar, as the owner wants it: 3 rows of 9.
 //   F1-F8 buffs; F9 (slot 8) Item Appraisal / Magnifier
@@ -13,8 +14,7 @@ export const KEY_NAMES = [
   ...['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O'],
 ];
 
-const SP_ITEMS = [505, 510, 518, 526, 11502, 11503];
-const WINGS = [23280, 12323, 601, 12324]; // Novice Fly Wing, Fly Wing (only what's in the bag), Novice Butterfly Wing
+const WINGS = [...FLY_WING, ...BUTTERFLY_WING]; // Novice Fly Wing, Fly Wing (only what's in the bag), Novice Butterfly Wing
 const SYNC_EVERY_MS = 10000;
 
 /**

@@ -48,3 +48,27 @@ test('ordinary loot uses a focused question and only a confident approval become
     expect(review.saleItems(s)).toEqual([]);
   } finally { response = undefined; }
 });
+
+test('a card is never offered for sale: no sell option, and an answer of sell would not make it sellable', async () => {
+  const card = { index: 4, ITID: 4001, name: 'Poring Card', count: 1, type: 6 };
+  response = { item_4: { choice: 'sell', confidence: 0.95 } };
+  try {
+    const review = createItemReview({});
+    const s = { ...snap(), inventory: [card] };
+    expect(review.needsSaleReview(s)).toBe(false);
+    review.observe(s);
+    await Bun.sleep(0);
+    expect(Object.keys(lastRequest.questions.item_4.criteria)).not.toContain('sell');
+    expect(review.saleItems(s)).toEqual([]);
+    expect(review.keepItem(s, card)).toBe(true); // the junk sale leaves it alone too
+  } finally { response = undefined; }
+});
+
+test('unidentified loot that cannot be appraised does not keep sending us to town', () => {
+  const review = createItemReview({});
+  const s = snap();
+  s.inventory[0].gear = { identified: false };
+  expect(review.needsSaleReview(s)).toBe(false); // no Appraisal skill, no Magnifier
+  s.inventory.push({ index: 10, ITID: 611, name: 'Magnifier', count: 3, type: 2 });
+  expect(review.needsSaleReview(s)).toBe(true);
+});

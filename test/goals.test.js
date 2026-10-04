@@ -2,7 +2,7 @@ import { test, expect } from 'bun:test';
 import { detectSignals, jobChangeReady, jobInfo, GOALS, GOAL_KEYS, zenyReserve } from '../src/goals.js';
 import { nextStat } from '../src/build.js';
 
-const me = (over = {}) => ({ jobId: 1, baseLevel: 30, jobLevel: 20, zeny: 50000, weight: 100, maxWeight: 1000, maxHp: 1000, skillPoints: 0, ...over });
+const me = (over = {}) => ({ jobId: 1, baseLevel: 30, jobLevel: 20, zeny: 200000, weight: 100, maxWeight: 1000, maxHp: 1000, skillPoints: 0, ...over });
 // 30 White Potions ~ 11k HP: well above 4 bars of 1000 HP.
 const stocked = [{ ITID: 504, count: 30, type: 0 }];
 
@@ -35,9 +35,13 @@ test('job change readiness follows the standard requirements', () => {
   expect(jobInfo(4252).tier).toBe(4);
 });
 
-test('zeny reserve grows with level', () => {
-  expect(zenyReserve(1)).toBe(2000);
-  expect(zenyReserve(80)).toBe(40000);
+test('zeny reserve is one fixed owner-set value, not level-based', () => {
+  expect(zenyReserve()).toBe(100000);
+  expect(zenyReserve(1)).toBe(zenyReserve(80));
+});
+
+test('jobs without gear targets raise no endless gear signal', () => {
+  expect(detectSignals({ me: me(), inventory: stocked }).map((s) => s.key)).not.toContain('gear7');
 });
 
 test('stat build: next point goes to the stat furthest behind its share, within cost and cap', () => {

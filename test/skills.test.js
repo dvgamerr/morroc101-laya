@@ -69,7 +69,7 @@ test('buffs: press once, wait for the status to run out; learn only timed status
     // a mapping whose status never shows after a cast is forgotten
     book.noteCast({ id: 8 });
     book.book.buffStatus[8] = 999;
-    t += 16000;
+    t += 4000; // judged 3-6s after the cast, not at the next refresh 15s later
     book.pickBuff(snap({ status: {} }));
     expect(book.book.buffStatus[8]).toBe(undefined);
   } finally {
@@ -221,4 +221,12 @@ test('skill points never go into Vending / crafting while a fighting skill can s
   expect(book.pickUpgrade(s)).toMatchObject({ name: 'BS_SKINTEMPER' });
   // Only Vending left: it gets the point (unspent points block job changes).
   expect(book.pickUpgrade({ me: { jobId: 10, skillPoints: 1, skillTree: [tree[0]] } })).toMatchObject({ name: 'MC_VENDING' });
+});
+
+test('Maximize Power on with nothing to fight is switched off; never while there is a fight', () => {
+  const MAX = { id: 114, name: 'BS_MAXIMIZE', inf: INF.SELF, level: 5, sp: 10, range: 0 };
+  const skills = [...SKILLS, MAX];
+  expect(book.pickToggleOff(snap({ skills }))).toBe(null); // already off
+  expect(book.pickToggleOff(snap({ skills, status: { 26: 0 } }))).toMatchObject({ id: 114, toggle: true });
+  expect(book.pickToggle(snap({ skills }), false)).toBe(null); // nothing to fight: never switched on
 });

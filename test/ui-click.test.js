@@ -115,8 +115,8 @@ function identifyPage({ selected = true, selectionWorks = true, changed = false 
     },
     locator(selector) {
       return {
-        async evaluate(fn) {
-          return fn({ style: { backgroundColor: selected ? 'rgb(205, 224, 255)' : 'transparent' } });
+        async evaluate(fn, arg) {
+          return fn({ style: { backgroundColor: selected ? 'rgb(205, 224, 255)' : 'transparent' } }, arg);
         },
         async click() {
           if (selector.includes('.item[')) {
@@ -165,4 +165,47 @@ test('appraisal does not click OK for an index absent from the server list', asy
   const { page, clicks } = identifyPage();
   expect(await clickGameUi(page, 'identify', { index: 99 })).toBe(false);
   expect(clicks).toEqual([]);
+});
+
+// The page the real ack/fallback evaluate runs in: window.__agent records the packets it would send.
+function closePage({ visible = false } = {}) {
+  const acts = [];
+  const agent = { dialog: { naid: 123, at: 1, state: 'close', lines: [] }, shop: { kind: 'market' }, storage: { open: true }, act: (name, arg) => acts.push([name, arg]) };
+  const page = {
+    async evaluate(fn, arg) {
+      globalThis.window = { __agent: agent };
+      try { return fn(arg); } finally { delete globalThis.window; }
+    },
+    locator() {
+      return {
+        async isVisible() { return visible; },
+        async click() { throw new Error('nothing to click'); },
+        async waitFor() {},
+      };
+    },
+  };
+  return { page, acts, agent };
+}
+
+test('closing with no window on screen still sends the close packet through the page agent', async () => {
+  for (const [action, arg] of [['npc_close', { naid: 123 }], ['close_shop', {}], ['storage_close', {}]]) {
+    const { page, acts } = closePage();
+    expect(await clickGameUi(page, action, arg)).toBe(true);
+    expect(acts).toHaveLength(1);
+    expect(acts[0][0]).toBe(action);
+    if (action === 'npc_close') expect(acts[0][1].naid).toBe(123);
+  }
+});
+
+test('closing a visible window by its button does not send a second packet', async () => {
+  const { page, clicks } = npcPage();
+  const acts = [];
+  const evaluate = page.evaluate;
+  page.evaluate = async (fn, arg) => {
+    if (arg?.sendClose !== undefined) acts.push(arg.sendClose);
+    return evaluate(fn, arg);
+  };
+  expect(await clickGameUi(page, 'npc_close', { naid: 123 })).toBe(true);
+  expect(clicks).toEqual(['#NpcBox ui-button.close']);
+  expect(acts).toEqual([false]);
 });

@@ -33,3 +33,10 @@ test('the agent has no way to give anything away in a trade', async () => {
   const src = await Bun.file('src/page-agent.js').text();
   expect(src).not.toMatch(/ADD_EXCHANGE_ITEM\(|CZ\.ADD_EXCHANGE/);
 });
+
+test('trade left open while monsters attack is cancelled, never accepted', async () => {
+  const t = createTrader({});
+  await t.tick({ trade: { stage: 'open', from: 'Kem', zeny: 0, items: [] } }, { underAttack: true });
+  await t.tick({ trade: { stage: 'requested', from: 'Kem', zeny: 0, items: [] } }, { underAttack: true });
+  expect(names()).toEqual(['trade_cancel']); // throttled: one cancel per second
+});

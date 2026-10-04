@@ -86,3 +86,34 @@ test('a no-op or failed review does not blame the hunting destination', () => {
   const escape = { ...trip, routeFailure: 'repeated escapes' };
   expect(settleFarmErrand(escape, { sold: 0, bought: [] })).toBe(escape);
 });
+
+test('a sale counts even when the purchase after it failed', () => {
+  const trip = { huntMap: 'field', startedAt: 1000, maps: ['field'], startZeny: 10000, returned: true };
+  expect(settleFarmErrand(trip, { ok: false, sold: 5, bought: [] }).saleSettled).toBe(true);
+});
+
+test('a new hunting map does not inherit an unsold or aborted trip of the old one', () => {
+  let trip = observeFarmTrip(null, { map: 'a', zeny: 10000 }, false, 'a', 1000);
+  trip = observeFarmTrip(trip, { map: 'town', zeny: 10000 }, true, 'a', 2000);
+  trip = observeFarmTrip(trip, { map: 'b', zeny: 10000 }, false, 'b', 3000);
+  expect(trip.huntMap).toBe('b');
+  expect(trip.returned).toBe(false);
+  let aborted = observeFarmTrip(null, { map: 'x', zeny: 10000 }, false, 'a', 1000);
+  aborted = abortFarmTravel(aborted, 'unsafe');
+  aborted = observeFarmTrip(aborted, { map: 'b', zeny: 10000 }, false, 'b', 2000);
+  expect(aborted.routeFailure).toBeUndefined();
+  expect(aborted.huntMap).toBe('b');
+});
+
+test('leaving a detour town after hunting is not a walking-only return', () => {
+  const me = { zeny: 1000, baseLevel: 50, baseExp: 0, baseExpNext: 100 };
+  let trip = observeFarmTrip(null, me, false, 'hunt', 1000);
+  trip = observeFarmTrip(trip, me, false, 'hunt', 1100);
+  trip = observeFarmTrip({ ...trip, maps: ['hunt'], returned: false }, me, true, 'hunt', 1200);
+  expect(trip.returned).toBe(true);
+  trip = observeFarmTrip(trip, { ...me, map: 'field' }, false, 'hunt', 1300);
+  expect(trip.returned).toBe(false);
+  expect(trip.detour).toBe(true);
+  trip = observeFarmTrip(trip, { ...me, map: 'hunt' }, false, 'hunt', 1400);
+  expect(trip.detour).toBe(false);
+});

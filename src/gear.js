@@ -57,27 +57,3 @@ export function spareGear(inv, worn, classPath = config.classPath) {
   }
   return sell;
 }
-
-/**
- * The piece in the bag worth putting on now: fills an empty slot (a weapon first — one was
- * stripped off by a Metaling and the character fought bare-handed), or beats what's worn.
- * Only gear our line can wear, at our level, identified, and in the build (axes, no shield).
- * @returns {{index, loc, name, why}|null}
- */
-export function gearToWear(inv, worn, baseLevel, classPath = config.classPath) {
-  if (!worn) return null;
-  const options = (inv || [])
-    .filter((i) => i.gear && !i.equipped && i.gear.identified !== false && (i.gear.reqLv || 0) <= (baseLevel || 1) && i.gear.loc)
-    .filter((i) => wearableByLine(i.gear, classPath))
-    .filter((i) => (i.type === WEAPON ? BUILD_WEAPON.test(i.gear.kind || '') : i.gear.loc !== SHIELD_SLOT))
-    .map((i) => {
-      const on = worn.find((w) => (w.loc & i.gear.loc) !== 0);
-      const gain = score(i.gear, i.type) - (on ? score(on, i.type) : -1);
-      return { i, on, gain, weapon: i.type === WEAPON };
-    })
-    .filter((o) => o.gain > 0)
-    .sort((a, b) => Number(b.weapon && !b.on) - Number(a.weapon && !a.on) || b.gain - a.gain);
-  const best = options[0];
-  if (!best) return null;
-  return { index: best.i.index, loc: best.i.gear.loc, name: best.i.name || String(best.i.ITID), why: best.on ? `better than ${best.on.name}` : 'empty slot' };
-}

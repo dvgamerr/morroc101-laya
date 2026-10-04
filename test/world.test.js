@@ -56,15 +56,15 @@ test('travel distance uses portals only, plus @go when allowed (never Kafra)', (
   expect(go.get('field_e')).toBe(2);
 });
 
-test('level 1 in town goes to the starter field, not the town', () => {
-  const [best] = pickHuntingGrounds(world, { level: 1, fromMap: 'town' });
+test('level 4 in town goes to the starter field, not the town (band is Base-10..Base-1)', () => {
+  const [best] = pickHuntingGrounds(world, { level: 4, fromMap: 'town' });
   expect(best.map).toBe('field_a');
   expect(best.targets.map((t) => t.name)).toEqual(['Poring', 'Drops']);
   expect(best.avoid).toContain('Furious Drops');
 });
 
-test('level 12 moves on to monsters of its level', () => {
-  const [best] = pickHuntingGrounds(world, { level: 12, fromMap: 'town' });
+test('level 15 moves on to monsters just below its level', () => {
+  const [best] = pickHuntingGrounds(world, { level: 15, fromMap: 'town' });
   expect(best.map).toBe('field_b');
 });
 
@@ -84,18 +84,19 @@ test('excluded maps are not offered', () => {
 });
 
 test('level band', () => {
-  expect(levelBand(1)).toEqual({ min: 1, max: 5, danger: 11 });
-  expect(levelBand(50)).toEqual({ min: 44, max: 54, danger: 60 });
+  expect(levelBand(1)).toEqual({ min: 1, max: 1, danger: 4 });
+  expect(levelBand(50)).toEqual({ min: 40, max: 49, danger: 53 });
 });
 
 test('planner cannot invent a hunting map or monsters', () => {
   const candidates = pickHuntingGrounds(world, { level: 1, fromMap: 'town', canGo: true });
   const p = sanitize({ hunt_map: 'morocc', target_monsters: ['Baphomet'], retreat_hp_pct: 0 }, candidates);
-  expect(p.hunt_map).toBe(candidates[0].map);
-  expect(p.target_monsters).toEqual(candidates[0].targets.map((t) => t.name));
+  expect(p.hunt_map).toBe(null); // never picks a map by itself
+  expect(p.target_monsters).toEqual([]);
   expect(p.retreat_hp_pct).toBe(15);
-  const chosen = sanitize({ hunt_map: candidates[1].map }, candidates);
+  const chosen = sanitize({ hunt_map: candidates[1].map, target_monsters: ['Baphomet'] }, candidates);
   expect(chosen.hunt_map).toBe(candidates[1].map);
+  expect(chosen.target_monsters).toEqual(candidates[1].targets.map((t) => t.name)); // unknown names dropped
 });
 
 test('plan from candidate carries its targets and avoid list', () => {
@@ -113,14 +114,13 @@ test('a map crowded with avoided monsters (they come to us) is not offered', () 
 });
 
 test('money hunts well below us in big crowds (safe, cheap, many drops); level hunts for EXP', () => {
-  // Level 20: for EXP, Baby Desert Wolf (14) on field_b; for money, the Poring/Drops crowds far below.
+  // Level 20: for EXP, Baby Desert Wolf (14) on field_b; money looks at the wider Base-20..Base-1 band.
   const forExp = pickHuntingGrounds(world, { level: 20, fromMap: 'town', limit: 10 });
   expect(forExp[0].map).toBe('field_b');
   const forMoney = pickHuntingGrounds(world, { level: 20, goal: 'money', fromMap: 'town', canGo: true, limit: 10 });
-  expect(forMoney.every((c) => c.targets.every((t) => t.level <= 12))).toBe(true);
-  expect(['field_a', 'field_e']).toContain(forMoney[0].map);
+  expect(forMoney.every((c) => c.targets.every((t) => t.level <= 19))).toBe(true);
   expect(forMoney.every((c) => c.population >= 20)).toBe(true);
-  expect(levelBand(80, 'money')).toEqual({ min: 55, max: 72, danger: 83 });
+  expect(levelBand(80, 'money')).toEqual({ min: 60, max: 79, danger: 80 });
 });
 
 test('bosses (MVP-size HP) are never targets and go on the avoid list, whatever their level', () => {
@@ -131,4 +131,66 @@ test('bosses (MVP-size HP) are never targets and go on the avoid list, whatever 
   const [ground] = pickHuntingGrounds(w, { level: 66, fromMap: 'town' });
   expect(ground.targets.map((t) => t.name)).toEqual(['Hode']);
   expect(ground.avoid).toContain('Phreeoni');
+});
+
+test('travelCosts: cheapest portal/@go path, shared by every consumer', async () => {
+  const { travelCosts, GO_COST } = await import('../src/world.js');
+  const costs = travelCosts(world, 'town', 0, 0, { canGo: false });
+  expect(costs.toMap('field_a')).toBe(3);
+  expect(costs.toMap('field_b')).toBe(6);
+  expect(costs.toMap('field_e')).toBe(Infinity); // only via @go
+  const withGo = travelCosts(world, 'field_b', 0, 0, { canGo: true });
+  expect(withGo.toMap('other_town')).toBe(GO_COST);
+  expect(withGo.toMap('field_e')).toBe(GO_COST + 3);
+  expect(withGo.toMap('town')).toBe(6); // two portals back beat the jump
+});
+
+test('travelCosts on a larger graph matches a brute-force Bellman-Ford', async () => {
+  const { travelCosts } = await import('../src/world.js');
+  // A 40-map ring with chords: every portal costs 3.
+  const edges = {};
+  const n = 40;
+  for (let i = 0; i < n; i++) {
+    edges['m' + i] = [portal('m' + ((i + 1) % n)), portal('m' + ((i + n - 1) % n))];
+    if (i % 5 === 0) edges['m' + i].push(portal('m' + ((i + 17) % n)));
+  }
+  const w = buildWorld({ mobs: {}, spawns: [] }, { edges, go: [], nogo: [] });
+  const costs = travelCosts(w, 'm0', 0, 0);
+  const dist = new Array(n).fill(Infinity);
+  dist[0] = 0;
+  for (let round = 0; round < n; round++) {
+    for (let i = 0; i < n; i++) for (const e of edges['m' + i]) {
+      const j = +e[2].slice(1);
+      if (dist[i] + 3 < dist[j]) dist[j] = dist[i] + 3;
+    }
+  }
+  for (let i = 0; i < n; i++) expect(costs.toMap('m' + i)).toBe(dist[i]);
+});
+
+test('hunting grounds: a warp is used only when it is cheaper than walking', async () => {
+  const w = buildWorld(mob, map, { shops: [] }, { npcs: [['town', 1, 1, 'Warpra', 1, 'x']] });
+  w.warpraPlaces = [{ map: 'field_a', lock: 0, name: 'A', groupName: 'Dungeons' }, { map: 'field_b', lock: 0, name: 'B', groupName: 'Dungeons' }];
+  const grounds = pickHuntingGrounds(w, { level: 4, fromMap: 'town', limit: 10 });
+  expect(grounds.find((c) => c.map === 'field_a').warp).toBe(null); // one portal: walking costs 3, a warp 40+
+});
+
+test('loadWorld times out a stalled data server and logs a missing optional file', async () => {
+  const { loadWorld } = await import('../src/world.js');
+  const real = globalThis.fetch;
+  const seen = [];
+  globalThis.fetch = async (url, opts) => {
+    seen.push([String(url), !!opts?.signal]);
+    if (String(url).includes('navi_shop') || String(url).includes('navi_npc')) throw new Error('boom');
+    return { ok: true, json: async () => (String(url).includes('navi_mob') ? mob : map) };
+  };
+  try {
+    const w = await loadWorld('http://data.test/');
+    expect(w.shops).toEqual([]);
+    expect(w.npcs).toEqual([]);
+    expect(seen.every(([, hasSignal]) => hasSignal)).toBe(true); // every request has an abort timeout
+    globalThis.fetch = async () => ({ ok: false, status: 503 });
+    await expect(loadWorld('http://data.test/')).rejects.toThrow('HTTP 503');
+  } finally {
+    globalThis.fetch = real;
+  }
 });

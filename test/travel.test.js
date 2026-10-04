@@ -73,7 +73,7 @@ test('arrives when the map matches and clears the route', async () => {
 });
 
 test('unconfirmed @go only falls back for this trip and never disables other towns', async () => {
-  const go = { canGo: true, bad: new Set() };
+  const go = { canGo: true };
   const t = createTravel({}, go);
   await t.start('prt_fild08');
   calls.length = 0;
@@ -88,10 +88,7 @@ test('unconfirmed @go only falls back for this trip and never disables other tow
   tick(10000);
   await t.tick(snap({}, n));
   expect(go.canGo).toBe(true); // one town refused: not a reason to stop using @go
-  expect(go.bad.has(0)).toBe(false);
   expect(calls.at(-1)).toEqual(['navi_start', { map: 'prt_fild08', useGo: false }]);
-  go.bad.add(5);
-  go.bad.add(9);
   const t2 = createTravel({}, go);
   await t2.start('x');
   for (let k = 0; k < 3; k++) {
@@ -182,7 +179,7 @@ test('keeps destination across warp, stale go leg and transient lost route', asy
 });
 
 test('returning to a hunted field can bypass Warpra and town warps', async () => {
-  const t = createTravel({}, { canGo: true, bad: new Set() }, {});
+  const t = createTravel({}, { canGo: true }, {});
   await t.start('prt_fild09', { walking: true });
   expect(calls).toEqual([['navi_start', { map: 'prt_fild09', useGo: false }]]);
   calls.length = 0;
@@ -212,4 +209,108 @@ test('a map change restores @go after an unconfirmed warp on the previous map', 
   expect(calls.at(-1)[1].useGo).toBe(false);
   await t.tick(snap({ map: 'prontera' }, n));
   expect(calls.at(-1)).toEqual(['navi_start', { map: 'prt_fild08', useGo: true }]);
+});
+
+test('an unconfirmed @go is remembered for that map: the next trip walks out of it without retrying', async () => {
+  const go = { canGo: true };
+  const t = createTravel({}, go);
+  await t.start('prt_fild08');
+  const n = { dest: 'prt_fild08', leg: { kind: 'go', goIndex: 0, toMap: 'prontera' } };
+  for (let i = 0; i < 3; i++) {
+    tick(10000);
+    await t.tick(snap({}, n));
+  }
+  expect(go.refused.has('morocc')).toBe(true);
+  expect(go.canGo).toBe(true);
+  await t.stop();
+  // A later trip, even from another travel instance sharing `go`, starts walking on that map.
+  const t2 = createTravel({}, go);
+  await t2.start('prt_fild08');
+  calls.length = 0;
+  tick(1000);
+  expect(await t2.tick(snap({}, { dest: 'prt_fild08', leg: { kind: 'portal', x: 1, y: 1 } }))).toBe('traveling');
+  expect(calls).toEqual([['navi_start', { map: 'prt_fild08', useGo: false }]]);
+  // Another map is not affected.
+  tick(4000);
+  await t2.tick(snap({ map: 'geffen' }, { dest: 'prt_fild08', leg: { kind: 'go', goIndex: 3, toMap: 'prontera' } }));
+  tick(4000);
+  calls.length = 0;
+  await t2.tick(snap({ map: 'geffen' }, { dest: 'prt_fild08', leg: { kind: 'go', goIndex: 3, toMap: 'prontera' } }));
+  expect(calls).toEqual([['say', { text: '@go 3' }]]);
+  // The refusal expires.
+  tick(11 * 60 * 1000);
+  const t3 = createTravel({}, go);
+  await t3.start('prt_fild08');
+  calls.length = 0;
+  await t3.tick(snap({}, { dest: 'prt_fild08', leg: { kind: 'portal', x: 1, y: 1 } }));
+  expect(calls.some(([name]) => name === 'navi_start')).toBe(false);
+});
+
+test('no walking route from a refused map: walk to the nearest town where @go works, then route again', async () => {
+  const portal = (to) => [0, 0, to, 0, 0, 1, 1, 0, '', 0];
+  const { buildWorld } = await import('../src/world.js');
+  const world = buildWorld(
+    { mobs: {}, spawns: [] },
+    { edges: { morocc: [portal('moc_fild01')], moc_fild01: [portal('morocc'), portal('geffen')], geffen: [portal('moc_fild01')] }, go: [['morocc', 0, 0], ['geffen', 0, 0]], nogo: [] },
+    { shops: [] },
+    { npcs: [] },
+  );
+  const go = { canGo: true, refused: new Map([['morocc', Date.now() + 600000]]) };
+  world.warpraPlaces = []; // the live board does not list the destination: no Warpra phase
+  const tr = createTravel({}, go, world);
+  await tr.start('far_fild');
+  calls.length = 0;
+  let r;
+  for (let i = 0; i < 5; i++) {
+    tick(3500);
+    r = await tr.tick(snap({}, { dest: 'far_fild', lost: true }));
+  }
+  expect(r).toBe('traveling');
+  expect(calls.at(-1)).toEqual(['navi_start', { map: 'geffen', useGo: false }]);
+  // Arriving there asks for the real destination again, with @go allowed.
+  tick(3500);
+  await tr.tick(snap({ map: 'geffen' }, { dest: 'geffen', lost: false }));
+  tick(3500);
+  await tr.tick(snap({ map: 'geffen' }, { dest: 'geffen', lost: false }));
+  expect(calls.at(-1)).toEqual(['navi_start', { map: 'far_fild', useGo: true }]);
+});
+
+test('the trip timeout does not count time paused for a fight or shop', async () => {
+  const t = createTravel({});
+  await t.start('moc_fild07');
+  const n = { dest: 'moc_fild07', leg: { kind: 'portal', x: 160, y: 40 }, ahead: { x: 152, y: 90 } };
+  await t.tick(snap({}, n));
+  tick(14 * 60 * 1000); // paused 14 minutes
+  expect(await t.tick(snap({}, n))).toBe('traveling');
+  tick(2 * 60 * 1000);
+  expect(await t.tick(snap({ x: 151, y: 91 }, n))).toBe('traveling'); // 16 minutes since start, 2 active
+});
+
+test('Warpra is not visited when the live board does not list the destination', async () => {
+  const world = { warpraPlaces: [{ map: 'morocc', lock: 0 }], npcs: [], go: [], edges: new Map(), noGo: new Set() };
+  const t = createTravel({}, { canGo: true }, world);
+  await t.start('moc_fild03');
+  expect(calls).toEqual([['navi_start', { map: 'moc_fild03', useGo: true }]]);
+});
+
+test('a locked Warpra town is not "arrived" just by standing in it', async () => {
+  const world = { warpraPlaces: [{ map: 'einbroch', lock: 1 }], npcs: [], go: [], edges: new Map(), noGo: new Set(), walks: new Map() };
+  const t = createTravel({ locator: () => ({ isVisible: async () => false }), evaluate: async () => [] }, { canGo: true }, world);
+  await t.start('einbroch');
+  const result = await t.tick(snap({ map: 'einbroch' }, null));
+  expect(result).not.toBe('arrived');
+  expect(t.dest).toBe('einbroch');
+});
+
+test('each stuck NPC dialog is closed once, not only the first of the trip', async () => {
+  const t = createTravel({});
+  await t.start('moc_fild07');
+  const n = { dest: 'moc_fild07', leg: { kind: 'portal', x: 160, y: 40 }, ahead: { x: 152, y: 90 } };
+  const dialogs = (naid) => ({ ...snap({}, n), dialog: { state: 'open', naid } });
+  await t.tick(dialogs(1));
+  calls.length = 0;
+  await stall(t, dialogs(1), 10000);
+  await stall(t, dialogs(2), 10000);
+  const closes = calls.filter(([name]) => name === 'npc_close').map(([, a]) => a.naid);
+  expect(closes).toEqual([1, 2]);
 });

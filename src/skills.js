@@ -44,6 +44,7 @@ const BUFF_REFRESH_MS = 90000; // recast a buff whose status we never saw, this 
 const BUFF_MIN_GAP_MS = 15000;
 const BUFF_MIN_DURATION_MS = 5000; // a status counts as "the buff's" only if it has a real timer
 const BUFF_VERIFY_MS = 3000; // the mapped status must show up this soon after a cast
+const BUFF_VERIFY_WINDOW_MS = 3000; // ...and is judged only in the window after that
 const BUFF_LEARN_WINDOW_MS = 2000;
 
 // Well-known self buffs worth keeping up while farming, for the no-LLM fallback.
@@ -63,11 +64,14 @@ export const NO_POINTS = new Set([
 ]);
 
 // Skill-point order for the owner's path (Merchant -> Blacksmith -> Whitesmith -> Mechanic ->
-// Meister, two-handed axe) when the LLM can't be asked: [name, target level].
+// Meister, two-handed axe) when the LLM can't be asked: [name, target level]. Names are matched
+// against the skill tree (skilldb.js AEGIS names by id, else the client's own name/label). The MT_*
+// ids come from the client's SkillConst table (see skilldb.js); the "anything still raisable"
+// fallback in pickUpgrade covers whatever a name still misses.
 const UPGRADE_FALLBACK = [
   ['NV_BASIC', 9],
   ['MC_INCCARRY', 3], ['MC_DISCOUNT', 3], ['MC_PUSHCART', 5], ['MC_MAMMONITE', 10], ['MC_OVERCHARGE', 5], ['MC_INCCARRY', 10],
-  ['BS_AXEMASTERY', 10], ['BS_HILTBINDING', 1], ['BS_ADRENALINE', 5], ['BS_WEAPONPERFECT', 5], ['BS_OVERTHRUST', 5], ['BS_SKINTEMPER', 5],
+  ['BS_HILTBINDING', 1], ['BS_ADRENALINE', 5], ['BS_WEAPONPERFECT', 5], ['BS_OVERTHRUST', 5], ['BS_SKINTEMPER', 5],
   ['WS_MELTDOWN', 10], ['WS_OVERTHRUSTMAX', 5], ['WS_CARTBOOST', 5], ['WS_CARTTERMINATION', 10],
   ['NC_TRAININGAXE', 10], ['NC_AXEBOOMERANG', 5], ['NC_POWERSWING', 10], ['NC_AXETORNADO', 5],
   ['MT_TWOAXEDEF', 10], ['MT_AXE_STOMP', 5], ['MT_RUSH_QUAKE', 10],
@@ -83,6 +87,7 @@ const UPGRADE_FALLBACK = [
 export function createSkillBook() {
   const book = {
     signature: '',
+    plannedFor: '', // the signature the LLM was last asked about
     bosses: new Set(), // monster names that count as boss / mini-boss (from the world data)
     attack: [], // skill ids, strongest first
     aoe: [], // ground/self-area attack ids, used when monsters bunch up
@@ -166,11 +171,15 @@ export function createSkillBook() {
   function ensurePlan(snap) {
     const skills = (snap.me.skills || []).filter(planned);
     const sig = signatureOf(skills);
-    if (sig === book.signature) return;
-    book.signature = sig;
-    Object.assign(book, fallbackPlan(skills));
-    log('skills_fallback', { attack: names(skills, book.attack), buffs: names(skills, book.buffs) });
-    if (!skills.length || book.planning) return;
+    if (sig !== book.signature) {
+      book.signature = sig;
+      Object.assign(book, fallbackPlan(skills));
+      log('skills_fallback', { attack: names(skills, book.attack), buffs: names(skills, book.buffs) });
+    }
+    // The skill list can change while the LLM is still answering for the old one: that answer is
+    // dropped, and the next call here asks again for the current list.
+    if (!skills.length || book.planning || book.plannedFor === sig) return;
+    book.plannedFor = sig;
     book.planning = true;
     planWithLlm(snap, skills)
       .then((plan) => {
@@ -213,16 +222,17 @@ export function createSkillBook() {
     const now = Date.now();
     if (now - book.lastCastAt < GLOBAL_GAP_MS) return null;
     for (const id of book.buffs) {
-      const s = (me.skills || []).find((k) => k.id === id);
-      if (!s || !usable(s, me, now)) continue;
       const since = now - (book.lastBuffAt[id] || 0);
-      if (since < BUFF_MIN_GAP_MS) continue; // just cast: it's up (or the server refused) — don't spam
       const efst = book.buffStatus[id];
-      // A mapping that didn't show its status after the last cast was wrong: forget it.
-      if (efst !== undefined && book.lastBuffAt[id] && since < BUFF_MIN_GAP_MS + BUFF_VERIFY_MS && !(efst in (me.status || {}))) {
+      // A mapping whose status didn't show up shortly after the cast was wrong: forget it. Judged in
+      // this window only; later the buff may simply have run out, and the mapping is right.
+      if (efst !== undefined && book.lastBuffAt[id] && since >= BUFF_VERIFY_MS && since < BUFF_VERIFY_MS + BUFF_VERIFY_WINDOW_MS && !(efst in (me.status || {}))) {
         delete book.buffStatus[id];
         log('buff_unlearned', { skill: id, status: efst });
       }
+      const s = (me.skills || []).find((k) => k.id === id);
+      if (!s || !usable(s, me, now)) continue;
+      if (since < BUFF_MIN_GAP_MS) continue; // just cast: it's up (or the server refused) — don't spam
       const mapped = book.buffStatus[id];
       const active = mapped !== undefined ? mapped in (me.status || {}) : since < BUFF_REFRESH_MS;
       if (!active) return { id: s.id, level: s.level, targetID: me.GID, name: s.name };
@@ -230,16 +240,34 @@ export function createSkillBook() {
     return null;
   }
 
-  /** A wanted toggle (Maximize Power) that is OFF: switch it on. Never pressed while its status shows. */
-  function pickToggle(snap) {
+  /**
+   * A wanted toggle (Maximize Power) that is OFF: switch it on. Never pressed while its status shows,
+   * nor when nothing is being fought (`engaged` false): it only drains SP then.
+   */
+  function pickToggle(snap, engaged = true) {
     const me = snap.me;
     const now = Date.now();
-    if (now - book.lastCastAt < GLOBAL_GAP_MS) return null;
+    if (!engaged || now - book.lastCastAt < GLOBAL_GAP_MS) return null;
     for (const s of me.skills || []) {
       const efst = TOGGLE_ON[s.name];
       if (me.maxSp && me.sp / me.maxSp < 0.5) continue;
       if (efst === undefined || efst in (me.status || {})) continue;
       if (now - (book.lastToggleAt[s.id] || 0) < TOGGLE_GAP_MS || !usable(s, me, now)) continue;
+      return { id: s.id, level: s.level, targetID: me.GID, name: s.name, toggle: true };
+    }
+    return null;
+  }
+
+  /** A wanted toggle that is ON while there is nothing to fight: press it again to switch it off (it drains SP). */
+  function pickToggleOff(snap) {
+    const me = snap.me;
+    const now = Date.now();
+    if (now - book.lastCastAt < GLOBAL_GAP_MS) return null;
+    for (const s of me.skills || []) {
+      const efst = TOGGLE_ON[s.name];
+      if (efst === undefined || !(efst in (me.status || {}))) continue;
+      if (now - (book.lastToggleAt[s.id] || 0) < TOGGLE_GAP_MS || (me.cooldowns || {})[s.id]) continue;
+      if ((book.blockedUntil[s.id] || 0) > now) continue;
       return { id: s.id, level: s.level, targetID: me.GID, name: s.name, toggle: true };
     }
     return null;
@@ -314,7 +342,7 @@ export function createSkillBook() {
   }
 
   const setBosses = (names) => (book.bosses = new Set(names));
-  return { ensurePlan, pickBuff, pickToggle, pickAttack, noteCast, onEvent, pickUpgrade, setBosses, book };
+  return { ensurePlan, pickBuff, pickToggle, pickToggleOff, pickAttack, noteCast, onEvent, pickUpgrade, setBosses, book };
 }
 
 /** " (Display Name)" when the client gave a display label that differs from the name. */

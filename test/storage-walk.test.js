@@ -4,7 +4,9 @@ const calls = [], logs = [];
 mock.module('../src/browser.js', () => ({ act: async (_p, name, arg) => { calls.push([name, arg]); return true; } }));
 mock.module('../src/logger.js', () => ({ log: (kind, data) => logs.push([kind, data]) }));
 mock.module('../src/lessons.js', () => ({ learn() {} }));
-mock.module('../src/gear-goal.js', () => ({ readGearStorage: () => ({}), recordGearStorage: () => true }));
+// Keep every other gear-goal export (item review and the junk sale import them); only the storage file is faked.
+const realGearGoal = await import('../src/gear-goal.js');
+mock.module('../src/gear-goal.js', () => ({ ...realGearGoal, readGearStorage: () => ({}), recordGearStorage: () => true }));
 const { createStorage } = await import('../src/storage.js');
 const { buildWorld } = await import('../src/world.js');
 const world = buildWorld({ mobs: {}, spawns: [], immobile: [] },

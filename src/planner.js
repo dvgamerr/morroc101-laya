@@ -1,8 +1,7 @@
 import * as llm from './llm.js';
 import { log } from './logger.js';
 import { PLANNER_SYSTEM } from './prompts.js';
-import { GOAL_KEYS, jobInfo, nextJob, jobChangeReady, zenyReserve } from './goals.js';
-import { jobReference } from './job-reference.js';
+import { GOAL_KEYS, jobInfo, zenyReserve } from './goals.js';
 import { stockHp, stockSp } from './potions.js';
 import { recentLessons } from './lessons.js';
 import { gearObjective } from './gear-goal.js';
@@ -76,14 +75,30 @@ export async function plan(snap, why, recent, current, ctx = { candidates: [], i
     { role: 'system', content: PLANNER_SYSTEM },
     { role: 'user', content: summarize(snap, why, recent, ctx) },
   ];
-  const invalidReason = (p) => {
+  // Fatal: the answer cannot be used at all (no JSON, or a map that is not a candidate). Never fixed up.
+  const fatalReason = (p) => {
     if (!p || typeof p !== 'object' || Array.isArray(p)) return 'invalid_or_incomplete_json';
     if (!ctx.candidates.some(c => c.map === p.hunt_map)) return 'map_not_in_candidates';
+    return null;
+  };
+  // Fixable: worth one retry, but sanitize() repairs it when the retry does not (a monster name that is
+  // not on the map is dropped, a missing target list becomes every target, current_map is the real one).
+  const invalidReason = (p) => {
+    const fatal = fatalReason(p);
+    if (fatal) return fatal;
     if (p.current_map !== snap.me.map) return 'incorrect_current_map';
-    if ((!Array.isArray(p.target_monsters) || !p.target_monsters.length ||
-        !p.target_monsters.every(name => ctx.candidates.find(c => c.map === p.hunt_map).targets.some(t => t.name === name)))) return 'invalid_target_monsters';
+    const onMap = ctx.candidates.find(c => c.map === p.hunt_map).targets;
+    if (!Array.isArray(p.target_monsters) || !p.target_monsters.length ||
+        !p.target_monsters.every(name => onMap.some(t => t.name === name))) return 'invalid_target_monsters';
     if (typeof p.reason !== 'string' || !p.reason.trim()) return 'missing_reason';
     return null;
+  };
+  // The LLM being down, or answering with no usable map twice, must not stop the hunt when the plan
+  // we already have is still a candidate. Never picks a new map by itself.
+  const keepCurrent = (error) => {
+    if (!current || !ctx.candidates.some(c => c.map === current.hunt_map)) return null;
+    log('planner_keep_current', { error: error.message, map: current.hunt_map });
+    return { ...current, signals: (ctx.signals || []).map((s) => s.text) };
   };
   let completion = {};
   const onCompletion = (info) => { completion = info; };
@@ -92,40 +107,57 @@ export async function plan(snap, why, recent, current, ctx = { candidates: [], i
     expectedCurrentMap: snap.me.map, receivedCurrentMap: parsed?.current_map,
     ...completion, chars: text.length, tail: text.slice(-200),
   });
-  let text = await llm.chat(messages, { maxTokens: 2048, temperature: 0.3, json: true, timeoutMs: 120000, onCompletion });
-  let parsed = llm.parseJson(text);
+  let text, parsed;
+  try {
+    text = await llm.chat(messages, { maxTokens: 2048, temperature: 0.3, json: true, timeoutMs: 120000, onCompletion });
+    parsed = llm.parseJson(text);
+  } catch (error) {
+    const kept = keepCurrent(error);
+    if (kept) return kept;
+    throw error;
+  }
   if (invalidReason(parsed)) {
     reportInvalid(parsed, text, 1);
     completion = {};
-    text = await llm.chat([...messages, { role: 'user', content:
-      'คำตอบก่อนหน้าใช้ไม่ได้: ' + invalidReason(parsed) +
-      '; current_map ที่ตอบ = ' + JSON.stringify(parsed?.current_map ?? null) +
-      '; ตำแหน่งจริงจากเกม current_map ต้องเป็น ' + JSON.stringify(snap.me.map) +
-      ' เท่านั้น ไม่ใช่ previous_hunt_map หรือ hunt_map; goal ต้องเป็น ' + JSON.stringify(ctx.goal) +
-      '; hunt_map ที่ตอบ = ' + JSON.stringify(parsed?.hunt_map ?? null) +
-      '; allowed_maps = ' + JSON.stringify(ctx.candidates.map(c => c.map).sort()) +
-      '. เลือก hunt_map จาก allowed_maps เท่านั้น ตอบ JSON โดยคง current_map ตามนี้: ' +
-      JSON.stringify({ current_map: snap.me.map, hunt_map: 'เลือกจาก allowed_maps', goal: ctx.goal, target_monsters: ['มอนในแมพที่เลือก'], reason: 'เหตุผลสั้นๆ' }) +
-      ' ห้ามเลือกแมพนอกนี้แม้เคยอยู่ในแผนเก่า'
-    }], { maxTokens: 2048, temperature: 0.1, json: true, timeoutMs: 120000, onCompletion });
-    parsed = llm.parseJson(text);
+    const chosen = ctx.candidates.find(c => c.map === parsed?.hunt_map);
+    try {
+      text = await llm.chat([...messages, { role: 'user', content:
+        'คำตอบก่อนหน้าใช้ไม่ได้: ' + invalidReason(parsed) +
+        '; current_map ที่ตอบ = ' + JSON.stringify(parsed?.current_map ?? null) +
+        '; ตำแหน่งจริงจากเกม current_map ต้องเป็น ' + JSON.stringify(snap.me.map) +
+        ' เท่านั้น ไม่ใช่ previous_hunt_map หรือ hunt_map; goal ต้องเป็น ' + JSON.stringify(ctx.goal) +
+        '; hunt_map ที่ตอบ = ' + JSON.stringify(parsed?.hunt_map ?? null) +
+        '; allowed_maps = ' + JSON.stringify(ctx.candidates.map(c => c.map).sort()) +
+        '. เลือก hunt_map จาก allowed_maps เท่านั้น ตอบ JSON โดยคง current_map ตามนี้: ' +
+        JSON.stringify({ current_map: snap.me.map, hunt_map: 'เลือกจาก allowed_maps', goal: ctx.goal, target_monsters: ['มอนในแมพที่เลือก'], reason: 'เหตุผลสั้นๆ' }) +
+        ' ห้ามเลือกแมพนอกนี้แม้เคยอยู่ในแผนเก่า' +
+        (chosen ? '; มอนที่ล่าได้ในแมพ ' + chosen.map + ' = ' + JSON.stringify(chosen.targets.map(t => t.name)) + ' target_monsters ต้องเลือกจากรายการนี้เท่านั้น' : '')
+      }], { maxTokens: 2048, temperature: 0.1, json: true, timeoutMs: 120000, onCompletion });
+      parsed = llm.parseJson(text);
+    } catch (error) {
+      const kept = keepCurrent(error);
+      if (kept) return kept;
+      throw error;
+    }
   }
-  if (invalidReason(parsed)) {
+  if (fatalReason(parsed)) {
     reportInvalid(parsed, text, 2);
-    throw new Error('Plan rejected: ' + invalidReason(parsed) + '; no automatic map selection');
+    const error = new Error('Plan rejected: ' + fatalReason(parsed) + '; no automatic map selection');
+    const kept = keepCurrent(error);
+    if (kept) return kept;
+    throw error;
   }
+  // Fixable problems that survived the retry are logged and repaired by sanitize(), not rejected.
+  if (invalidReason(parsed)) reportInvalid(parsed, text, 2);
   const next = { ...sanitize(parsed, ctx.candidates), signals: (ctx.signals || []).map((s) => s.text) };
   if (ctx.goal === 'money') next.reason = moneyReason(parsed, ctx.farmResults);
   if (ctx.goal === 'money' || ctx.goal === 'level') {
     next.goal = ctx.goal;
     next.objective = ctx.goal === 'money' ? 'หาเงินจากดรอปโดยเสีย HP และค่ายาน้อย' : 'เก็บเลเวลกับมอนในช่วง Base-10 ถึง Base-1';
   }
-  if (next.goal === 'job_change') {
-    const ref = jobReference(jobInfo(snap.me.jobId).name, nextJob(snap.me));
-    const ready = ref && jobChangeReady(snap.me) && snap.me.skillPoints === 0;
-    next.goal = ready ? 'job_change' : 'level';
-    next.objective = ready ? `ไปตรวจเงื่อนไขกับ Job Master: ${ref.from} → ${ref.to}` : 'เก็บเลเวลและเตรียมเงื่อนไขเปลี่ยนอาชีพตาม reference';
-    next.reason = ref ? `${ref.from} → ${ref.to}: Base ${ref.base}/Job ${ref.job}; NPC ต้องยืนยันเงื่อนไขเซิร์ฟ` : 'ไม่มี reference สำหรับเส้นทางนี้';
+  // The Job Master trip is started by jobchange.js from the character's state, never by the plan.
+  else if (next.goal === 'job_change') {
+    next.goal = 'level';
     next.todo = []; // Do not execute or preserve invented job-change instructions.
   }
   log('plan', { why, suggested_goal: next.goal, objective: next.objective, hunt_map: next.hunt_map, reason: next.reason, plan: next });

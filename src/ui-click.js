@@ -4,6 +4,8 @@ import { closePanel } from './close-panel.js';
 // sends mouse input and checks visibility, stability and whether the target is
 // covered; never force-click or guess a screen coordinate for a hidden button.
 const TIMEOUT = 1200;
+// The client paints the selected row of its item list with this background.
+const SELECTED_ROW_BG = 'rgb(205, 224, 255)';
 export const UI_ACTIONS = new Set(['npc_next', 'npc_menu', 'npc_input', 'npc_close', 'identify', 'close_shop', 'storage_close']);
 
 export async function clickGameUi(page, action, arg = {}) {
@@ -16,7 +18,9 @@ export async function clickGameUi(page, action, arg = {}) {
   // The client can retain empty/hidden copies of NPC panels in the DOM.
   // Ignore those copies for actions, visibility checks and close waits.
   const locator = (selector) => page.locator(`${selector.replaceAll('#NpcBox', '#NpcBox:has(> .border)').replaceAll('#NpcMenu', '#NpcMenu:has(> .container)').replaceAll('#NpcStore', '#NpcStore:has(.OutputWindow):not(:has(#NpcStore))')}:visible`);
-  const click = (selector) => locator(selector).click({ timeout: TIMEOUT });
+  // A close that finds no window to click still has to tell the server (see the fallback below).
+  let clicked = false;
+  const click = (selector) => { clicked = true; return locator(selector).click({ timeout: TIMEOUT }); };
   const visible = (selector) => locator(selector).isVisible();
   async function unchanged() {
     return page.evaluate(({ action, state }) => {
@@ -60,21 +64,24 @@ export async function clickGameUi(page, action, arg = {}) {
       const row = locator(`${panel} .item[data-index="${arg.index}"]`);
       // setList() already selects the first item. Confirm it directly instead
       // of blocking the OK click on an unnecessary second selection.
-      const selected = () => row.evaluate(el => el.style.backgroundColor === 'rgb(205, 224, 255)', undefined, { timeout: TIMEOUT });
+      const selected = () => row.evaluate((el, bg) => el.style.backgroundColor === bg, SELECTED_ROW_BG, { timeout: TIMEOUT });
       if (!await selected()) await row.click({ timeout: TIMEOUT });
       if (!await unchanged() || !await selected()) return false;
       await close(`${panel} ui-button.ok`, panel);
       break;
     }
     case 'npc_close':
-      if (state.dialog?.lines?.some(line => line.includes('<WARPRA>'))) await closeWarpra(page);
+      if (state.dialog?.lines?.some(line => line.includes('<WARPRA>'))) { await closeWarpra(page); clicked = true; }
       if (await visible('#NpcMenu ui-button.cancel')) await close('#NpcMenu ui-button.cancel', '#NpcMenu');
       else if (await visible('#NpcBox ui-button.close')) await close('#NpcBox ui-button.close', '#NpcBox');
       else if (await visible('#NpcBox') || await visible('#NpcMenu')) return false;
       break;
     case 'close_shop':
       if (await visible('#NpcStore .PurchaseResult ui-button.ok')) await click('#NpcStore .PurchaseResult ui-button.ok');
-      if (await visible('#NpcStore .OutputWindow ui-button.cancel')) await closePanel(locator('#NpcStore'), locator('#NpcStore .OutputWindow ui-button.cancel'), TIMEOUT);
+      if (await visible('#NpcStore .OutputWindow ui-button.cancel')) {
+        clicked = true;
+        await closePanel(locator('#NpcStore'), locator('#NpcStore .OutputWindow ui-button.cancel'), TIMEOUT);
+      }
       if (await visible('#NpcStore')) throw new Error('Shop window did not close');
       break;
     case 'storage_close':
@@ -88,15 +95,20 @@ export async function clickGameUi(page, action, arg = {}) {
   // Only acknowledge our old snapshot: a click may already have caused the
   // server to send the next menu. Do not overwrite that new state or send a
   // second packet after the client's normal button handler has sent one.
-  await page.evaluate(({ action, arg, state }) => {
+  // A close with no window on screen (already gone, or never drawn) sends nothing by itself, yet
+  // the server keeps the NPC session and refuses walking and @go until it hears CZ_CLOSE_DIALOG /
+  // CZ_CLOSE_STORE / NPC_MARKET_CLOSE. Send that packet through the page agent.
+  const sendClose = !clicked && (action === 'npc_close' || action === 'close_shop' || action === 'storage_close');
+  await page.evaluate(({ action, arg, state, sendClose }) => {
     const a = window.__agent;
     if (!a) return;
+    if (sendClose) a.act(action, { ...arg, naid: arg.naid ?? state.dialog?.naid });
     if (action.startsWith('npc_') && a.dialog?.naid === state.dialog?.naid && a.dialog?.at === state.dialog?.at) {
       a.dialog.state = action === 'npc_close' || (action === 'npc_menu' && arg.num === 255) ? 'ended' : 'text';
     }
     if (action === 'identify' && a.identify?.at === state.identify?.at) a.identify = null;
     if (action === 'close_shop') a.shop = null;
     if (action === 'storage_close') a.storage = null;
-  }, { action, arg, state });
+  }, { action, arg, state, sendClose });
   return true;
 }

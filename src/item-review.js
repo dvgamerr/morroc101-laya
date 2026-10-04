@@ -6,9 +6,13 @@ import * as laya from './laya.js';
 import { log } from './logger.js';
 import { isProtectedEquipment } from './equipment-memory.js';
 import { isOre } from './ores.js';
+import { SUPPLY_IDS } from './supply.js';
 import { GEAR_POLICY, gearObjective, keepForGear, allowedGearWeapon } from './gear-goal.js';
 
-const SUPPLIES = new Set([601, 602, 611, 23280, 12323, 12324]);
+const SUPPLIES = new Set(SUPPLY_IDS);
+const CARD = 6;
+// Owner's rule: cards are never sold (they are kept or stored), whatever the review answers.
+const sellable = (i) => !i.keep && i.type !== CARD && !isProtectedEquipment(i);
 const unknown = (i) => !!i.gear && (i.gear.identified !== true || !i.gear.description || !i.name || /^(undefined|null|\d+)$/i.test(i.name));
 const fingerprint = (i) => JSON.stringify([i.index, i.ITID, i.name, i.gear, i.description, i.keep]);
 const contextKey = (s) => JSON.stringify([s.me.jobId, s.me.baseLevel, s.worn, config.build]);
@@ -27,7 +31,7 @@ export function createItemReview(page, weapons = null) {
     return d?.key === contextKey(snap) && d.item === fingerprint(item) && (!d.retryAt || Date.now() < d.retryAt) ? d : null;
   }
   function items(snap, action) {
-    return candidates(snap).filter((i) => !keepForGear(i, snap) && !unknown(i) && decision(snap, i)?.action === action && (action !== 'sell' || (!i.keep && !isProtectedEquipment(i))));
+    return candidates(snap).filter((i) => !keepForGear(i, snap) && !unknown(i) && decision(snap, i)?.action === action && (action !== 'sell' || sellable(i)));
   }
   function defer(snap) {
     const key = contextKey(snap);
@@ -42,16 +46,16 @@ export function createItemReview(page, weapons = null) {
     if (Date.now() < retryAt) return true;
     busy = true;
     const key = contextKey(snap);
-    const questions = Object.fromEntries(pending.map((i) => [`item_${i.index}`, i.type === 3 && !i.keep && !isProtectedEquipment(i) ? {
+    const questions = Object.fromEntries(pending.map((i) => [`item_${i.index}`, i.type === 3 && sellable(i) ? {
       type: 'choice',
       instructions: `Evaluate ONLY inventory index ${i.index} (${i.name}). The goal is to sell surplus monster loot to fund potions. This item is not equipped, not protected, and not reserved for the current upgrade goal. Choose sell for ordinary unused loot with no stated use. Choose keep if the description indicates a useful role or information is insufficient. Do not infer a hypothetical future quest or crafting need.`,
       criteria: { sell: 'Ordinary unused loot; sell to NPC for money', keep: 'Useful or unknown item; keep' },
     } : {
       type: 'choice',
       instructions: `${GEAR_POLICY}. Decide for inventory index ${i.index} using its full description and the character's CURRENT class, level, build and worn equipment. For equipment: equip only if usable NOW and better overall in its slot (bonuses, refine, cards, slots and build, not just ATK/DEF); sell inferior/equal duplicates or unusable items with no useful future role. Store only a specifically useful future item. For cards/materials/other items decide individual usefulness, never store merely because of item type. If information is insufficient choose keep. Protected items cannot be sold.`,
-      criteria: { keep: 'Keep in bag / defer uncertain decision', ...(!i.keep && !isProtectedEquipment(i) ? { sell: 'Sell unused or inferior item' } : {}), store: 'Store this item for a concrete future use', ...(i.gear && !i.gear.damaged && snap.worn && i.gear.loc && (i.gear.reqLv || 0) <= snap.me.baseLevel ? { equip: 'Wear now: compatible with current class and an upgrade over worn gear' } : {}) },
+      criteria: { keep: 'Keep in bag / defer uncertain decision', ...(sellable(i) ? { sell: 'Sell unused or inferior item' } : {}), store: 'Store this item for a concrete future use', ...(i.gear && !i.gear.damaged && snap.worn && i.gear.loc && (i.gear.reqLv || 0) <= snap.me.baseLevel ? { equip: 'Wear now: compatible with current class and an upgrade over worn gear' } : {}) },
     }]));
-    const lootOnly = pending.every(i => i.type === 3 && !i.keep && !isProtectedEquipment(i));
+    const lootOnly = pending.every(i => i.type === 3 && sellable(i));
     laya.ask({ character: { job: jobInfo(snap.me.jobId).name, level: snap.me.baseLevel, stats: snap.me.stats, build: config.buildDescription, classPath: config.classPath },
       ...(lootOnly ? { goal: 'Sell surplus monster loot to fund potions. Protected items and upgrade materials have already been excluded.' }
         : { gear_goal: gearObjective(snap, jobInfo(snap.me.jobId).name), worn: snap.worn }),
@@ -76,6 +80,9 @@ export function createItemReview(page, weapons = null) {
       .finally(() => { busy = false; retryAt = Date.now() + 1000; });
     return true;
   }
+  /** Can we appraise this right now? Unidentified loot that we can't appraise is not worth a shop visit. */
+  const appraisable = (snap, i) => i.gear?.identified === false && Date.now() >= (identifyRetry.get(i.ITID) || 0) &&
+    (!!snap.me.skills?.some((s) => s.id === 40 && s.level > 0) || snap.inventory.some((b) => b.ITID === 611 && b.count > 0));
   async function identify(snap) {
     if (snap.me.dead || snap.attackers?.length) return false;
     const now = Date.now();
@@ -106,7 +113,10 @@ export function createItemReview(page, weapons = null) {
     observe, identify, decision, defer,
     equipmentReady: (s) => weapons?.ready(s) ?? true,
     // Planning a shop visit needs no model call; final sale approval happens at the counter.
-    needsSaleReview: (s) => candidates(s).some(i => !i.keep && !isProtectedEquipment(i) && !keepForGear(i, s) && (!decision(s, i) || decision(s, i).action === 'sell')),
+    // Unidentified items that can't be appraised are not candidates: they would keep sending us to town forever.
+    needsSaleReview: (s) => candidates(s).some(i => sellable(i) && !keepForGear(i, s) && (i.gear?.identified !== false || appraisable(s, i)) && (!decision(s, i) || decision(s, i).action === 'sell')),
+    /** Things the shop and the client's junk list must leave alone: weapon recovery, cards, LAYA's keep/store/equip. */
+    keepItem: (s, i) => !!weapons?.protected(s, i) || i.type === CARD || ['keep', 'store', 'equip'].includes(decision(s, i)?.action),
     saleItems: (s) => items(s, 'sell'),
     storageItems: (s) => items(s, 'store'),
     pickEquip: (s) => {

@@ -2,9 +2,16 @@ import { isOre } from './ores.js';
 import { isProtectedEquipment } from './equipment-memory.js';
 import { keepForGear } from './gear-goal.js';
 import { isHealing } from './potion-loadout.js';
+import { SUPPLY_IDS } from './supply.js';
 import { log } from './logger.js';
 
-export async function sellJunk(page, snap) {
+const CARD = 6;
+
+/**
+ * @param {(item) => boolean} [kept] extra protection from the caller (LAYA keep/store decisions, a weapon being recovered)
+ * @returns {Promise<null|{count:number}>} null when the junk sale isn't available here; the caller sells normally
+ */
+export async function sellJunk(page, snap, kept = () => false) {
   if (snap.shop?.stage !== 'sell') return null;
   const ready = await page.evaluate(() => window.RO?.JunkData?.isReady?.() === true);
   if (!ready) return null;
@@ -13,6 +20,16 @@ export async function sellJunk(page, snap) {
   if (await button.isDisabled()) return { count: 0 };
   await button.click({ timeout: 1200 });
   const panel = page.locator('.SellJunk:has(> .footer):visible');
+  try { return await confirmJunk(panel, snap, kept); }
+  catch (err) {
+    // The panel is open and something went wrong: close it so the normal sale can go on.
+    log('junk_sale_error', { error: err.message });
+    await panel.locator('.footer .cancel').click({ timeout: 1200 }).catch(() => {});
+    return { count: 0, reason: 'junk panel error' };
+  }
+}
+
+async function confirmJunk(panel, snap, kept) {
   await panel.waitFor({ state: 'visible', timeout: 1200 });
   const readChosen = () => panel.locator('.row:has(.checkbox[data-checked="1"])').evaluateAll(rows => rows.map(row => ({
     row: row.dataset.row,
@@ -23,8 +40,8 @@ export async function sellJunk(page, snap) {
   const unsafe = row => {
     const items = snap.inventory.filter(i => i.ITID === row.ITID);
     return !items.length || !Number.isInteger(row.count) || row.count <= 0 || items.some(i =>
-      i.equipped || i.keep || isOre(i) || isHealing(i) || isProtectedEquipment(i) || keepForGear(i, snap) ||
-      [601, 602, 611, 23280, 12323, 12324].includes(i.ITID));
+      i.equipped || i.keep || i.type === CARD || isOre(i) || isHealing(i) || isProtectedEquipment(i) || keepForGear(i, snap) || kept(i) ||
+      SUPPLY_IDS.includes(i.ITID));
   };
   const excluded = [];
   for (const item of (await readChosen()).filter(unsafe)) {

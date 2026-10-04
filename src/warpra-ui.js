@@ -1,4 +1,5 @@
 import { closePanel } from './close-panel.js';
+import { log } from './logger.js';
 // Warpra board protocol and selectors verified against the server's Online.js.
 // Read advertised state; only the actual button handler may submit a warp.
 export function parseWarpraFeed(lines) {
@@ -24,10 +25,20 @@ export function parseWarpraFeed(lines) {
 // Only the real panel owns the toolbar directly; ignore hidden old panels.
 const BOARD = '#Warpra:has(> .toolbar):visible';
 const opts = {timeout:1500};
+// A Playwright timeout must not escape as a loop error every tick: report it to the caller, which
+// counts failures and gives up on Warpra for this trip.
 export async function closeWarpra(page) {
-  await closePanel(page.locator(BOARD), page.locator(BOARD + ' .leave'), 1500);
+  try { await closePanel(page.locator(BOARD), page.locator(BOARD + ' .leave'), 1500); }
+  catch (error) { log('warpra_close_error', {error:error.message}); }
 }
 export async function inspectWarpra(page, destination) {
+  try { return await readBoard(page, destination); }
+  catch (error) {
+    log('warpra_ui_error', {error:error.message.split('\n')[0]});
+    return {state:'error'};
+  }
+}
+async function readBoard(page, destination) {
   if (!await page.locator(BOARD).isVisible()) return null;
   const lines = await page.evaluate(() => window.__agent?.dialog?.lines || []);
   const feed = parseWarpraFeed(lines);
@@ -58,6 +69,7 @@ export async function clickWarpraDestination(page, choice) {
   const current = parseWarpraFeed(await page.evaluate(()=>window.__agent?.dialog?.lines || []));
   const p = current?.places.find(p=>p.code===choice.place.code && p.map===choice.place.map);
   if (!p || p.lock !== 0) return false;
-  await page.locator(choice.selector).click(opts);
+  try { await page.locator(choice.selector).click(opts); }
+  catch (error) { log('warpra_ui_error', {error:error.message.split('\n')[0]}); return false; }
   return true;
 }

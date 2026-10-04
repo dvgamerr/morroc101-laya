@@ -1,24 +1,20 @@
 import * as laya from './laya.js';
 import { act, exploreTarget } from './browser.js';
 import { log } from './logger.js';
-import { pickBottle, POTION_GAP_MS } from './potions.js';
-import { SPLASH_MIN, GLOBAL_GAP_MS } from './skills.js';
+import { pickBottle, healRange, POTION_GAP_MS } from './potions.js';
+import { GLOBAL_GAP_MS } from './skills.js';
+import { HP_ITEMS, SP_ITEMS, FLY_WING, BUTTERFLY_WING } from './item-ids.js';
 import { bossNames } from './world.js';
-
-// Renewal/pre-renewal consumables. Unknown healing items fall back to item type 0 (HEALING).
-const HP_ITEMS = [569, 501, 507, 502, 508, 503, 545, 504, 546, 547, 509, 512, 513, 515, 516];
-const SP_ITEMS = [505, 510, 518, 526, 11502, 11503];
-// Novice Fly Wing first, then existing Fly Wings (601). Only Novice Fly Wing may be bought.
-// Use carried wings to find monsters. No Butterfly Wing to go to town — @go does that. Novice Butterfly Wing
-// stays as a last-resort escape.
-const FLY_WING = [23280, 12323, 601];
-const BUTTERFLY_WING = [12324];
 
 // Commands that put the character on a path. Re-sending them every tick makes it
 // jitter in place, so each kind has its own minimum gap.
 const MOVE_GAP_MS = { explore: 2500, pickup_item: 1200, retreat: 1500 };
 const STUCK_MS = 20000;
 const NORMAL_ATTACK_TRIAL_MS = 3000; // single target only; groups use damage skills immediately
+const WING_VERIFY_MS = 1500; // a wing that moved us shows within this; none -> this map blocks wings (noteleport)
+const NO_WING_MAP_MS = 10 * 60 * 1000;
+const TOGGLE_OFF_IDLE_MS = 3000; // nothing to fight this long: switch the SP-draining toggle off
+const MAX_REENTRY = 3; // a slow LAYA answer handing the tick back to the fight rules
 const LAYA_MIN_CONFIDENCE = 0.35;
 const LAYA_TIMEOUT_MS = 2000; // the loop waits on it: keep it short
 const UNDER_ATTACK_POTION_PCT = 60; // drink at this while being hit
@@ -37,17 +33,9 @@ const SKILL_WAIT_MS = 2000;
 const POTION_MEMORY_MS = 30000;
 const KITE_GAP_MS = 600; // a new step this often while drinking under attack
 const KITE_STEP = 3; // cells per step
-const KITE_TURN = Math.PI / 4; // turn 45 degrees each step: a circle, not a straight run into walls
-const PULL_TO = 3; // gather this many before a splash skill
-const PULL_TO_NO_WING = 2;
-const PULL_MAX_VISIBLE = 3; // nearby monsters; distant mobs do not count toward the pull
-const PULL_MAX_DPS_SHARE = 0.015; // pull only while taking under 1.5% of max HP per second
-const PULL_RANGE = 7;
-const PULL_MIN_HP = 80;
-const PULL_LEVEL_GAP = 10;
-const PULL_HIT_TIMEOUT_MS = 4000;
-const PULL_GROUP_TIMEOUT_MS = 2500;
-const PULL_COOLDOWN_MS = 5000;
+const KITE_TURN = Math.PI / 4;
+// Sweep -90..+90 degrees around 'away from them' (never towards): a weave, not a straight run into walls.
+const KITE_SWEEP = [0, 1, 2, 1, 0, -1, -2, -1];
 const NO_PROGRESS_MS = 10000;
 const IGNORE_TARGET_MS = 2 * 60 * 1000;
 const FIGHT_LONG_MS = 45000; // one monster taking longer than this is worth a look (incident)
@@ -71,7 +59,8 @@ const findItem = (inv, ids) => {
   }
   return null;
 };
-const hpItem = (inv) => findItem(inv, HP_ITEMS) || inv.find((i) => i.type === 0 && i.count > 0 && !SP_ITEMS.includes(i.ITID));
+// Only known healing items: an unknown type-0 item (Yggdrasil Berry/Seed) is never a potion.
+const hpItem = (inv) => findItem(inv, HP_ITEMS) || inv.find((i) => i.count > 0 && healRange(i.ITID) && !SP_ITEMS.includes(i.ITID));
 const countOf = (inv, ids) => inv.filter((i) => ids.includes(i.ITID)).reduce((s, i) => s + i.count, 0);
 
 /**
@@ -99,8 +88,10 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     lastCastAt: 0,
     seenPotion: {}, // kind -> { item, at }: the last potion stack seen, for bag reads mid-refresh
     lastKiteAt: 0,
-    pull: null,
-    pullUntil: 0,
+    lastWingAt: 0,
+    wingTry: null, // {map,x,y,at}: did the last wing move us?
+    noWings: new Map(), // map -> until: wings did nothing there (noteleport)
+    kiteStep: 0,
     lastApproachAt: 0,
     approachSince: 0,
     meleeOn: false, // a normal attack is running: it holds the character and skills won't go out until we step
@@ -174,6 +165,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
    */
   function stillWorthIt(snap, current) {
     if (!current) {
+      mem.approachSince = 0;
       mem.engage = null;
       mem.normalFight = null;
       mem.meleeOn = false;
@@ -183,6 +175,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     const e = mem.engage;
     const dealt = snap.dealt?.[current.GID];
     if (!e || e.GID !== current.GID) {
+      mem.approachSince = 0;
       mem.engage = { GID: current.GID, name: current.name, start: now, progressAt: now, dist: current.dist, hp: current.hp, dmg: dealt?.dmg || 0, casts: 0, logged: false };
       return current;
     }
@@ -206,7 +199,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     if (now - e.progressAt <= NO_PROGRESS_MS) return current;
     mem.ignored.set(current.GID, now + IGNORE_TARGET_MS);
     for (const [gid, until] of mem.ignored) if (until < now) mem.ignored.delete(gid);
-    log('target_unreachable', { name: current.name, dist: current.dist, secs: Math.round((now - e.progressAt + NO_PROGRESS_MS) / 1000) });
+    log('target_unreachable', { name: current.name, dist: current.dist, secs: Math.round((now - e.progressAt) / 1000) });
     mem.attackGID = 0;
     mem.engage = null;
     return null;
@@ -226,6 +219,27 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     return null;
   }
 
+  /**
+   * A wing on a noteleport map does nothing and is not used up: it would be pressed every tick while
+   * HP drains with no potion drunk. Judge the last wing by whether it moved us; if not, no wings
+   * on this map for a while, and none while the last press is still being judged.
+   */
+  function wingsUsable(snap) {
+    const now = Date.now();
+    const t = mem.wingTry;
+    if (t && now - t.at >= WING_VERIFY_MS) {
+      mem.wingTry = null;
+      if (t.map === snap.me.map && t.x === snap.me.x && t.y === snap.me.y) {
+        mem.noWings.set(t.map, now + NO_WING_MAP_MS);
+        log('wing_no_effect', { map: t.map });
+      }
+    }
+    if (mem.wingTry) return false;
+    const until = mem.noWings.get(snap.me.map) || 0;
+    if (until <= now) mem.noWings.delete(snap.me.map);
+    return until <= now;
+  }
+
   function view(snap) {
     const { me, inventory: inv } = snap;
     // Judge the current fight first: a target dropped here must not be picked again this tick.
@@ -234,12 +248,12 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
         snap.monsters.some(m => snap.attackers.includes(m.GID))) {
       mem.attackGID = 0;
       mem.approachSince = 0;
-      if (mem.pull) endPull('under attack');
     }
     const current = stillWorthIt(snap, snap.monsters.find((m) => m.GID === mem.attackGID) || null);
     const targets = wanted(snap);
     const weightPct = pct(me.weight, me.maxWeight);
     const lootable = snap.items.filter((i) => i.dist <= 10);
+    const wingsOk = wingsUsable(snap);
     if (targets.length || mem.defendOnly) mem.lastTargetSeenAt = Date.now();
     return {
       hp: pct(me.hp, me.maxHp),
@@ -250,8 +264,8 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
       lootable: weightPct < LOOT_MAX_WEIGHT_PCT && brain.plan.loot !== false && !mem.defendOnly ? lootable : [],
       hpPotion: remembered('hp', hpItem(inv), snap.mapAgeMs),
       spPotion: remembered('sp', findItem(inv, SP_ITEMS), snap.mapAgeMs),
-      fly: findItem(inv, FLY_WING),
-      butterfly: findItem(inv, BUTTERFLY_WING),
+      fly: wingsOk ? findItem(inv, FLY_WING) : null,
+      butterfly: wingsOk ? findItem(inv, BUTTERFLY_WING) : null,
       emptyFor: Date.now() - mem.lastTargetSeenAt,
     };
   }
@@ -363,6 +377,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
       case 'attack_monster': {
         const t = v.targets[0];
         if (me.sitting) await act(page, 'stand');
+        if (mem.attackGID !== t.GID) mem.approachSince = 0;
         mem.attackGID = t.GID;
         const used = await useSkill(snap, t, v);
         if (used === true || (used === false && skillDue(snap, t) && waitingForSkill())) return;
@@ -402,6 +417,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
       case 'fly_wing':
       case 'butterfly_wing':
         mem.attackGID = 0;
+        mem.wingTry = { map: me.map, x: me.x, y: me.y, at: Date.now() };
         return useItem(name === 'fly_wing' ? v.fly : v.butterfly);
       case 'pickup_item': {
         const item = [...v.lootable].sort((a, b) => a.dist - b.dist)[0];
@@ -424,8 +440,6 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
         // walk_to goes round walls, or to the reachable cell nearest the escape point.
         return act(page, 'walk_to', { x: me.x + dx * 10, y: me.y + dy * 10 });
       }
-      case 'rest':
-        return me.sitting ? act(page, 'stand') : undefined;
       case 'explore':
         mem.meleeOn = false;
         return explore(snap);
@@ -439,109 +453,11 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     }
   }
 
-  /**
-   * The splash count a splash skill is judged by. Owner's rule (to save money on Blue Potions):
-   * Cart Revolution only with 2+ monsters in its splash; a lone one gets normal hits.
-   */
-  const splashFor = (snap, target) => splashAround(snap, target);
-
   /** Monsters in a target's 3x3 (itself included): what a splash skill like Cart Revolution hits. */
   const splashAround = (snap, target) => snap.monsters.filter((m) => Math.max(Math.abs(m.x - target.x), Math.abs(m.y - target.y)) <= 1).length;
 
-  // A low level alone is not proof that a pack is safe: require observed damage,
-  // project it onto the whole group with a 2x margin, and keep survival rules first.
-  function pullSafe(snap, v, members, limit) {
-    if (!skills || mem.defendOnly || mem.inTown || v.hp < PULL_MIN_HP || !hpItem(snap.inventory || []) || snap.unseenAttackers) return false;
-    const near = snap.monsters.filter((m) => m.dist <= PULL_RANGE || snap.attackers.includes(m.GID));
-    if (near.length > PULL_MAX_VISIBLE || snap.attackers.length > limit) return false;
-    const avoid = new Set(brain.plan.avoid_monsters || []);
-    const easy = (m) => {
-      const level = mobLevels.get(m.name) || m.level;
-      return Number.isFinite(level) && level > 0 && snap.me.baseLevel - level >= PULL_LEVEL_GAP
-        && !avoid.has(m.name) && !skills.book?.bosses?.has(m.name);
-    };
-    if (![...near, ...members].every(easy)) return false;
-    if (brain.hardMaps?.has(snap.me.map)) return false;
-    const projected = (snap.damageTaken6s || 0) / 6 / Math.max(1, snap.attackers.length) * limit * 2;
-    if (!snap.attackers.length || !(projected > 0) || projected > snap.me.maxHp * PULL_MAX_DPS_SHARE) return false;
-    if (snap.me.hp - projected * 10 < snap.me.maxHp * 0.6) return false;
-    return (snap.me.skills || []).some((s) => SPLASH_MIN[s.name] && s.level > 0 && s.sp <= (snap.me.sp || 0)
-      && !snap.me.cooldowns?.[s.id] && (skills.book?.blockedUntil?.[s.id] || 0) <= Date.now());
-  }
-
-  function endPull(reason) {
-    if (mem.pull) log('pull_end', { reason, tagged: mem.pull.ids.size });
-    mem.pull = null;
-    mem.pullUntil = Date.now() + PULL_COOLDOWN_MS;
-  }
-
-  /** Tag each target once, waiting for damage confirmation before switching. */
-  async function maybePull(snap, v) {
-    const now = Date.now();
-    let p = mem.pull;
-    const limit = p?.limit || (v.fly || v.butterfly ? PULL_TO : PULL_TO_NO_WING);
-    const current = v.current || v.targets[0];
-    const candidates = v.targets.filter((m) => m.dist <= PULL_RANGE && m.hp !== 0);
-    if (!p) {
-      if (now < mem.pullUntil || !current || splashAround(snap, current) >= 2) return false;
-      // Establish that a normal attack actually landed on the first monster.
-      if (!(snap.dealt?.[current.GID]?.dmg > 0) || !snap.attackers.includes(current.GID)) return false;
-      if (!candidates.some((m) => m.GID !== current.GID && !snap.attackers.includes(m.GID))) return false;
-      if (!pullSafe(snap, v, candidates, limit)) return false;
-      p = mem.pull = { map: snap.me.map, x: snap.me.x, y: snap.me.y, limit,
-        ids: new Set([current.GID, ...snap.attackers]), pending: null, gatherAt: 0, startedAt: now };
-    }
-    const members = snap.monsters.filter((m) => p.ids.has(m.GID));
-    if (p.map !== snap.me.map || Math.max(Math.abs(snap.me.x - p.x), Math.abs(snap.me.y - p.y)) > 15
-      || now - p.startedAt > 12000 || !pullSafe(snap, v, members, limit)) {
-      endPull('conditions changed');
-      return false;
-    }
-    for (const gid of snap.attackers) p.ids.add(gid);
-    if (p.pending) {
-      const t = snap.monsters.find((m) => m.GID === p.pending.GID);
-      const hit = !t || (snap.dealt?.[t.GID]?.dmg || 0) > p.pending.damage
-        || (!snap.dealt && t.hp >= 0 && p.pending.hp >= 0 && t.hp < p.pending.hp);
-      if (!hit && now - p.pending.at < PULL_HIT_TIMEOUT_MS) return true;
-      if (!hit) {
-        mem.ignored.set(t.GID, now + IGNORE_TARGET_MS);
-        endPull('tag did not land');
-        await stepOne(snap, 'cancel failed pull');
-        mem.attackGID = 0;
-        return true;
-      }
-      log('pull_hit', { GID: p.pending.GID });
-      p.pending = null;
-    }
-    const other = p.ids.size < limit ? candidates.find((m) => !p.ids.has(m.GID) && !snap.attackers.includes(m.GID)) : null;
-    if (other) {
-      if (!pullSafe(snap, v, [...members, other], limit)) { endPull('unsafe next target'); return false; }
-      p.ids.add(other.GID);
-      p.pending = { GID: other.GID, hp: other.hp, damage: snap.dealt?.[other.GID]?.dmg || 0, at: now };
-      mem.attackGID = other.GID;
-      mem.lastAttackAt = now;
-      mem.meleeOn = true;
-      log('pull', { name: other.name, dist: other.dist, tagged: p.ids.size, limit, levelGap: snap.me.baseLevel - (mobLevels.get(other.name) || other.level) });
-      await act(page, 'attack', { GID: other.GID });
-      return true;
-    }
-    // Stop the last normal attack after its first confirmed hit, let them close,
-    // then aim at the member whose splash actually contains the most monsters.
-    if (mem.meleeOn) { await stepOne(snap, 'tag confirmed; gather for splash'); return true; }
-    const target = members.sort((a, b) => splashAround(snap, b) - splashAround(snap, a))[0];
-    if (target && splashAround(snap, target) >= 2) {
-      mem.attackGID = target.GID;
-      await useSkill(snap, target, v);
-      return true;
-    }
-    p.gatherAt ||= now;
-    if (now - p.gatherAt < PULL_GROUP_TIMEOUT_MS) return true;
-    endPull('group did not close');
-    return false;
-  }
-
   /**
-   * One step of a circle around the spot we're drinking at, on the side away from whoever's on us:
+   * One step of a weave around the spot we're drinking at, on the side away from whoever's on us:
    * melee monsters have to chase instead of hitting. Only with something attacking us.
    */
   async function kite(snap) {
@@ -551,9 +467,8 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     const foes = snap.monsters.filter((m) => snap.attackers.includes(m.GID));
     const cx = foes.length ? foes.reduce((n, m) => n + m.x, 0) / foes.length : me.x;
     const cy = foes.length ? foes.reduce((n, m) => n + m.y, 0) / foes.length : me.y;
-    // Away from them, turned a bit further each step so the path bends round instead of running straight.
-    mem.kiteTurn = ((mem.kiteTurn || 0) + KITE_TURN) % (2 * Math.PI);
-    const away = Math.atan2(me.y - cy, me.x - cx) + mem.kiteTurn;
+    // Away from them, swung left and right of straight: bends round walls but never steps towards them.
+    const away = Math.atan2(me.y - cy, me.x - cx) + KITE_SWEEP[mem.kiteStep++ % KITE_SWEEP.length] * KITE_TURN;
     const x = Math.round(me.x + Math.cos(away) * KITE_STEP);
     const y = Math.round(me.y + Math.sin(away) * KITE_STEP);
     mem.meleeOn = false;
@@ -576,7 +491,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
    */
   function skillDue(snap, target) {
     if (!target) return false;
-    if (snap.attackers.length + (snap.unseenAttackers || 0) >= 2 || splashFor(snap, target) >= 2) return true;
+    if (snap.attackers.length + (snap.unseenAttackers || 0) >= 2 || splashAround(snap, target) >= 2) return true;
     const fight = mem.normalFight;
     if (!fight || fight.gid !== target.GID || fight.map !== snap.me.map) return false;
     if (fight.at == null && (target.dist <= (snap.me.attackRange || 2) || snap.dealt?.[target.GID]?.dmg > 0)) fight.at = Date.now();
@@ -599,8 +514,9 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
       return true;
     }
     const crowd = snap.monsters.filter((m) => Math.max(Math.abs(m.x - target.x), Math.abs(m.y - target.y)) <= 3).length;
-    // Prioritize damage immediately for groups, or after the single-target trial.
-    const cast = skills.pickAttack(snap, target, crowd, splashFor(snap, target, v), false, true);
+    // Damage skills at once for groups, or after the single-target trial. Splash skills still wait
+    // for 2+ in their splash (owner's rule: no Cart Revolution on a lone monster).
+    const cast = skills.pickAttack(snap, target, crowd, splashAround(snap, target));
     if (!cast) return false;
     if (cast.approach) {
       // Walk into skill range rather than start a swing. Can't get there for a while (walls,
@@ -627,7 +543,6 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     const pressed = self && hotkeys && (await hotkeys.press('skill', cast.id));
     if (!pressed) await act(page, 'skill', { SKID: cast.id, level: cast.level, targetID: cast.targetID, x: cast.x, y: cast.y });
     skills.noteCast(cast);
-    if (mem.pull && SPLASH_MIN[cast.name]) endPull('splash cast');
     mem.lastAttackAt = 0;
     mem.lastCastAt = Date.now();
     if (mem.engage && mem.engage.GID === target.GID) mem.engage.casts++;
@@ -678,8 +593,22 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     return (name === 'explore' || name === 'pickup_item') && Date.now() - mem.lastMovedAt > STUCK_MS * 2;
   }
 
-  /** @param {{defendOnly?: boolean}} opts defendOnly while travelling: fight back, nothing else. */
-  return async function tick(snap, { defendOnly = false, inTown = false } = {}) {
+  /** Cast a self buff/toggle: through its shortcut key when it's on the bar. */
+  async function castSelf(snap, buff, kind) {
+    if (mem.meleeOn) return stepOne(snap, `cancel attack before ${kind}`);
+    if (snap.me.sitting) await act(page, 'stand');
+    const pressed = hotkeys && await hotkeys.press('skill', buff.id);
+    if (!pressed) await act(page, 'skill', { SKID: buff.id, level: buff.level, targetID: snap.me.GID });
+    skills.noteCast(buff);
+    log(kind, { skill: buff.name, level: buff.level });
+  }
+
+  /**
+   * One decision. Returns the tick result, or { reenter: live } when a fight started while LAYA was
+   * still thinking and the caller should decide again on the fresh state.
+   * @param {boolean} canReenter false: a fight showing up mid-answer just ends the tick
+   */
+  async function step(snap, { defendOnly, inTown }, canReenter) {
     mem.defendOnly = defendOnly;
     mem.inTown = inTown;
     const v = view(snap);
@@ -688,6 +617,17 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
     let source = 'rule';
     let why = '';
     let confidence = 1;
+
+    // Nothing to fight: a drain toggle (Maximize Power) is switched off, or it eats SP between fights
+    // and the Blue Potion rule keeps buying it back.
+    const idle = !snap.attackers.length && !snap.unseenAttackers && !v.current && !v.targets.length;
+    if (idle && v.emptyFor > TOGGLE_OFF_IDLE_MS && skills && !snap.me.dead) {
+      const off = skills.pickToggleOff?.(snap);
+      if (off) {
+        await castSelf(snap, off, 'toggle_off');
+        return { action: 'buff', stuck: false, drank: false };
+      }
+    }
 
     const rule = emergency(snap, v);
     // Check missing buffs before both opening attacks and continuing combat, including defence.
@@ -698,21 +638,13 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
       if (Date.now() - (skills.book?.lastCastAt || 0) < GLOBAL_GAP_MS) {
         return { action: 'wait', stuck: false, drank: false };
       }
-      const buff = skills.pickBuff(snap) || skills.pickToggle?.(snap);
+      const buff = skills.pickBuff(snap) || skills.pickToggle?.(snap, !idle);
       if (buff) {
-        if (mem.meleeOn) await stepOne(snap, 'cancel attack before buff');
-        else {
-          if (snap.me.sitting) await act(page, 'stand');
-          const pressed = hotkeys && await hotkeys.press('skill', buff.id);
-          if (!pressed) await act(page, 'skill', {SKID:buff.id,level:buff.level,targetID:snap.me.GID});
-          skills.noteCast(buff);
-          log('buff', {skill:buff.name,level:buff.level});
-        }
-        return {action:'buff',stuck:false,drank:false};
+        await castSelf(snap, buff, 'buff');
+        return { action: 'buff', stuck: false, drank: false };
       }
     }
     if (rule) {
-      if (mem.pull) endPull('survival rule');
       [name, why] = rule;
     } else if (Object.keys(actions).length === 1) {
       name = 'wait';
@@ -754,7 +686,7 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
           const live = await readLive();
           if (!live?.inGame || live.me?.map !== snap.me.map) return { action: 'wait', stuck: false, drank: false };
           if (live.me.dead || live.attackers.length || live.unseenAttackers) {
-            return tick(live, { defendOnly: true, inTown });
+            return canReenter ? { reenter: live } : { action: 'wait', stuck: false, drank: false };
           }
         }
         if (result.error) throw result.error;
@@ -783,11 +715,22 @@ export function createReflex(page, brain, scout = null, skills = null, hotkeys =
         attackers: snap.attackers.length, monsters: snap.monsters.length, options: Object.keys(actions).join('/'),
       });
     }
-    if (mem.pull && name !== 'attack_monster' && name !== 'keep_fighting') endPull('non-combat action');
     mem.lastAction = name;
     mem.drank = false;
     await execute(name, snap, v);
     // drank: a bottle actually went down this tick (the action repeats while the potion gap runs)
     return { action: name, stuck: trackStuck(snap, name), drank: mem.drank };
+  }
+
+  /** @param {{defendOnly?: boolean}} opts defendOnly while travelling: fight back, nothing else. */
+  return async function tick(snap, { defendOnly = false, inTown = false } = {}) {
+    let state = snap;
+    let opts = { defendOnly, inTown };
+    for (let n = 0; ; n++) {
+      const r = await step(state, opts, n < MAX_REENTRY);
+      if (!r.reenter) return r;
+      state = r.reenter;
+      opts = { defendOnly: true, inTown };
+    }
   };
 }

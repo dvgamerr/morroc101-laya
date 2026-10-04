@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { writeFileAtomic } from './atomic-write.js';
 
 const file = () => process.env.LESSONS_FILE || 'MEMORY.md';
 const START = '<!-- protected-equipment:start -->';
@@ -44,7 +45,7 @@ export function rememberEquipped(snap) {
   else if (text.includes('<!-- owner-hunting-policy:end -->')) {
     text = text.replace('<!-- owner-hunting-policy:end -->', () => `${block}\n<!-- owner-hunting-policy:end -->`);
   } else text += `\n<!-- owner-hunting-policy:start -->\n${block}\n<!-- owner-hunting-policy:end -->\n`;
-  writeFileSync(file(), text);
+  writeFileAtomic(file(), text);
   protectedIds = idsFrom(block);
   return current;
 }

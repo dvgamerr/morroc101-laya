@@ -1,6 +1,7 @@
 import { dropValue } from './drop-values.js';
 import { config } from './config.js';
 import { warpOptions } from './warper-reference.js';
+import { log } from './logger.js';
 
 /**
  * World knowledge from the client's own navigation bundles (the same files the
@@ -32,17 +33,25 @@ export function bossNames(world) {
 // Instances, arenas, job/quest rooms, interiors: not hunting grounds.
 const NOT_A_FIELD = /(^\d@|@|_in\d*$|_in_|pvp|gvg|arena|^job_|^que_|^prt_are|guild|_cas|^poring_w|^force_|^ordeal|^06guild|^te_)/;
 
+const FETCH_TIMEOUT_MS = 15000;
+
 export async function loadWorld(baseUrl = config.game.dataUrl) {
   const get = async (file) => {
-    const res = await fetch(`${baseUrl.replace(/\/?$/, '/')}${file}`);
+    const res = await fetch(`${baseUrl.replace(/\/?$/, '/')}${file}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`${file}: HTTP ${res.status}`);
     return res.json();
   };
+  // Shops and NPCs are optional, but a missing file must be visible: without them there are no errands.
+  const optional = (file, empty) =>
+    get(file).catch((err) => {
+      log('world_optional_failed', { file, error: err.message });
+      return empty;
+    });
   const [mob, map, shop, npc] = await Promise.all([
     get('navi_mob.txt'),
     get('navi_map.txt'),
-    get('navi_shop.txt').catch(() => ({ shops: [] })),
-    get('navi_npc.txt').catch(() => ({ npcs: [] })),
+    optional('navi_shop.txt', { shops: [] }),
+    optional('navi_npc.txt', { npcs: [] }),
   ]);
   return buildWorld(mob, map, shop, npc);
 }
@@ -139,19 +148,48 @@ export function walkCells(world, map, x1, y1, x2, y2) {
 export function travelCosts(world, from, x, y, { canGo = false } = {}) {
   const best = new Map(); // "map:x:y" -> cost
   const arrivals = new Map(); // map -> [{x, y, cost}]
-  const heap = [[0, from, x, y]];
+  const heap = []; // binary min-heap of [cost, map, x, y]
+  const up = (i) => {
+    const item = heap[i];
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (heap[parent][0] <= item[0]) break;
+      heap[i] = heap[parent];
+      i = parent;
+    }
+    heap[i] = item;
+  };
+  const down = (i) => {
+    const item = heap[i];
+    for (;;) {
+      let child = 2 * i + 1;
+      if (child >= heap.length) break;
+      if (child + 1 < heap.length && heap[child + 1][0] < heap[child][0]) child++;
+      if (heap[child][0] >= item[0]) break;
+      heap[i] = heap[child];
+      i = child;
+    }
+    heap[i] = item;
+  };
   const push = (c, m, px, py) => {
     const k = `${m}:${px}:${py}`;
     if ((best.get(k) ?? Infinity) <= c) return;
     best.set(k, c);
     heap.push([c, m, px, py]);
+    up(heap.length - 1);
   };
-  best.set(`${from}:${x}:${y}`, 0);
+  const pop = () => {
+    const top = heap[0];
+    const last = heap.pop();
+    if (heap.length) {
+      heap[0] = last;
+      down(0);
+    }
+    return top;
+  };
+  push(0, from, x, y);
   while (heap.length) {
-    // Small graph (a few thousand portal cells): a linear-scan min is plenty.
-    let bi = 0;
-    for (let i = 1; i < heap.length; i++) if (heap[i][0] < heap[bi][0]) bi = i;
-    const [c, m, px, py] = heap.splice(bi, 1)[0];
+    const [c, m, px, py] = pop();
     if (c > (best.get(`${m}:${px}:${py}`) ?? Infinity)) continue;
     if (!arrivals.has(m)) arrivals.set(m, []);
     arrivals.get(m).push({ x: px, y: py, cost: c });
@@ -190,8 +228,12 @@ export function hopsFrom(world, from, { canGo }) {
   return dist;
 }
 
-/** Owner's hunting band uses the real player level for every hunting goal. */
-export function levelBand(level, goal = 'level', priestSupport = false) {
+/**
+ * Owner's hunting band uses the real player level for every hunting goal:
+ * Base-10..Base-1 for leveling, Base-20..Base-1 for money. `danger` is the level
+ * above which a crowd rules a map out (Base+3 leveling, Base for money).
+ */
+export function levelBand(level, goal = 'level') {
   return { min: Math.max(1, level - (goal === 'money' ? 20 : 10)), max: Math.max(1, level - 1), danger: goal === 'money' ? level : level + 3 };
 }
 
@@ -205,17 +247,20 @@ const MIN_POPULATION = { level: 10, money: 20 };
  * Score (goal 'level') = sum over in-band monsters of count * baseExp / hp (EXP per point of
  * damage, times how many there are). Score (goal 'money') = sum of count * drops / sqrt(hp): many
  * monsters that die fast and drop things. Either is divided by travel cost in cells (travelCosts).
- * Priest support expands the level band and uses baseExp / sqrt(hp) to favor higher EXP per kill.
+ * Priest support does not change the band; it only uses baseExp / sqrt(hp) to favor higher EXP per kill.
+ * A Warpra warp replaces walking/@go only when it is cheaper (or when walking cannot get there).
  * Maps holding a crowd of monsters far above the band are dropped as too dangerous.
  */
 export function pickHuntingGrounds(world, { level, goal = 'level', priestSupport = false, fromMap, fromX = 0, fromY = 0, canGo = false, limit = 5, exclude = [], avoid = [] }) {
-  const band = levelBand(level, goal, priestSupport);
+  const band = levelBand(level, goal);
   const hops = hopsFrom(world, fromMap, { canGo });
   const travel = travelCosts(world, fromMap, fromX, fromY, { canGo });
   const out = [];
   for (const [map] of world.spawnsByMap) {
     if (NOT_A_FIELD.test(map) || exclude.includes(map)) continue;
-    const warp = warpOptions(world, travel, map)[0];
+    const walkCost = travel.toMap(map);
+    const warpBest = warpOptions(world, travel, map)[0];
+    const warp = warpBest && !(hops.has(map) && walkCost <= warpBest.cost) ? warpBest : null;
     if (!hops.has(map) && !warp) continue;
     const spawns = spawnsOn(world, map);
     // Monsters we learned to stay away from (they stun/silence us): a map full of them is no
@@ -234,7 +279,7 @@ export function pickHuntingGrounds(world, { level, goal = 'level', priestSupport
     const h = warp ? (hops.get(warp.npc.map) ?? 0) + 1 : hops.get(map);
     // Distance in cells walked (portals + @go), not just map count: two "1 hop" maps can be
     // a minute apart. ~150 cells is about what a map change used to stand for.
-    const cost = Math.round(Math.min(warp ? warp.cost : travel.toMap(map), 2000));
+    const cost = Math.round(Math.min(warp ? warp.cost : walkCost, 2000));
     out.push({
       map,
       hops: h,

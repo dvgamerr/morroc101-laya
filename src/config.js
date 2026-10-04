@@ -8,6 +8,9 @@ const env = (key, fallback) => {
   return value;
 };
 
+// Zeny kept back for potions and travel: one fixed value for signals and spending rules.
+export const ZENY_RESERVE = 100000;
+
 export const config = {
   laya: {
     url: env('LAYA_API_URL', 'https://nlp.wedolabs.net/laya/v1/systemone'),
@@ -15,7 +18,7 @@ export const config = {
     model: env('LAYA_MODEL', 'laya-multilingual'),
   },
   llm: {
-    baseUrl: env('OMLX_BASE_URL', 'http://10.203.1.91:8000/v1').replace(/\/$/, ''),
+    baseUrl: env('OMLX_BASE_URL', 'http://127.0.0.1:8000/v1').replace(/\/$/, ''),
     key: env('OMLX_API_KEY'),
     model: env('OMLX_MODEL', 'Qwen3.8-9B-mlx-4Bit'),
   },
@@ -35,8 +38,8 @@ export const config = {
     .filter(Boolean),
   // Stat/skill build for the whole path (build.js BUILDS key) and how to describe it to the LLM.
   build: env('BUILD', 'axe_meister'),
-  // Owner-confirmed Priest following and healing; disable when hunting solo.
-  priestSupport: env('PRIEST_SUPPORT', 'true') === 'true',
+  // A Priest follows and heals (set PRIEST_SUPPORT=true). Off by default: solo play keeps the low-potion rules.
+  priestSupport: env('PRIEST_SUPPORT', 'false') === 'true',
   buildDescription: env('BUILD_DESCRIPTION', 'Two-handed Axe Meister: STR main, DEX to hit, VIT to survive, some AGI; axe skills'),
   // Optional: goal changes are posted here.
   discordWebhook: env('DISCORD_WEBHOOK_URL', ''),

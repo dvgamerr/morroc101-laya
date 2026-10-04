@@ -58,3 +58,43 @@ test('invalid maps still exhaust retries without automatically selecting a desti
   await expect(plan(snap, 'test', '', null, ctx)).rejects.toThrow('map_not_in_candidates');
   expect(requests).toHaveLength(2);
 });
+
+const snapMorocc = { me: { map: 'morocc', baseLevel: 98, jobId: 10, hp: 8000, maxHp: 8000, sp: 100, maxSp: 100, zeny: 5325 }, inventory: [], worn: [] };
+const oneMap = (extra = {}) => ({ goal: 'level', candidates: [{ map: 'in_sphinx1', hops: 1, targets: [{ name: 'Requiem', level: 71, count: 10 }, { name: 'Marduk', level: 70, count: 5 }], avoid: [] }], ...extra });
+
+test('a wrong monster name is retried with the valid names, and repaired rather than rejecting the plan', async () => {
+  requests.length = 0;
+  const bad = { current_map: 'morocc', hunt_map: 'in_sphinx1', goal: 'level', target_monsters: ['Baphomet'], reason: 'x' };
+  replies.push(bad, bad);
+  const result = await plan(snapMorocc, 'test', '', null, oneMap());
+  expect(requests).toHaveLength(2);
+  expect(requests[1].at(-1).content).toContain('["Requiem","Marduk"]');
+  expect(result.hunt_map).toBe('in_sphinx1');
+  expect(result.target_monsters).toEqual(['Requiem', 'Marduk']);
+});
+
+test('a missing reason after the retry does not reject a valid map', async () => {
+  requests.length = 0;
+  const noReason = { current_map: 'morocc', hunt_map: 'in_sphinx1', goal: 'level', target_monsters: ['Requiem'] };
+  replies.push(noReason, noReason);
+  const result = await plan(snapMorocc, 'test', '', null, oneMap());
+  expect(result.target_monsters).toEqual(['Requiem']);
+});
+
+test('LLM failure keeps the current plan while its map is still a candidate, never picks another map', async () => {
+  const current = { hunt_map: 'in_sphinx1', target_monsters: ['Requiem'], goal: 'level', objective: 'o', reason: 'r' };
+  // The mocked chat reads replies; an empty queue makes JSON.parse(undefined) throw like an LLM outage.
+  replies.length = 0;
+  const kept = await plan(snapMorocc, 'test', '', current, oneMap());
+  expect(kept.hunt_map).toBe('in_sphinx1');
+  expect(kept.target_monsters).toEqual(['Requiem']);
+  await expect(plan(snapMorocc, 'test', '', { ...current, hunt_map: 'gone' }, oneMap())).rejects.toThrow();
+  await expect(plan(snapMorocc, 'test', '', null, oneMap())).rejects.toThrow();
+});
+
+test('a planner answer of goal job_change never leaves the planner', async () => {
+  const answer = { current_map: 'morocc', hunt_map: 'in_sphinx1', goal: 'job_change', target_monsters: ['Requiem'], reason: 'r' };
+  replies.push(answer);
+  const result = await plan(snapMorocc, 'test', '', null, { candidates: oneMap().candidates });
+  expect(result.goal).toBe('level');
+});

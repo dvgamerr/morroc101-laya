@@ -3,8 +3,9 @@ import { act } from './browser.js';
 import { createDialog, findNpcEntity } from './npc.js';
 import { gearTargets, gearReference, readGearStorage } from './gear-goal.js';
 import { log } from './logger.js';
+import { zenyReserve } from './goals.js';
 
-const RESERVE = 100000;
+const RESERVE = zenyReserve();
 const LOC = { weapon: 34, head_top: 256, armor: 16, garment: 4, shoes: 64 };
 const count = (s, id) => s.inventory.filter(i => i.ITID === id && i.count > 0).reduce((n,i) => n+i.count, 0) + (s.worn || []).filter(i => i.ITID === id).length;
 const owned = (s, id) => {
@@ -61,6 +62,7 @@ export function createGearUpgrade(page, travel, storage) {
     if (s.me.map !== npc.map) {
       if (travel.dest !== npc.map) await travel.start(npc.map);
       if (await travel.tick(s) === 'failed') throw new Error('cannot reach '+npc.map);
+      g.at = Date.now(); // the trip has its own timeout; crossing maps must not use up the stage's
       return false;
     }
     if (travel.dest) await travel.stop();
@@ -211,7 +213,7 @@ export function createGearUpgrade(page, travel, storage) {
         return true;
       }
       if (g.stage === 'refine_select') {
-        const item=owned(s,g.target.id); if (!item) return fail(s,'refine target not found; do not buy a replacement');
+        const item=owned(s,g.target.id); if (!item) return fail(s,'refine target not found; will re-check the inventory, and buy a replacement only if it is still missing');
         if (item.gear.refine>=7) { await act(page,'refine_close'); stage('equip'); return true; }
         if (item.equipped) {
           if (await act(page,'unequip',{index:item.index,ITID:item.ITID}) !== false) stage('refine_unequip_wait');

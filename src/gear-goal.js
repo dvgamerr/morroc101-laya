@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, statSync } from 'node:fs';
 import reference from '../docs/references/gear/upgrade.json';
 import catalog from '../docs/references/gear/npc-catalog.json';
 
@@ -22,11 +22,23 @@ export function gearTargets(snap) {
 }
 export const GEAR_POLICY = 'เจ้าของสั่งอัปเกรดอุปกรณ์อาชีพปัจจุบันเป็น +7: ใช้ขวานสองมือเท่านั้น ใช้ชุดที่เจ้าของเลือกใน ownerSelectedByJob ก่อน ถ้าไม่มีจึงเลือกของ NPC แพงสุดที่ใส่ได้จริงอย่างละ 1 ชิ้น ตรวจ Equipment/Inventory/Kafra ก่อนซื้อ ห้ามขายวัสดุตีบวกหรือของเป้าหมาย; +7 อาวุธ Lv1-4/เกราะทั่วไปพลาดไม่แตกและไม่ลดระดับ แต่เสียเงิน/วัสดุ ของอาจกลับเข้ากระเป๋า ต้องอ่าน index ใหม่และ equip กลับ; หยุดที่ +7 และเหลือสำรอง 100000 zeny';
 
+// Read on most ticks: re-parse only when the file changed.
+let storageCache = { mtimeMs: -1, size: -1, value: null };
 export function readGearStorage() {
-  try { return JSON.parse(readFileSync(STORAGE_FILE, 'utf8')); } catch { return null; }
+  try {
+    const { mtimeMs, size } = statSync(STORAGE_FILE);
+    if (mtimeMs !== storageCache.mtimeMs || size !== storageCache.size) {
+      storageCache = { mtimeMs, size, value: JSON.parse(readFileSync(STORAGE_FILE, 'utf8')) };
+    }
+    return storageCache.value;
+  } catch {
+    storageCache = { mtimeMs: -1, size: -1, value: null };
+    return null;
+  }
 }
 export function recordGearStorage(snap) {
   if (!snap.storage?.open || !Array.isArray(snap.storage.items) || snap.storage.count !== snap.storage.items.length) return false;
+  storageCache.mtimeMs = -1;
   writeFileSync(STORAGE_FILE, JSON.stringify({ checkedAt: new Date().toISOString(), items: snap.storage.items }, null, 2));
   return true;
 }
@@ -51,7 +63,9 @@ export function gearObjective(snap, currentJob) {
       targetRefine: 7, needsPurchase: storage ? matches.length === 0 : null };
   });
   const complete = pieces.length === 5 && pieces.every(p => p.owned.some(i => i.where === 'equipment' && i.refine >= 7));
-  return { goal: 'gear', status: complete ? 'complete' : 'pending', currentJob,
+  // Jobs outside the Merchant line have no gear targets: nothing to pursue, not an endless 'pending'.
+  const status = !pieces.length ? 'not_applicable' : complete ? 'complete' : 'pending';
+  return { goal: 'gear', status, currentJob,
     researchJob: reference.jobAtResearch.name, recheckJob: currentJob !== reference.jobAtResearch.name,
     policy: GEAR_POLICY, targetRefine: 7, storageCheckedAt: storage?.checkedAt ?? null,
     nextStep: !storage ? 'audit_kafra' : 'verify_current_job_and_live_npc_quotes',

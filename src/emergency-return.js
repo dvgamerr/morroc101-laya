@@ -3,24 +3,43 @@ import { choose } from './laya.js';
 import { healRange, healOf, POTION_GAP_MS } from './potions.js';
 import { log } from './logger.js';
 
+const OVERWEIGHT_TRIES = 3; // @go attempts per map before giving up for a while
+const OVERWEIGHT_RETRY_MS = 60000;
+
 // Owner confirmed: no automatic @go for rapid damage; ask LAYA below 10% HP only.
-export function createEmergencyReturn(page, inTown = map => map === 'morocc') {
+// `canGo` is the shared @go state: when the server refuses @go the overweight return has no way out.
+export function createEmergencyReturn(page, inTown = map => map === 'morocc', canGo = () => true) {
   let nextAt = 0, busy = false;
+  let weightMap = null, weightTries = 0, weightGiveUpUntil = 0;
   return async function emergencyReturn(snap) {
     if (busy) return true;
     const me = snap.me;
-    if (me && !me.dead && me.maxWeight > 0 && me.weight / me.maxWeight >= 0.9 && !inTown(me.map)) {
-      holdCombatForEscape();
+    const lowHp = !!me && !me.dead && !!me.maxHp && me.hp / me.maxHp < 0.1;
+    // Below 10% HP the heal/escape choice below comes first; it also covers the overweight case.
+    if (me && !me.dead && !lowHp && me.maxWeight > 0 && me.weight / me.maxWeight >= 0.9 && !inTown(me.map)) {
+      if (me.map !== weightMap) { weightMap = me.map; weightTries = 0; weightGiveUpUntil = 0; }
+      // Hold everything only while an @go is actually in flight; otherwise reflex, potions and
+      // events keep running (standing frozen on a no-@go map used to end in death).
       if (Date.now() < nextAt) return true;
-      busy = true;
-      try {
-        if (snap.dialog && snap.dialog.state !== 'ended') await act(page, 'npc_close', {naid:snap.dialog.naid});
-        if (me.sitting) await act(page, 'stand');
-        await act(page, 'say', {text:'@go 1'});
-        nextAt = Date.now() + 3000;
-        log('overweight_return', {from:me.map, weight:me.weight, maxWeight:me.maxWeight, to:'morocc'});
-        return true;
-      } finally { busy = false; }
+      if (canGo() && Date.now() >= weightGiveUpUntil) {
+        if (weightTries >= OVERWEIGHT_TRIES) {
+          weightTries = 0;
+          weightGiveUpUntil = Date.now() + OVERWEIGHT_RETRY_MS;
+          log('overweight_return_gave_up', {from:me.map, weight:me.weight, maxWeight:me.maxWeight});
+        } else {
+          weightTries++;
+          holdCombatForEscape();
+          busy = true;
+          try {
+            if (snap.dialog && snap.dialog.state !== 'ended') await act(page, 'npc_close', {naid:snap.dialog.naid});
+            if (me.sitting) await act(page, 'stand');
+            await act(page, 'say', {text:'@go 1'});
+            nextAt = Date.now() + 3000;
+            log('overweight_return', {from:me.map, weight:me.weight, maxWeight:me.maxWeight, to:'morocc', attempt:weightTries});
+            return true;
+          } finally { busy = false; }
+        }
+      }
     }
     if (!me || me.dead || !me.maxHp || me.hp / me.maxHp >= 0.1) return false;
     if (Date.now() < nextAt) return true;
