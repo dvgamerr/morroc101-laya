@@ -10,6 +10,20 @@ mock.module('../src/llm.js', () => ({
 mock.module('../src/logger.js', () => ({ log() {} }));
 const { plan } = await import('../src/planner.js');
 
+test('wrong current map retry supplies the authoritative map separately from the hunt map', async () => {
+  requests.length = 0;
+  const snap = { me: { map: 'morocc', baseLevel: 98, jobId: 10, hp: 8000, maxHp: 8000, sp: 100, maxSp: 100, zeny: 85104 }, inventory: [], worn: [] };
+  const ctx = { goal: 'money', candidates: [{ map: 'moc_fild17', hops: 2, targets: [{ name: 'Hode', level: 63, count: 10 }], avoid: [] }] };
+  const answer = { current_map: 'moc_fild17', hunt_map: 'moc_fild17', target_monsters: ['Hode'], reason: 'hunt' };
+  replies.push(answer, { ...answer, current_map: 'morocc' });
+  const result = await plan(snap, 'returned to town', '', null, ctx);
+  expect(result.hunt_map).toBe('moc_fild17');
+  expect(requests).toHaveLength(2);
+  expect(requests[1].at(-1).content).toContain('"current_map":"morocc"');
+  expect(requests[1].at(-1).content).toContain('current_map ที่ตอบ = "moc_fild17"');
+  requests.length = 0;
+});
+
 test('planner accepts a valid map without copying the models cross-map profit claim', async () => {
   const snap = { me: { map: 'morocc', baseLevel: 98, jobId: 10, hp: 8000, maxHp: 8000, sp: 100, maxSp: 100, zeny: 5325 }, inventory: [], worn: [] };
   const ctx = {

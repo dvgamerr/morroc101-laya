@@ -89,6 +89,7 @@ export async function plan(snap, why, recent, current, ctx = { candidates: [], i
   const onCompletion = (info) => { completion = info; };
   const reportInvalid = (parsed, text, attempt) => log('planner_bad_json', {
     attempt, cause: invalidReason(parsed), map: parsed?.hunt_map,
+    expectedCurrentMap: snap.me.map, receivedCurrentMap: parsed?.current_map,
     ...completion, chars: text.length, tail: text.slice(-200),
   });
   let text = await llm.chat(messages, { maxTokens: 2048, temperature: 0.3, json: true, timeoutMs: 120000, onCompletion });
@@ -98,9 +99,14 @@ export async function plan(snap, why, recent, current, ctx = { candidates: [], i
     completion = {};
     text = await llm.chat([...messages, { role: 'user', content:
       'คำตอบก่อนหน้าใช้ไม่ได้: ' + invalidReason(parsed) +
+      '; current_map ที่ตอบ = ' + JSON.stringify(parsed?.current_map ?? null) +
+      '; ตำแหน่งจริงจากเกม current_map ต้องเป็น ' + JSON.stringify(snap.me.map) +
+      ' เท่านั้น ไม่ใช่ previous_hunt_map หรือ hunt_map; goal ต้องเป็น ' + JSON.stringify(ctx.goal) +
       '; hunt_map ที่ตอบ = ' + JSON.stringify(parsed?.hunt_map ?? null) +
       '; allowed_maps = ' + JSON.stringify(ctx.candidates.map(c => c.map).sort()) +
-      '. เลือกใหม่จาก allowed_maps เท่านั้น ตอบ JSON: {current_map, hunt_map, goal, target_monsters, reason} เหตุผลสั้นๆ ห้ามเลือกแมพนอกนี้แม้เคยอยู่ในแผนเก่า'
+      '. เลือก hunt_map จาก allowed_maps เท่านั้น ตอบ JSON โดยคง current_map ตามนี้: ' +
+      JSON.stringify({ current_map: snap.me.map, hunt_map: 'เลือกจาก allowed_maps', goal: ctx.goal, target_monsters: ['มอนในแมพที่เลือก'], reason: 'เหตุผลสั้นๆ' }) +
+      ' ห้ามเลือกแมพนอกนี้แม้เคยอยู่ในแผนเก่า'
     }], { maxTokens: 2048, temperature: 0.1, json: true, timeoutMs: 120000, onCompletion });
     parsed = llm.parseJson(text);
   }

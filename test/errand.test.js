@@ -28,6 +28,38 @@ const fakeTravel = () => {
 const me = (over = {}) => ({ map: 'field', x: 50, y: 50, baseLevel: 20, zeny: 20000, weight: 3000, maxWeight: 20000, maxHp: 500, hp: 500, walking: false, ...over });
 const snap = (over = {}) => ({ me: me(over.me), inventory: [], npcs: [], shop: null, ...over, me: me(over.me) });
 
+test('outbound hunt ignores leftover sale candidates and ordinary potion topups', () => {
+  const loot = { index: 9, ITID: 909, type: 3, count: 40 };
+  const e = createErrand({}, world, fakeTravel(), () => null, { needsSaleReview: () => true, saleItems: () => [loot] });
+  const s = snap({ mapAgeMs: 60000, me: { map: 'town', zeny: 120000 }, inventory: [loot, { ITID: 501, count: 1 }] });
+  e.observe(s, 'money', { hunting: false });
+  expect(e.maybeStart(s, { outbound: true })).toBeNull();
+  expect(e.maybeStart({ ...s, me: { ...s.me, map: 'field' } }, { outbound: true })).toBeNull();
+});
+
+test('long hunts do not leave for low but nonempty supplies or 80 percent weight', () => {
+  const loot = { index: 9, ITID: 909, type: 3, count: 40 };
+  const huntWorld = { ...world, spawnsByMap: new Map([['field', [{ id: 1002 }]]]) };
+  const e = createErrand({}, huntWorld, fakeTravel(), () => null, { needsSaleReview: () => true, saleItems: () => [loot] });
+  const s = snap({ mapAgeMs: 3600000, me: { map: 'field', zeny: 200000, weight: 17000 }, inventory: [loot, { ITID: 501, count: 1 }] });
+  e.observe(s, 'money', { hunting: true });
+  expect(e.maybeStart(s)).toBeNull();
+  e.requestBuy(RED, 'routine low stock');
+  expect(e.maybeStart(s)).toBeNull();
+  expect(e.maybeStart({ ...s, me: { ...s.me, map: 'town' } })).not.toBeNull();
+});
+
+test('outbound hunt still allows confirmed empty supplies and disabling weight', () => {
+  const e = createErrand({}, world, fakeTravel(), () => null, { needsSaleReview: () => true, saleItems: () => [] });
+  const s = snap({ mapAgeMs: 60000, inventory: [{ ITID: 909, count: 5 }] });
+  expect(e.maybeStart(s, { outbound: true })).toBeNull();
+  setSystemTime(Date.now() + 4000);
+  try { expect(e.maybeStart(s, { outbound: true })).not.toBeNull(); }
+  finally { setSystemTime(); }
+  const heavy = createErrand({}, world, fakeTravel(), () => null, { needsSaleReview: () => true, saleItems: () => [] });
+  expect(heavy.maybeStart(snap({ me: { weight: 19000 }, inventory: [{ ITID: 501, count: 10 }] }), { outbound: true })).not.toBeNull();
+});
+
 test('selling waits for restored equipment confirmation even after the shop opens', async () => {
   let ready = false;
   const loot = { index: 9, ITID: 909, type: 3, count: 40 };

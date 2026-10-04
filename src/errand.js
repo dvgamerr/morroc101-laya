@@ -175,10 +175,12 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     return true;
   }
 
-  function need(snap) {
+  function need(snap, { outbound = false } = {}) {
     const me = snap.me;
     const inv = snap.inventory || [];
-    if (e.forceSell) return { sell: true };
+    const inTown = !!world && isTown(world, me.map);
+    const cannotFight = me.maxWeight > 0 && me.weight / me.maxWeight >= 0.9;
+    if (e.forceSell && (inTown || cannotFight)) return { sell: true };
     // Empty HP/SP supplies can deadlock farming below reserve: sell, then buy a small recovery batch.
     const empty = stockHp(inv, me) === 0 || (me.maxSp > 0 && stockSp(inv) === 0);
     if (!empty || (snap.mapAgeMs ?? Infinity) < SETTLE_AFTER_MAP_MS) e.emptySince = 0;
@@ -188,6 +190,9 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
       e.request = null;
       return { sell: hasSaleCandidates(snap), reviewPotions: true, emergencySupplies: true };
     }
+    // Hunt until supplies run out or combat is disabled. Routine top-ups,
+    // selling and consolidation are town services, never a reason to leave.
+    if ((!inTown || outbound) && !cannotFight) return null;
     // Once per return from a field: sell approved loot before reviewing supplies.
     if (world && isTown(world, me.map) && !e.townServiced && (snap.mapAgeMs ?? Infinity) >= 3000) {
       const sell = hasSaleCandidates(snap);
@@ -284,10 +289,10 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
    * so a trip can buy each for the same stretch of hunting and they run out together.
    * Called every tick; a bag read mid-refresh (fewer stacks than last time) is ignored.
    */
-  function observe(snap, goal = null) {
+  function observe(snap, goal = null, { hunting = false } = {}) {
     if (snap.me.maxWeight > 0 && snap.me.weight / snap.me.maxWeight < 0.9) e.weightSaleRequested = false;
     observeSellPrices(snap);
-    if (!e.active && world?.spawnsByMap?.get(snap.me.map)?.length) e.townServiced = false;
+    if (!e.active && hunting) e.townServiced = false;
     const inv = snap.inventory || [];
     const now = Date.now();
     if (goal !== e.goal) {
@@ -329,9 +334,9 @@ export function createErrand(page, world, travel, getDps = () => null, review = 
     return r;
   }
 
-  function maybeStart(snap) {
+  function maybeStart(snap, context) {
     if (e.active || Date.now() < e.cooldownUntil || !world) return null;
-    const n = need(snap);
+    const n = need(snap, context);
     if (!n) return null;
     if (n.emergencySupplies) e.townServiced = true;
     const shop = pickShop(snap, n.buy || n.buySp || (n.buyWing ? FLY_WING : null));

@@ -1,6 +1,20 @@
 import { test, expect } from 'bun:test';
 import { observeFarmTrip, finishFarmTrip, abortFarmTravel, settleFarmErrand } from '../src/farm-profit.js';
 
+test('town detour and no-op shopping do not assess unsold loot as zero profit', () => {
+  let trip = observeFarmTrip(null, { map: 'field', zeny: 10000 }, false, 'field', 1000);
+  trip = observeFarmTrip(trip, { map: 'town', zeny: 10000 }, true, 'field', 5000);
+  expect(finishFarmTrip(trip, 10000, 6000, null, true)).toBeNull();
+  trip = settleFarmErrand(trip, { ok: true, sold: 0, bought: [] });
+  expect(finishFarmTrip(trip, 10000, 7000, null, true)).toBeNull();
+  trip = observeFarmTrip(trip, { map: 'field', zeny: 10000 }, false, 'field', 7100);
+  expect(trip.returned).toBe(false);
+  expect(trip.startZeny).toBe(10000);
+  trip = observeFarmTrip(trip, { map: 'town', zeny: 12000 }, true, 'field', 7500);
+  trip = settleFarmErrand(trip, { ok: true, sold: 10, bought: [] });
+  expect(finishFarmTrip(trip, 12000, 8000, null, true).net).toBe(2000);
+});
+
 test('compares money before travel with cash after selling and restocking', () => {
   let trip = observeFarmTrip(null, { map: 'town', zeny: 10000 }, true, 'field');
   trip = observeFarmTrip(trip, { map: 'field', zeny: 9500 }, false, 'field');

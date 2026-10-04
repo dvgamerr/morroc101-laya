@@ -639,7 +639,7 @@ async function farmTick(snap) {
   // Owner's +9 project owns its NPC/refine sequence, including intentional
   // equipment returns to Inventory. Restore-stripped-weapon logic resumes after it.
   if (!snap.me.dead && !weaponBlocked(snap.me) && !errand.active && !jobChange.active && !healer.active &&
-      (gearUpgrade.active || (!travel.inDialog && !storage.active && snap.me.hp / snap.me.maxHp >= 0.9))) {
+      (gearUpgrade.active || (world && isTown(world, snap.me.map) && !travel.inDialog && !storage.active && snap.me.hp / snap.me.maxHp >= 0.9))) {
     if (await gearUpgrade.tick(snap)) {
       // Closing an arrival dialog while idle does not start a gear project.
       // Stopping here used to reset Warpra after every warp and send us back
@@ -670,15 +670,17 @@ async function farmTick(snap) {
       ? (snap.me.zeny < currentMoneyTarget(snap).reserve ? 'เงินต่ำกว่าเงินสำรอง: หาเงิน' : 'หาเงินต่อจากรอบเดิมให้ถึงเป้าหมายสะสม')
       : 'เงินสำรองเพียงพอ: กลับไปเก็บเลเวลสู่ Class 4 เลเวล 255');
   }
-  errand.observe(snap, brain.plan.goal); // usage rates of potions and wings, for balanced shopping
+  errand.observe(snap, brain.plan.goal, { hunting: !brain.huntPending && snap.me.map === brain.plan.hunt_map });
   const hp = snap.me.maxHp ? snap.me.hp / snap.me.maxHp : 1;
   const huntMap = brain.plan.hunt_map;
   // The live map is authoritative, including after restarting in the hunting ground.
   if (huntMap && snap.me.map === huntMap && travel.dest) await travel.stop();
   const away = !!huntMap && snap.me.map !== huntMap;
+  const walkingReturn = !!world && !isTown(world, snap.me.map) && !brain.farmTrip?.returned &&
+    !!brain.farmTrip?.maps.includes(huntMap);
 
   // In town and hurt (e.g. just respawned): the Healer NPC is free, potions aren't.
-  if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && (healer.active || healer.maybeStart(snap))) {
+  if (!travel.inDialog && !snap.me.dead && !snap.attackers.length && (healer.active || (world && isTown(world, snap.me.map) && healer.maybeStart(snap)))) {
     await healer.tick(snap);
     return;
   }
@@ -703,7 +705,7 @@ async function farmTick(snap) {
   // mjolnir_04 winging from pack to pack. Below 25% HP the emergency rules still take over.
   // Only when the next step really is the @go: walking away with a pack behind us is no escape.
   if (!brain.huntPending && away && travel.canGo && hp >= 0.25 && !snap.me.dead && snap.attackers.length && !onlyAvoided) {
-    if (travel.dest !== huntMap) await travel.start(huntMap);
+    if (travel.dest !== huntMap) await travel.start(huntMap, { walking: walkingReturn });
     // The route's first step is only known once travel has planned it: plan now, even mid-fight.
     if (travel.legKind === null) await travel.tick(snap);
     if (travel.legKind === 'go') {
@@ -725,7 +727,8 @@ async function farmTick(snap) {
   // it runs until done and hunting picks up again (travel back to the hunt map is automatic).
   if (world && isTown(world, snap.me.map) && (snap.mapAgeMs ?? Infinity) < 3000) return;
   if (!travel.inDialog && !errand.active) {
-    const started = errand.maybeStart(snap);
+    const outbound = !brain.farmTrip?.returned && (brain.huntPending || snap.me.map !== huntMap);
+    const started = errand.maybeStart(snap, { outbound });
     if (started) {
       brain.farmTrip = abortFarmTravel(brain.farmTrip, 'กลับเติมเสบียง/ขายของก่อนถึงแมพล่า');
       saveState();
@@ -742,7 +745,7 @@ async function farmTick(snap) {
   // Compare settled cash after town services, before departing for another hunt.
   if (Date.now() < (brain.profitSettleAfter || 0)) return;
   if (world && isTown(world, snap.me.map)) {
-    const result = finishFarmTrip(brain.farmTrip, snap.me.zeny, Date.now(), snap.me);
+    const result = finishFarmTrip(brain.farmTrip, snap.me.zeny, Date.now(), snap.me, true);
     if (result) {
       brain.farmTrip = observeFarmTrip(null, snap.me, true, brain.plan.hunt_map, Date.now(), moneyObjective);
       brain.farmResults ||= {};
@@ -782,7 +785,7 @@ async function farmTick(snap) {
   }
 
   // Job change: qualified for the next job on CLASS_PATH -> go to the Job Master.
-  if (!travel.inDialog && !jobChange.active) {
+  if (!travel.inDialog && !jobChange.active && world && isTown(world, snap.me.map)) {
     const started = jobChange.maybeStart(snap);
     if (started) {
       if (travel.dest) await travel.stop();
@@ -824,7 +827,11 @@ async function farmTick(snap) {
   }
 
   if (away) {
-    if (travel.dest !== huntMap) await travel.start(huntMap);
+    if (travel.dest !== huntMap) {
+      const walking = walkingReturn;
+      if (walking) log('hunt_return_route', { from: snap.me.map, to: huntMap, mode: 'walking' });
+      await travel.start(huntMap, { walking });
+    }
     const travelResult = await travel.tick(snap);
     if (travelResult === 'failed') {
       exclude(huntMap, 'เดินทางไปไม่ได้');

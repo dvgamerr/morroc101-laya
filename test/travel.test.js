@@ -181,6 +181,15 @@ test('keeps destination across warp, stale go leg and transient lost route', asy
   expect(await t.tick(snap({map:'lhz_fild01'},null))).toBe('arrived');
 });
 
+test('returning to a hunted field can bypass Warpra and town warps', async () => {
+  const t = createTravel({}, { canGo: true, bad: new Set() }, {});
+  await t.start('prt_fild09', { walking: true });
+  expect(calls).toEqual([['navi_start', { map: 'prt_fild09', useGo: false }]]);
+  calls.length = 0;
+  await t.tick(snap({ map: 'prt_fild07' }, { legs: [], lost: false }));
+  expect(calls.some(([name]) => name === 'say')).toBe(false);
+});
+
 test('advances an NPC Next prompt before trying to warp', async () => {
   const t = createTravel({});
   await t.start('prontera');

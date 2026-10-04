@@ -8,6 +8,7 @@ export function abortFarmTravel(trip, reason) {
 }
 
 export function settleFarmErrand(trip, done) {
+  if (trip?.maps.length && done.ok && done.sold > 0) return { ...trip, saleSettled: true };
   if (trip?.routeFailure !== 'กลับเติมเสบียง/ขายของก่อนถึงแมพล่า' ||
       trip.maps.length || done.sold || done.bought?.length) return trip;
   const { routeFailure, ...outbound } = trip;
@@ -33,6 +34,8 @@ export function observeFarmTrip(trip, me, inTown, huntMap, now = Date.now(), goa
   }
   // Include outbound travel in the elapsed time, even before reaching the hunt map.
   trip ||= fresh();
+  // Leaving a detour without a sale continues the same cash-to-cash trip.
+  if (trip.returned && !trip.saleSettled && !trip.routeFailure && trip.huntMap === huntMap) trip = { ...trip, returned: false };
   if (!trip.returned) trip = { ...trip, startedAt: trip.startedAt ?? now,
     huntMap: trip.huntMap ?? huntMap,
     routeMaps: [...new Set([...(trip.routeMaps || []), me.map])] };
@@ -41,8 +44,10 @@ export function observeFarmTrip(trip, me, inTown, huntMap, now = Date.now(), goa
   return { ...trip, startedAt: trip.startedAt ?? now, maps: [...trip.maps, me.map] };
 }
 
-export function finishFarmTrip(trip, zeny, now = Date.now(), me = null) {
+export function finishFarmTrip(trip, zeny, now = Date.now(), me = null, requireSale = false) {
   if (!trip?.returned || (!trip.maps.length && !trip.routeFailure) || !Number.isFinite(zeny)) return null;
+  // Visiting a town (including a routing detour) doesn't value unsold loot.
+  if (requireSale && !trip.routeFailure && !trip.saleSettled) return null;
   // Time includes outbound travel, hunting, return, sale and restocking.
   // Old persisted trips have no start time; do not invent a rate for them.
   const durationMs = Number.isFinite(trip.startedAt) && now > trip.startedAt ? now - trip.startedAt : null;

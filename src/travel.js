@@ -40,20 +40,21 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
 
   const useGo = () => go.canGo && !t.tripNoGo;
 
-  async function start(map) {
+  async function start(map, { walking = false } = {}) {
     t.dest = map;
     t.lastMap = null;
     t.routeReadyAt = 0;
     t.routeRetries = 0;
     t.wingKey = null;
     t.wingBlocked = new Set();
-    t.warpChecked = false;
+    t.warpChecked = walking;
     t.goTries = 0;
     t.lastGoAt = 0;
-    t.tripNoGo = false;
+    t.tripNoGo = walking;
+    t.walkingOnly = walking;
     t.closedNaid = null;
     t.startedAt = t.lastProgressAt = Date.now();
-    if (warpra) { warpra.start(map); await act(page, 'navi_clear'); }
+    if (warpra && !walking) { warpra.start(map); await act(page, 'navi_clear'); }
     else await act(page, 'navi_start', { map, useGo: useGo() });
     log('travel_start', { to: map, useGo: useGo() });
   }
@@ -117,7 +118,7 @@ export function createTravel(page, go = { canGo: true, bad: new Set() }, world =
       t.routeRetries = 0;
       if (changed) {
         // An earlier unconfirmed warp applies only to the map we just left.
-        t.tripNoGo = false;
+        t.tripNoGo = t.walkingOnly;
         log('travel_map_changed', { map: me.map, to: t.dest });
         await refreshRoute();
         return 'traveling';

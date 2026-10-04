@@ -8,6 +8,12 @@ export function createReconnect(page) {
   let recovering = false;
   let blocked = false;
   let lastState = '';
+  async function beginRecovery() {
+    if (!recovering) await page.evaluate(() => {
+      window.__agentReconnectEntity = window.RO?.Session?.Entity;
+    });
+    recovering = blocked = true;
+  }
   const report = (state, detail = {}) => {
     if (state === lastState) return;
     lastState = state;
@@ -24,7 +30,7 @@ export function createReconnect(page) {
       });
       if (await popup.count()) {
         character ||= snap?.me?.name || '';
-        recovering = blocked = true;
+        await beginRecovery();
         const ok = popup.locator('button[data-background="btn_ok.bmp"]:visible');
         if (await ok.count() === 1 && now >= nextAction) {
           nextAction = now + 5000;
@@ -34,10 +40,30 @@ export function createReconnect(page) {
         return true;
       }
 
+      const login = page.locator('section#WinLogin:visible');
+      if (await login.count() === 1) {
+        character ||= snap?.me?.name || '';
+        await beginRecovery();
+        if (now < nextAction) return true;
+        // Check presence in the page; never return/log the credentials.
+        const filled = await login.evaluate(el => !!el.querySelector('input.user')?.value && !!el.querySelector('input.pass')?.value);
+        if (!filled) {
+          report('waiting_for_login_credentials');
+          return true;
+        }
+        const connect = login.locator('button.connect:visible');
+        if (await connect.isEnabled()) {
+          nextAction = now + 10000;
+          await connect.click({ timeout: 1200 });
+          report('login_submitted');
+        }
+        return true;
+      }
+
       // Inner panels only: the client uses duplicate IDs on shadow hosts.
       const panel = page.locator('#CharSelectV4:has(> .char_select_container):visible, #charselect:has(> .charinfo):visible, #CharSelectV2:has(> .charinfo):visible, #CharSelectV3:has(> .charinfo):visible');
       if (await panel.count() === 1) {
-        recovering = blocked = true;
+        await beginRecovery();
         if (now < nextAction) return true;
         const cards = panel.locator('.char_canvas');
         if (await cards.count()) {
@@ -66,7 +92,11 @@ export function createReconnect(page) {
         }
         return true;
       }
-      if (recovering && (!snap?.inGame || now < nextAction)) {
+      const freshSession = !recovering || await page.evaluate(() => {
+        const session = window.RO?.Session;
+        return session?.Playing === true && !!session.Entity && session.Entity !== window.__agentReconnectEntity;
+      });
+      if (recovering && (!snap?.inGame || !freshSession || now < nextAction)) {
         blocked = true;
         report('waiting_for_game');
         return true;
